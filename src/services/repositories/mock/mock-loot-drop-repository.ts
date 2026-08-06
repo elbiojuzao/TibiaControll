@@ -1,0 +1,77 @@
+import type { LootDrop, CreateLootDropDto, LootDropFilters } from '@/types';
+import type { ILootDropRepository } from '../interfaces';
+import { mockLootDrops } from '@/mocks/data/loot-drops';
+
+const delay = (ms = 200) => new Promise((r) => setTimeout(r, ms));
+
+let dropsStore = [...mockLootDrops];
+
+export class MockLootDropRepository implements ILootDropRepository {
+  async findByAccount(accountId: string, filters?: LootDropFilters): Promise<LootDrop[]> {
+    await delay();
+    let results = dropsStore.filter((d) => d.accountId === accountId);
+
+    if (filters?.bossName) {
+      results = results.filter((d) =>
+        d.bossName.toLowerCase().includes(filters.bossName!.toLowerCase()),
+      );
+    }
+    if (filters?.sold !== undefined) {
+      results = results.filter((d) => d.sold === filters.sold);
+    }
+    if (filters?.looter) {
+      results = results.filter((d) =>
+        d.looter.toLowerCase().includes(filters.looter!.toLowerCase()),
+      );
+    }
+    if (filters?.dateFrom) {
+      const from = parseDate(filters.dateFrom);
+      results = results.filter((d) => parseDate(d.date) >= from);
+    }
+    if (filters?.dateTo) {
+      const to = parseDate(filters.dateTo);
+      results = results.filter((d) => parseDate(d.date) <= to);
+    }
+
+    return results.sort((a, b) => parseDate(b.date) - parseDate(a.date));
+  }
+
+  async findById(id: string): Promise<LootDrop | null> {
+    await delay(100);
+    return dropsStore.find((d) => d.id === id) ?? null;
+  }
+
+  async create(accountId: string, dto: CreateLootDropDto): Promise<LootDrop> {
+    await delay();
+    const drop: LootDrop = {
+      id: crypto.randomUUID(),
+      accountId,
+      ...dto,
+      sold: dto.sold ?? false,
+    };
+    dropsStore.unshift(drop);
+    return drop;
+  }
+
+  async update(id: string, dto: Partial<CreateLootDropDto>): Promise<LootDrop> {
+    await delay();
+    const index = dropsStore.findIndex((d) => d.id === id);
+    if (index === -1) throw new Error('Drop nao encontrado');
+    dropsStore[index] = { ...dropsStore[index], ...dto };
+    return dropsStore[index];
+  }
+
+  async delete(id: string): Promise<void> {
+    await delay();
+    dropsStore = dropsStore.filter((d) => d.id !== id);
+  }
+
+  static reset(): void {
+    dropsStore = [...mockLootDrops];
+  }
+}
+
+function parseDate(dateStr: string): number {
+  const [day, month, year] = dateStr.split('/').map(Number);
+  return new Date(year, month - 1, day).getTime();
+}

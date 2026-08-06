@@ -1,0 +1,1 @@
+export { TierCalculatorPage } from './TierCalculatorPage';

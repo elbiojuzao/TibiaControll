@@ -1,0 +1,152 @@
+import { useEffect, useMemo, useState } from 'react';
+import { useAccount } from '@/hooks/useAccount';
+import { useHunts } from '@/hooks/useHunts';
+import { useLootDrops } from '@/hooks/useLootDrops';
+import { formatTibiaGold } from '@/services/split';
+import { formatDateKey, findLatestActivityDate, groupActivityByDate } from '@/services/calendar';
+
+const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+const MONTH_NAMES = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+];
+
+interface Cell {
+  day: number | null;
+  dateKey: string | null;
+}
+
+function buildMonthCells(year: number, month: number): Cell[] {
+  const firstWeekday = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const cells: Cell[] = [];
+  for (let i = 0; i < firstWeekday; i++) cells.push({ day: null, dateKey: null });
+  for (let day = 1; day <= daysInMonth; day++) {
+    cells.push({ day, dateKey: formatDateKey(day, month + 1, year) });
+  }
+  while (cells.length % 7 !== 0) cells.push({ day: null, dateKey: null });
+  return cells;
+}
+
+export function CalendarioPage() {
+  const { accountId } = useAccount();
+  const { hunts, loading: huntsLoading } = useHunts(accountId);
+  const { drops, loading: dropsLoading } = useLootDrops(accountId);
+
+  const now = new Date();
+  const [view, setView] = useState({ year: now.getFullYear(), month: now.getMonth() });
+  const [initialized, setInitialized] = useState(false);
+  const { year: viewYear, month: viewMonth } = view;
+
+  const todayKey = formatDateKey(now.getDate(), now.getMonth() + 1, now.getFullYear());
+
+  // Na primeira carga, pula direto pro mês com atividade mais recente (senão o calendário abre vazio)
+  useEffect(() => {
+    if (initialized || huntsLoading || dropsLoading) return;
+    const latest = findLatestActivityDate(hunts, drops);
+    if (latest !== null) {
+      const d = new Date(latest);
+      setView({ year: d.getFullYear(), month: d.getMonth() });
+    }
+    setInitialized(true);
+  }, [initialized, huntsLoading, dropsLoading, hunts, drops]);
+
+  const activityByDate = useMemo(() => groupActivityByDate(hunts, drops), [hunts, drops]);
+  const cells = useMemo(() => buildMonthCells(viewYear, viewMonth), [viewYear, viewMonth]);
+
+  const goToPrevMonth = () => {
+    setView((v) => {
+      const d = new Date(v.year, v.month - 1, 1);
+      return { year: d.getFullYear(), month: d.getMonth() };
+    });
+  };
+
+  const goToNextMonth = () => {
+    setView((v) => {
+      const d = new Date(v.year, v.month + 1, 1);
+      return { year: d.getFullYear(), month: d.getMonth() };
+    });
+  };
+
+  const goToToday = () => {
+    setView({ year: now.getFullYear(), month: now.getMonth() });
+  };
+
+  return (
+    <div className="dashboard-container" style={{ padding: '20px', maxWidth: '1100px', margin: '0 auto', color: '#f8fafc' }}>
+      <header className="page-header" style={{ marginBottom: '20px', borderBottom: '1px solid #334155', paddingBottom: '15px' }}>
+        <h2 style={{ margin: 0, fontSize: '20px', color: '#10b981' }}>Histórico — Calendário</h2>
+        <p style={{ margin: '5px 0 0 0', color: '#94a3b8', fontSize: '14px' }}>
+          Passe o mouse em cima de um dia para ver as hunts, bosses e drops registrados naquela data.
+        </p>
+      </header>
+
+      <div className="card">
+        <div className="calendar-header">
+          <button className="calendar-nav-btn" onClick={goToPrevMonth}>‹ Anterior</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span className="calendar-title">{MONTH_NAMES[viewMonth]} de {viewYear}</span>
+            <button className="calendar-nav-btn" onClick={goToToday}>Hoje</button>
+          </div>
+          <button className="calendar-nav-btn" onClick={goToNextMonth}>Próximo ›</button>
+        </div>
+
+        <div className="calendar-grid" style={{ marginBottom: '6px' }}>
+          {WEEKDAYS.map((wd) => (
+            <div key={wd} className="calendar-weekday">{wd}</div>
+          ))}
+        </div>
+
+        <div className="calendar-grid">
+          {cells.map((cell, idx) => {
+            if (cell.day === null) {
+              return <div key={idx} className="calendar-day empty" />;
+            }
+
+            const activity = activityByDate.get(cell.dateKey!);
+            const hasActivity = !!activity && (activity.hunts.length > 0 || activity.drops.length > 0);
+
+            return (
+              <div
+                key={idx}
+                className={`calendar-day${hasActivity ? ' has-activity' : ''}${cell.dateKey === todayKey ? ' today' : ''}`}
+              >
+                <span className="calendar-day-number">{cell.day}</span>
+
+                {hasActivity && (
+                  <div className="calendar-day-dots">
+                    {activity!.hunts.length > 0 && <span className="calendar-dot hunt" title="Hunt" />}
+                    {activity!.drops.length > 0 && <span className="calendar-dot drop" title="Drop" />}
+                  </div>
+                )}
+
+                {hasActivity && (
+                  <div className="calendar-tooltip">
+                    <div className="calendar-tooltip-title">{cell.dateKey}</div>
+
+                    {activity!.hunts.map((hunt) => (
+                      <div key={hunt.id} className="calendar-tooltip-item">
+                        🗡️ Hunt{hunt.bossName ? ` — ${hunt.bossName}` : ''}<br />
+                        Profit: <strong style={{ color: '#10b981' }}>{formatTibiaGold(hunt.profitTotal)}</strong>{' '}
+                        · XP: <strong>{hunt.xpGained.toLocaleString('pt-BR')}</strong>
+                      </div>
+                    ))}
+
+                    {activity!.drops.map((drop) => (
+                      <div key={drop.id} className="calendar-tooltip-item">
+                        💎 {drop.itemName} <span style={{ color: '#64748b' }}>({drop.bossName})</span><br />
+                        Valor: <strong style={{ color: '#10b981' }}>{formatTibiaGold(drop.totalValue)}</strong>{' '}
+                        · {drop.sold ? 'Vendido' : 'Pendente'}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
