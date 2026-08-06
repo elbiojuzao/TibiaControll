@@ -7,6 +7,8 @@ export interface DropService {
   serviceiroName: string;
   /** Qual vocação/vaga esse serviceiro cobriu — pode faltar em drops históricos importados sem essa info */
   vocation?: Vocation;
+  /** Nome do char (dentre EK/ED/MS/RP/5º desse drop) que o serviceiro efetivamente serviu — rastreabilidade de quem fez o service pra quem, editável só no modal de registro/edição (não aparece como coluna na tabela) */
+  servedCharacterName?: string;
 }
 
 /** Composicao da party no momento do drop (colunas EK, ED, MS, RP, 5o, Service) */

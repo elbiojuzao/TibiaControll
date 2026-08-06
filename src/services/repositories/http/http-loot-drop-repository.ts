@@ -11,6 +11,7 @@ import type { ILootDropRepository } from '../interfaces';
  */
 interface DropServiceRow {
   vocacao: string | null;
+  served_character_name: string | null;
   serviceiro: { id: string; name: string } | null;
 }
 
@@ -34,7 +35,7 @@ interface DropRow {
 }
 
 /** drop_services vem com o serviceiro embutido via FK implícita (serviceiro_id -> serviceiros) */
-const SELECT_WITH_SERVICES = '*, drop_services(vocacao, serviceiro:serviceiros(id, name))';
+const SELECT_WITH_SERVICES = '*, drop_services(vocacao, served_character_name, serviceiro:serviceiros(id, name))';
 
 function toDomain(row: DropRow): LootDrop {
   const services: DropService[] = (row.drop_services ?? [])
@@ -43,6 +44,7 @@ function toDomain(row: DropRow): LootDrop {
       serviceiroId: s.serviceiro.id,
       serviceiroName: s.serviceiro.name,
       vocation: s.vocacao ? (s.vocacao as Vocation) : undefined,
+      servedCharacterName: s.served_character_name ?? undefined,
     }));
 
   return {
@@ -75,7 +77,12 @@ async function replaceDropServices(dropId: string, services: DropService[]): Pro
   if (services.length === 0) return;
 
   const { error: insertError } = await supabase.from('drop_services').insert(
-    services.map((s) => ({ drop_id: dropId, serviceiro_id: s.serviceiroId, vocacao: s.vocation })),
+    services.map((s) => ({
+      drop_id: dropId,
+      serviceiro_id: s.serviceiroId,
+      vocacao: s.vocation,
+      served_character_name: s.servedCharacterName,
+    })),
   );
   if (insertError) throw new Error(insertError.message);
 }
