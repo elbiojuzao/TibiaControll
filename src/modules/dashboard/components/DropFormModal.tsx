@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Modal } from '@/components/common/Modal';
 import { BOSS_NAMES, BOSS_ITEMS } from '@/services/lootdrop/boss-items-data';
-import { VOCATION_ICON } from '@/services/vocation/vocation-display';
 import { isoToBr, brToIso, todayAsBr } from '@/services/common/br-date';
 import { formatTibiaGold } from '@/services/split';
 import type { CreateLootDropDto, LootDrop, Member, Serviceiro, Vocation } from '@/types';
@@ -12,6 +11,8 @@ const VAZIO = '';
 interface ServiceDraft {
   serviceiroId: string;
   vocation: Vocation | '';
+  /** Nome do char (EK/ED/MS/RP/5º desse drop) que esse serviceiro serviu de fato */
+  servedCharacterName: string;
 }
 
 interface DropFormModalProps {
@@ -31,6 +32,40 @@ function vocationOptions(members: Member[], vocation: Vocation, current: string)
   return Array.from(names);
 }
 
+interface PlayerOption {
+  value: string;
+  label: string;
+}
+
+/** Opções de "jogador servido" — os chars preenchidos acima (EK/ED/MS/RP/5º) nesse
+ * drop específico, sempre incluindo o valor atual mesmo que não bata mais com
+ * nenhum campo (ex: composição editada depois do vínculo já ter sido salvo). */
+function servedPlayerOptions(party: { ek: string; ed: string; ms: string; rp: string; fifthPlayer: string }, current: string): PlayerOption[] {
+  const opts: PlayerOption[] = [];
+  const push = (slot: string, value: string) => {
+    if (value) opts.push({ value, label: `${slot} — ${value}` });
+  };
+  push('EK', party.ek);
+  push('ED', party.ed);
+  push('MS', party.ms);
+  push('RP', party.rp);
+  push('5º', party.fifthPlayer);
+  if (current && !opts.some((o) => o.value === current)) opts.push({ value: current, label: current });
+  return opts;
+}
+
+/** A vocação some do form (o usuário já escolhe direto quem foi servido), mas continua
+ * guardada — dá pra inferir automaticamente porque cada slot (EK/ED/MS/RP) já é a
+ * vocação. Não dá pra inferir pro 5º Player, então fica sem vocação nesse caso. */
+function deriveVocation(party: { ek: string; ed: string; ms: string; rp: string }, servedCharacterName: string): Vocation | '' {
+  if (!servedCharacterName) return '';
+  if (servedCharacterName === party.ek) return 'EK';
+  if (servedCharacterName === party.ed) return 'ED';
+  if (servedCharacterName === party.ms) return 'MS';
+  if (servedCharacterName === party.rp) return 'RP';
+  return '';
+}
+
 export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSubmit }: DropFormModalProps) {
   const byVocation = (v: Vocation) => members.find((m) => m.vocation === v)?.characterName ?? '';
   const wasSold = mode === 'edit' ? drop!.sold : false;
@@ -42,7 +77,13 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
   const [ms, setMs] = useState(mode === 'edit' ? drop!.party.ms ?? '' : byVocation('MS'));
   const [fifthPlayer, setFifthPlayer] = useState(mode === 'edit' ? drop!.party.fifthPlayer ?? '' : '');
   const [serviceDrafts, setServiceDrafts] = useState<ServiceDraft[]>(
-    mode === 'edit' ? drop!.party.services.map((s) => ({ serviceiroId: s.serviceiroId, vocation: s.vocation ?? '' })) : [],
+    mode === 'edit'
+      ? drop!.party.services.map((s) => ({
+          serviceiroId: s.serviceiroId,
+          vocation: s.vocation ?? '',
+          servedCharacterName: s.servedCharacterName ?? '',
+        }))
+      : [],
   );
   const [totalValue, setTotalValue] = useState(mode === 'edit' ? String(drop!.totalValue) : '');
   const [bossName, setBossName] = useState(mode === 'edit' ? drop!.bossName : VAZIO);
@@ -64,7 +105,7 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
     return itemName && !base.includes(itemName) ? [itemName, ...base] : base;
   }, [bossName, itemName]);
 
-  const addServiceRow = () => setServiceDrafts((prev) => [...prev, { serviceiroId: '', vocation: '' }]);
+  const addServiceRow = () => setServiceDrafts((prev) => [...prev, { serviceiroId: '', vocation: '', servedCharacterName: '' }]);
   const removeServiceRow = (index: number) => setServiceDrafts((prev) => prev.filter((_, i) => i !== index));
   const updateServiceRow = (index: number, patch: Partial<ServiceDraft>) => {
     setServiceDrafts((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)));
@@ -75,11 +116,12 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
   // assim em vez de descartá-lo silenciosamente ao salvar.
   const resolvedServices = useMemo(
     () => serviceDrafts
-      .filter((row): row is { serviceiroId: string; vocation: Vocation | '' } => !!row.serviceiroId)
+      .filter((row) => !!row.serviceiroId)
       .map((row) => ({
         serviceiroId: row.serviceiroId,
         serviceiroName: serviceiros.find((s) => s.id === row.serviceiroId)?.name ?? '',
         vocation: row.vocation || undefined,
+        servedCharacterName: row.servedCharacterName || undefined,
       })),
     [serviceDrafts, serviceiros],
   );
@@ -236,6 +278,7 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {serviceDrafts.map((row, index) => {
                 const serviceiro = serviceiros.find((s) => s.id === row.serviceiroId);
+                const playerOptions = servedPlayerOptions({ ek, ed, ms, rp, fifthPlayer }, row.servedCharacterName);
                 return (
                   <div key={index} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '8px', alignItems: 'center' }}>
                     <select
@@ -249,14 +292,18 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
                       ))}
                     </select>
                     <select
-                      value={row.vocation}
-                      onChange={(e) => updateServiceRow(index, { vocation: e.target.value as Vocation })}
+                      value={row.servedCharacterName}
+                      onChange={(e) => {
+                        const servedCharacterName = e.target.value;
+                        updateServiceRow(index, { servedCharacterName, vocation: deriveVocation({ ek, ed, ms, rp }, servedCharacterName) });
+                      }}
                       disabled={!serviceiro}
                       style={fieldStyle}
+                      title="Em quem esse serviceiro fez o service"
                     >
-                      <option value={VAZIO}>{serviceiro ? '-- Vazio --' : 'Escolha o serviceiro'}</option>
-                      {serviceiro?.vocations.map((v) => (
-                        <option key={v} value={v}>{VOCATION_ICON[v]} {v}</option>
+                      <option value={VAZIO}>{serviceiro ? '-- Jogador servido --' : 'Escolha o serviceiro'}</option>
+                      {playerOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
                       ))}
                     </select>
                     <button
