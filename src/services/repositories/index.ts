@@ -23,6 +23,8 @@ import { MockSplitRepository } from './mock/mock-split-repository';
 import { MockServiceiroRepository } from './mock/mock-serviceiro-repository';
 import { MockDashboardRepository } from './mock/mock-dashboard-repository';
 import { MockSettingsRepository } from './mock/mock-settings-repository';
+import { HttpServiceiroRepository } from './http/http-serviceiro-repository';
+import { HttpLootDropRepository } from './http/http-loot-drop-repository';
 
 export interface RepositoryContainer {
   account: IAccountRepository;
@@ -38,16 +40,26 @@ export interface RepositoryContainer {
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false';
 
+/**
+ * Flag independente do `USE_MOCK` geral — liga só o repositorio de
+ * Serviceiros no Supabase real, enquanto o resto do app (sem implementacao
+ * HTTP ainda) continua mock. Ver memoria de projeto "integracao-supabase".
+ */
+export const SERVICEIROS_USE_SUPABASE = import.meta.env.VITE_SERVICEIROS_USE_SUPABASE === 'true';
+
+/** Mesma ideia da flag acima, mas para o repositorio de Loot Drops. */
+export const LOOTDROPS_USE_SUPABASE = import.meta.env.VITE_LOOTDROPS_USE_SUPABASE === 'true';
+
 function createRepositories(): RepositoryContainer {
   if (USE_MOCK) {
     return {
       account: new MockAccountRepository(),
       member: new MockMemberRepository(),
-      lootDrop: new MockLootDropRepository(),
+      lootDrop: LOOTDROPS_USE_SUPABASE ? new HttpLootDropRepository() : new MockLootDropRepository(),
       hunt: new MockHuntRepository(),
       boss: new MockBossRepository(),
       split: new MockSplitRepository(),
-      serviceiro: new MockServiceiroRepository(),
+      serviceiro: SERVICEIROS_USE_SUPABASE ? new HttpServiceiroRepository() : new MockServiceiroRepository(),
       dashboard: new MockDashboardRepository(),
       settings: new MockSettingsRepository(),
     };

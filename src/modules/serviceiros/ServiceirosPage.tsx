@@ -25,6 +25,7 @@ export function ServiceirosPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formName, setFormName] = useState('');
+  const [formCharacterName, setFormCharacterName] = useState('');
   const [formPhone, setFormPhone] = useState('');
   const [formVocations, setFormVocations] = useState<Vocation[]>([]);
   const [saving, setSaving] = useState(false);
@@ -40,6 +41,7 @@ export function ServiceirosPage() {
     setShowForm(false);
     setEditingId(null);
     setFormName('');
+    setFormCharacterName('');
     setFormPhone('');
     setFormVocations([]);
     setFormError(null);
@@ -59,6 +61,7 @@ export function ServiceirosPage() {
     if (!target) return;
     setEditingId(id);
     setFormName(target.name);
+    setFormCharacterName(target.characterName);
     setFormPhone('');
     setFormVocations(target.vocations);
     setFormError(null);
@@ -70,10 +73,15 @@ export function ServiceirosPage() {
     setFormError(null);
 
     const trimmedName = formName.trim();
+    const trimmedCharacterName = formCharacterName.trim();
     const digitsOnly = formPhone.replace(/\D/g, '');
 
     if (!trimmedName) {
       setFormError('Informe o nome do serviceiro.');
+      return;
+    }
+    if (!trimmedCharacterName) {
+      setFormError('Informe o nome do boneco usado para pagamento.');
       return;
     }
     if (!editingId && digitsOnly.length < 10) {
@@ -94,13 +102,21 @@ export function ServiceirosPage() {
       if (editingId) {
         await updateServiceiro(editingId, {
           name: trimmedName,
+          characterName: trimmedCharacterName,
           vocations: formVocations,
           ...(digitsOnly ? { phoneNumber: digitsOnly } : {}),
         });
       } else {
-        await createServiceiro({ name: trimmedName, phoneNumber: digitsOnly, vocations: formVocations });
+        await createServiceiro({
+          name: trimmedName,
+          characterName: trimmedCharacterName,
+          phoneNumber: digitsOnly,
+          vocations: formVocations,
+        });
       }
       resetForm();
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'Erro ao salvar serviceiro.');
     } finally {
       setSaving(false);
     }
@@ -136,7 +152,7 @@ export function ServiceirosPage() {
             {editingId ? 'Editar Serviceiro' : 'Novo Serviceiro'}
           </h3>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
             <label style={{ fontSize: '12px', color: '#94a3b8' }}>
               Nome
               <input
@@ -144,6 +160,16 @@ export function ServiceirosPage() {
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
                 placeholder="Ex: Dedinho"
+                style={{ width: '100%', marginTop: '4px', background: '#0f172a', color: '#fff', border: '1px solid #334155', borderRadius: '6px', padding: '8px', boxSizing: 'border-box' }}
+              />
+            </label>
+            <label style={{ fontSize: '12px', color: '#94a3b8' }}>
+              Nome do Boneco (pagamento)
+              <input
+                type="text"
+                value={formCharacterName}
+                onChange={(e) => setFormCharacterName(e.target.value)}
+                placeholder="Ex: Dedinho Knight"
                 style={{ width: '100%', marginTop: '4px', background: '#0f172a', color: '#fff', border: '1px solid #334155', borderRadius: '6px', padding: '8px', boxSizing: 'border-box' }}
               />
             </label>
@@ -290,7 +316,10 @@ export function ServiceirosPage() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ fontWeight: 'bold', fontSize: '14px' }}>{s.name}</span>
+                <div>
+                  <div style={{ fontWeight: 'bold', fontSize: '14px' }}>{s.name}</div>
+                  <div style={{ fontSize: '11px', color: '#64748b' }}>Boneco: {s.characterName || '—'}</div>
+                </div>
                 <div style={{ display: 'flex', gap: '4px' }}>
                   {s.vocations.map((vocation) => (
                     <span key={vocation} title={VOCATION_LABEL[vocation]} style={{ fontSize: '14px' }}>

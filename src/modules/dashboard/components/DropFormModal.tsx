@@ -1,0 +1,355 @@
+import { useMemo, useState } from 'react';
+import { Modal } from '@/components/common/Modal';
+import { BOSS_NAMES, BOSS_ITEMS } from '@/services/lootdrop/boss-items-data';
+import { VOCATION_ICON } from '@/services/vocation/vocation-display';
+import { isoToBr, brToIso, todayAsBr } from '@/services/common/br-date';
+import { formatTibiaGold } from '@/services/split';
+import type { CreateLootDropDto, LootDrop, Member, Serviceiro, Vocation } from '@/types';
+
+const VAZIO = '';
+
+/** Linha em edição do formulário — vira um DropService completo só quando serviceiro + vocação estão preenchidos */
+interface ServiceDraft {
+  serviceiroId: string;
+  vocation: Vocation | '';
+}
+
+interface DropFormModalProps {
+  mode: 'create' | 'edit';
+  /** Obrigatório quando mode === 'edit' */
+  drop?: LootDrop;
+  members: Member[];
+  serviceiros: Serviceiro[];
+  onClose: () => void;
+  onSubmit: (dto: CreateLootDropDto) => Promise<unknown>;
+}
+
+/** Nomes do vocation p/ o select, sempre incluindo o valor atual mesmo se ele não estiver mais na lista de Members (ex: drop histórico de um char que já saiu da PT) */
+function vocationOptions(members: Member[], vocation: Vocation, current: string): string[] {
+  const names = new Set(members.filter((m) => m.vocation === vocation).map((m) => m.characterName));
+  if (current) names.add(current);
+  return Array.from(names);
+}
+
+export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSubmit }: DropFormModalProps) {
+  const byVocation = (v: Vocation) => members.find((m) => m.vocation === v)?.characterName ?? '';
+  const wasSold = mode === 'edit' ? drop!.sold : false;
+
+  const [date, setDate] = useState(mode === 'edit' ? drop!.date : todayAsBr());
+  const [ek, setEk] = useState(mode === 'edit' ? drop!.party.ek ?? '' : byVocation('EK'));
+  const [ed, setEd] = useState(mode === 'edit' ? drop!.party.ed ?? '' : byVocation('ED'));
+  const [rp, setRp] = useState(mode === 'edit' ? drop!.party.rp ?? '' : byVocation('RP'));
+  const [ms, setMs] = useState(mode === 'edit' ? drop!.party.ms ?? '' : byVocation('MS'));
+  const [fifthPlayer, setFifthPlayer] = useState(mode === 'edit' ? drop!.party.fifthPlayer ?? '' : '');
+  const [serviceDrafts, setServiceDrafts] = useState<ServiceDraft[]>(
+    mode === 'edit' ? drop!.party.services.map((s) => ({ serviceiroId: s.serviceiroId, vocation: s.vocation ?? '' })) : [],
+  );
+  const [totalValue, setTotalValue] = useState(mode === 'edit' ? String(drop!.totalValue) : '');
+  const [bossName, setBossName] = useState(mode === 'edit' ? drop!.bossName : VAZIO);
+  const [itemName, setItemName] = useState(mode === 'edit' ? drop!.itemName : VAZIO);
+  const [looter, setLooter] = useState(mode === 'edit' ? drop!.looter : VAZIO);
+  const [sold, setSold] = useState(wasSold);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  // Sempre inclui o boss/item atualmente salvos como opção, mesmo que não estejam na
+  // tabela curada (drops históricos podem citar boss/item fora da lista conhecida) —
+  // sem isso o select fica em branco e o valor original é perdido ao salvar.
+  const bossOptions = useMemo(
+    () => (bossName && !BOSS_NAMES.includes(bossName) ? [bossName, ...BOSS_NAMES] : BOSS_NAMES),
+    [bossName],
+  );
+  const itemOptions = useMemo(() => {
+    const base = bossName ? BOSS_ITEMS[bossName] ?? [] : [];
+    return itemName && !base.includes(itemName) ? [itemName, ...base] : base;
+  }, [bossName, itemName]);
+
+  const addServiceRow = () => setServiceDrafts((prev) => [...prev, { serviceiroId: '', vocation: '' }]);
+  const removeServiceRow = (index: number) => setServiceDrafts((prev) => prev.filter((_, i) => i !== index));
+  const updateServiceRow = (index: number, patch: Partial<ServiceDraft>) => {
+    setServiceDrafts((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)));
+  };
+
+  // Vocação é opcional aqui: drops históricos importados têm serviceiro sem vocação
+  // registrada (a planilha antiga não guardava essa info) — manter o vínculo mesmo
+  // assim em vez de descartá-lo silenciosamente ao salvar.
+  const resolvedServices = useMemo(
+    () => serviceDrafts
+      .filter((row): row is { serviceiroId: string; vocation: Vocation | '' } => !!row.serviceiroId)
+      .map((row) => ({
+        serviceiroId: row.serviceiroId,
+        serviceiroName: serviceiros.find((s) => s.id === row.serviceiroId)?.name ?? '',
+        vocation: row.vocation || undefined,
+      })),
+    [serviceDrafts, serviceiros],
+  );
+
+  const looterOptions = useMemo(() => {
+    const options = [ek, ed, rp, ms, fifthPlayer, ...resolvedServices.map((s) => s.serviceiroName)]
+      .filter((n): n is string => !!n);
+    return Array.from(new Set(options));
+  }, [ek, ed, rp, ms, fifthPlayer, resolvedServices]);
+
+  // Valor Cada não é digitado — é a cota base (Valor Total / nº de jogadores da party
+  // nesse drop). Serviceiros não aumentam esse divisor: eles recebem 50% da cota de
+  // quem estavam servindo, em vez de uma cota própria (regra de negócio do usuário).
+  const playerCount = [ek, ed, rp, ms, fifthPlayer].filter(Boolean).length;
+  const totalNumber = Number(totalValue) || 0;
+  // Gold do Tibia é sempre inteiro (ver schema em supabase/migrations) — arredonda a cota.
+  const unitValue = playerCount > 0 ? Math.round(totalNumber / playerCount) : 0;
+
+  const handleBossChange = (value: string) => {
+    setBossName(value);
+    setItemName(VAZIO);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError(null);
+
+    const total = Number(totalValue);
+
+    if (!bossName) return setFormError('Selecione o boss.');
+    if (!itemName) return setFormError('Selecione o item.');
+    if (!looter) return setFormError('Selecione o fragador.');
+    // Item recém-registrado (ou sendo marcado como vendido agora) precisa de valor. Um
+    // drop já existente que ainda não foi vendido pode ficar com valor 0/em branco — é
+    // assim que a planilha original tratava itens pendentes de precificação.
+    const requireValue = mode === 'create' || sold;
+    if (requireValue) {
+      if (!totalValue || Number.isNaN(total) || total <= 0) return setFormError('Informe o Valor Total.');
+      if (playerCount === 0) return setFormError('Preencha ao menos um jogador (EK/ED/MS/RP/5º) pra calcular o Valor Cada.');
+    } else if (Number.isNaN(total) || total < 0) {
+      return setFormError('Valor Total inválido.');
+    }
+
+    const payload: CreateLootDropDto = {
+      date,
+      party: {
+        ek: ek || undefined,
+        ed: ed || undefined,
+        rp: rp || undefined,
+        ms: ms || undefined,
+        fifthPlayer: fifthPlayer || undefined,
+        services: resolvedServices,
+      },
+      unitValue,
+      totalValue: total,
+      looter,
+      itemName,
+      bossName,
+      sold: mode === 'edit' ? sold : false,
+    };
+
+    if (mode === 'edit') {
+      // Data da venda só muda quando o item passa a "vendido" agora; editar
+      // outros campos (ou continuar vendido) nunca reescreve a data original.
+      if (sold && !wasSold) payload.saleDate = todayAsBr();
+      else if (sold && wasSold) payload.saleDate = drop!.saleDate ?? todayAsBr();
+      else payload.saleDate = '';
+    }
+
+    setSaving(true);
+    try {
+      await onSubmit(payload);
+      onClose();
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'Erro ao salvar drop.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const fieldStyle: React.CSSProperties = {
+    width: '100%', marginTop: '4px', background: '#0f172a', color: '#fff',
+    border: '1px solid #334155', borderRadius: '6px', padding: '8px', boxSizing: 'border-box', fontSize: '13px',
+  };
+  const labelStyle: React.CSSProperties = { fontSize: '12px', color: '#94a3b8' };
+
+  return (
+    <Modal title={mode === 'create' ? 'Registro de Drop' : 'Editar Drop'} onClose={onClose}>
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <label style={labelStyle}>
+          Data:
+          <input type="date" value={brToIso(date)} onChange={(e) => setDate(isoToBr(e.target.value))} style={fieldStyle} />
+        </label>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          <label style={labelStyle}>
+            EK:
+            <select value={ek} onChange={(e) => setEk(e.target.value)} style={fieldStyle}>
+              <option value={VAZIO}>-- Vazio --</option>
+              {vocationOptions(members, 'EK', ek).map((name) => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
+          </label>
+          <label style={labelStyle}>
+            ED:
+            <select value={ed} onChange={(e) => setEd(e.target.value)} style={fieldStyle}>
+              <option value={VAZIO}>-- Vazio --</option>
+              {vocationOptions(members, 'ED', ed).map((name) => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
+          </label>
+          <label style={labelStyle}>
+            RP:
+            <select value={rp} onChange={(e) => setRp(e.target.value)} style={fieldStyle}>
+              <option value={VAZIO}>-- Vazio --</option>
+              {vocationOptions(members, 'RP', rp).map((name) => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
+          </label>
+          <label style={labelStyle}>
+            MS:
+            <select value={ms} onChange={(e) => setMs(e.target.value)} style={fieldStyle}>
+              <option value={VAZIO}>-- Vazio --</option>
+              {vocationOptions(members, 'MS', ms).map((name) => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <label style={labelStyle}>
+          5º Player:
+          <input type="text" value={fifthPlayer} onChange={(e) => setFifthPlayer(e.target.value)} placeholder="Nome do char" style={fieldStyle} />
+        </label>
+
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+            <span style={{ fontSize: '12px', color: '#94a3b8' }}>Serviceiros nesse item</span>
+            <button
+              type="button"
+              onClick={addServiceRow}
+              style={{ background: 'transparent', color: '#38bdf8', border: '1px solid #334155', borderRadius: '6px', padding: '4px 10px', fontSize: '12px', cursor: 'pointer' }}
+            >
+              + Adicionar Serviceiro
+            </button>
+          </div>
+
+          {serviceDrafts.length === 0 ? (
+            <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0' }}>Nenhum serviceiro nesse item.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {serviceDrafts.map((row, index) => {
+                const serviceiro = serviceiros.find((s) => s.id === row.serviceiroId);
+                return (
+                  <div key={index} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '8px', alignItems: 'center' }}>
+                    <select
+                      value={row.serviceiroId}
+                      onChange={(e) => updateServiceRow(index, { serviceiroId: e.target.value, vocation: '' })}
+                      style={fieldStyle}
+                    >
+                      <option value={VAZIO}>-- Vazio --</option>
+                      {serviceiros.map((s) => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={row.vocation}
+                      onChange={(e) => updateServiceRow(index, { vocation: e.target.value as Vocation })}
+                      disabled={!serviceiro}
+                      style={fieldStyle}
+                    >
+                      <option value={VAZIO}>{serviceiro ? '-- Vazio --' : 'Escolha o serviceiro'}</option>
+                      {serviceiro?.vocations.map((v) => (
+                        <option key={v} value={v}>{VOCATION_ICON[v]} {v}</option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => removeServiceRow(index)}
+                      title="Remover serviceiro do item"
+                      style={{ background: 'transparent', color: '#ef4444', border: 'none', cursor: 'pointer', fontSize: '15px' }}
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          <label style={labelStyle}>
+            Valor Total:
+            <input type="number" min={0} value={totalValue} onChange={(e) => setTotalValue(e.target.value)} placeholder="0" style={fieldStyle} />
+          </label>
+          <label style={labelStyle}>
+            Valor Cada (calculado):
+            <div style={{ ...fieldStyle, color: '#94a3b8', cursor: 'default' }} title="Valor Total dividido pelo número de jogadores (EK/ED/MS/RP/5º) preenchidos">
+              {formatTibiaGold(unitValue)} {playerCount > 0 ? `(÷ ${playerCount})` : ''}
+            </div>
+          </label>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          <label style={labelStyle}>
+            Boss:
+            <select value={bossName} onChange={(e) => handleBossChange(e.target.value)} style={fieldStyle}>
+              <option value={VAZIO}>-- Vazio --</option>
+              {bossOptions.map((boss) => (
+                <option key={boss} value={boss}>{boss}</option>
+              ))}
+            </select>
+          </label>
+          <label style={labelStyle}>
+            Item:
+            <select value={itemName} onChange={(e) => setItemName(e.target.value)} disabled={!bossName} style={fieldStyle}>
+              <option value={VAZIO}>{bossName ? '-- Vazio --' : 'Escolha o boss primeiro'}</option>
+              {itemOptions.map((item) => (
+                <option key={item} value={item}>{item}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <label style={labelStyle}>
+          Fragador:
+          <select value={looter} onChange={(e) => setLooter(e.target.value)} style={fieldStyle}>
+            <option value={VAZIO}>-- Vazio --</option>
+            {looterOptions.map((name) => (
+              <option key={name} value={name}>{name}</option>
+            ))}
+          </select>
+        </label>
+
+        {mode === 'edit' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#f8fafc', cursor: 'pointer' }}>
+              <input type="checkbox" checked={sold} onChange={(e) => setSold(e.target.checked)} />
+              Vendido
+            </label>
+            <span style={{ fontSize: '12px', color: '#64748b' }}>
+              {sold
+                ? wasSold && drop!.saleDate
+                  ? `Vendido em ${drop!.saleDate}`
+                  : 'A data de hoje será registrada ao salvar'
+                : 'Marque quando o item for vendido'}
+            </span>
+          </div>
+        )}
+
+        {formError && <span style={{ color: '#ef4444', fontSize: '12px' }}>{formError}</span>}
+
+        <button
+          type="submit"
+          disabled={saving}
+          style={{
+            background: '#38bdf8', color: '#0f172a', border: 'none', padding: '12px',
+            borderRadius: '8px', fontWeight: 'bold', cursor: saving ? 'default' : 'pointer',
+            fontSize: '14px', opacity: saving ? 0.7 : 1,
+          }}
+        >
+          {saving
+            ? (mode === 'create' ? 'Registrando...' : 'Salvando...')
+            : (mode === 'create' ? 'Registrar Drop' : 'Salvar Alterações')}
+        </button>
+      </form>
+    </Modal>
+  );
+}

@@ -1,12 +1,24 @@
 import { formatTibiaGold } from '@/services/split';
 import type { LootDrop } from '@/types';
 import { getBossBadgeStyle, guessItemIcon } from '../utils/loot-visuals';
+import { getItemIconUrl } from '@/services/lootdrop/item-icons';
+import { VOCATION_ICON } from '@/services/vocation/vocation-display';
+
+function formatServices(drop: LootDrop): string {
+  if (drop.party.services.length > 0) {
+    return drop.party.services
+      .map((s) => (s.vocation ? `${VOCATION_ICON[s.vocation]} ${s.serviceiroName}` : s.serviceiroName))
+      .join(', ');
+  }
+  return drop.party.service ?? '—';
+}
 
 interface LootTableProps {
   drops: LootDrop[];
+  onRowClick?: (drop: LootDrop) => void;
 }
 
-export function LootTable({ drops }: LootTableProps) {
+export function LootTable({ drops, onRowClick }: LootTableProps) {
   if (drops.length === 0) {
     return <div className="empty-state">Nenhum drop registrado ainda.</div>;
   }
@@ -36,15 +48,21 @@ export function LootTable({ drops }: LootTableProps) {
         <tbody>
           {drops.map((drop) => {
             const bossStyle = getBossBadgeStyle(drop.bossName);
+            const iconUrl = getItemIconUrl(drop.itemName);
             return (
-              <tr key={drop.id}>
+              <tr
+                key={drop.id}
+                onClick={() => onRowClick?.(drop)}
+                title={onRowClick ? 'Clique para editar este drop' : undefined}
+                style={onRowClick ? { cursor: 'pointer' } : undefined}
+              >
                 <td>{drop.date}</td>
                 <td className="col-vocation ek">{drop.party.ek ?? '—'}</td>
                 <td className="col-vocation ed">{drop.party.ed ?? '—'}</td>
                 <td className="col-vocation ms">{drop.party.ms ?? '—'}</td>
                 <td className="col-vocation rp">{drop.party.rp ?? '—'}</td>
                 <td className="col-vocation other">{drop.party.fifthPlayer ?? '—'}</td>
-                <td className="col-vocation other">{drop.party.service ?? '—'}</td>
+                <td className="col-vocation other">{formatServices(drop)}</td>
                 <td className="col-gold positive">{formatTibiaGold(drop.unitValue)}</td>
                 <td className="col-gold positive">{formatTibiaGold(drop.totalValue)}</td>
                 <td>{drop.looter}</td>
@@ -55,7 +73,9 @@ export function LootTable({ drops }: LootTableProps) {
                   </span>
                 </td>
                 <td style={{ textAlign: 'center', fontSize: '1.1rem' }} title={drop.itemName}>
-                  {guessItemIcon(drop.itemName)}
+                  {iconUrl
+                    ? <img src={iconUrl} alt={drop.itemName} width={24} height={24} style={{ imageRendering: 'pixelated', verticalAlign: 'middle' }} />
+                    : guessItemIcon(drop.itemName)}
                 </td>
                 <td>
                   <span className={`sold-badge ${drop.sold ? 'yes' : 'no'}`}>
