@@ -1,4 +1,4 @@
-import { supabase } from '@/services/supabase/supabase-client';
+import { getSupabaseClient } from '@/services/supabase/supabase-client';
 import type { Serviceiro, CreateServiceiroDto } from '@/types';
 import type { IServiceiroRepository } from '../interfaces';
 
@@ -29,6 +29,7 @@ function toDomain(row: ServiceiroRow): Serviceiro {
 
 export class HttpServiceiroRepository implements IServiceiroRepository {
   async findByAccount(accountId: string): Promise<Serviceiro[]> {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('serviceiros')
       .select('*')
@@ -39,6 +40,7 @@ export class HttpServiceiroRepository implements IServiceiroRepository {
   }
 
   async create(accountId: string, dto: CreateServiceiroDto): Promise<Serviceiro> {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('serviceiros')
       .insert({ account_id: accountId, name: dto.name, character_name: dto.characterName, phone_number: dto.phoneNumber, vocations: dto.vocations })
@@ -55,6 +57,7 @@ export class HttpServiceiroRepository implements IServiceiroRepository {
     if (dto.phoneNumber !== undefined) patch.phone_number = dto.phoneNumber;
     if (dto.vocations !== undefined) patch.vocations = dto.vocations;
 
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('serviceiros')
       .update(patch)
@@ -66,7 +69,7 @@ export class HttpServiceiroRepository implements IServiceiroRepository {
   }
 
   async delete(id: string): Promise<void> {
-    const { error } = await supabase.from('serviceiros').delete().eq('id', id);
+    const { error } = await getSupabaseClient().from('serviceiros').delete().eq('id', id);
     if (error) throw new Error(error.message);
   }
 }
