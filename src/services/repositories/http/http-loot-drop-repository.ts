@@ -1,4 +1,4 @@
-import { supabase } from '@/services/supabase/supabase-client';
+import { getSupabaseClient } from '@/services/supabase/supabase-client';
 import { brToIso, isoToBr } from '@/services/common/br-date';
 import type { CreateLootDropDto, DropService, LootDrop, LootDropFilters, Vocation } from '@/types';
 import type { ILootDropRepository } from '../interfaces';
@@ -68,6 +68,7 @@ function toDomain(row: DropRow): LootDrop {
 }
 
 async function replaceDropServices(dropId: string, services: DropService[]): Promise<void> {
+  const supabase = getSupabaseClient();
   const { error: deleteError } = await supabase.from('drop_services').delete().eq('drop_id', dropId);
   if (deleteError) throw new Error(deleteError.message);
 
@@ -81,7 +82,7 @@ async function replaceDropServices(dropId: string, services: DropService[]): Pro
 
 export class HttpLootDropRepository implements ILootDropRepository {
   async findByAccount(accountId: string, filters?: LootDropFilters): Promise<LootDrop[]> {
-    let query = supabase
+    let query = getSupabaseClient()
       .from('drops')
       .select(SELECT_WITH_SERVICES)
       .eq('account_id', accountId)
@@ -99,7 +100,7 @@ export class HttpLootDropRepository implements ILootDropRepository {
   }
 
   async findById(id: string): Promise<LootDrop | null> {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
       .from('drops')
       .select(SELECT_WITH_SERVICES)
       .eq('id', id)
@@ -109,7 +110,7 @@ export class HttpLootDropRepository implements ILootDropRepository {
   }
 
   async create(accountId: string, dto: CreateLootDropDto): Promise<LootDrop> {
-    const { data: dropRow, error } = await supabase
+    const { data: dropRow, error } = await getSupabaseClient()
       .from('drops')
       .insert({
         account_id: accountId,
@@ -156,7 +157,7 @@ export class HttpLootDropRepository implements ILootDropRepository {
     if (dto.saleDate !== undefined) patch.data_venda = dto.saleDate ? brToIso(dto.saleDate) : null;
 
     if (Object.keys(patch).length > 0) {
-      const { error } = await supabase.from('drops').update(patch).eq('id', id);
+      const { error } = await getSupabaseClient().from('drops').update(patch).eq('id', id);
       if (error) throw new Error(error.message);
     }
 
@@ -171,7 +172,7 @@ export class HttpLootDropRepository implements ILootDropRepository {
 
   async delete(id: string): Promise<void> {
     // drop_services é apagado em cascata (on delete cascade na FK drop_id)
-    const { error } = await supabase.from('drops').delete().eq('id', id);
+    const { error } = await getSupabaseClient().from('drops').delete().eq('id', id);
     if (error) throw new Error(error.message);
   }
 }
