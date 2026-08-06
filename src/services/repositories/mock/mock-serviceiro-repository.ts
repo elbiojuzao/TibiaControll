@@ -18,6 +18,7 @@ export class MockServiceiroRepository implements IServiceiroRepository {
       id: crypto.randomUUID(),
       accountId,
       name: dto.name,
+      characterName: dto.characterName,
       phoneNumber: dto.phoneNumber,
       vocations: dto.vocations,
     };

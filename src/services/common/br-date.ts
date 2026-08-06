@@ -12,8 +12,11 @@ export function brToIso(br: string): string {
   return `${year}-${month}-${day}`;
 }
 
-export function todayAsBr(): string {
-  const now = new Date();
+export function dateAsBr(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
-  return `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()}`;
+  return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()}`;
+}
+
+export function todayAsBr(): string {
+  return dateAsBr(new Date());
 }

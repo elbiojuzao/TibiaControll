@@ -5,9 +5,9 @@ import { useMembers } from '@/hooks/useMembers';
 import { useServiceiros } from '@/hooks/useServiceiros';
 import { formatTibiaGold } from '@/services/split';
 import { MESES, monthRangeAsBr } from '@/services/common/months';
-import type { LootDropFilters } from '@/types';
+import type { LootDrop, LootDropFilters } from '@/types';
 import { LootTable } from './components/LootTable';
-import { RegisterDropModal } from './components/RegisterDropModal';
+import { DropFormModal } from './components/DropFormModal';
 
 type SoldFilter = 'all' | 'sold' | 'unsold';
 
@@ -22,6 +22,7 @@ export function LootLogPage() {
   const [looterFilter, setLooterFilter] = useState('');
   const [soldFilter, setSoldFilter] = useState<SoldFilter>('all');
   const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [editingDrop, setEditingDrop] = useState<LootDrop | null>(null);
 
   const hasAdvancedFilters = !!bossFilter || !!looterFilter || soldFilter !== 'all';
 
@@ -35,7 +36,7 @@ export function LootLogPage() {
     return f;
   }, [selectedMonth, selectedYear, bossFilter, looterFilter, soldFilter]);
 
-  const { drops, loading, error, createDrop } = useLootDrops(accountId, filters);
+  const { drops, loading, error, createDrop, updateDrop } = useLootDrops(accountId, filters);
   const { members } = useMembers(accountId);
   const { serviceiros } = useServiceiros(accountId);
 
@@ -153,14 +154,27 @@ export function LootLogPage() {
 
       {loading && <div className="loading">Carregando drops...</div>}
       {error && <div className="empty-state">{error}</div>}
-      {!loading && !error && <LootTable drops={drops} />}
+      {!loading && !error && <LootTable drops={drops} onRowClick={setEditingDrop} />}
 
       {showRegisterModal && (
-        <RegisterDropModal
+        <DropFormModal
+          mode="create"
           members={members}
           serviceiros={serviceiros}
           onClose={() => setShowRegisterModal(false)}
           onSubmit={createDrop}
+        />
+      )}
+
+      {editingDrop && (
+        <DropFormModal
+          key={editingDrop.id}
+          mode="edit"
+          drop={editingDrop}
+          members={members}
+          serviceiros={serviceiros}
+          onClose={() => setEditingDrop(null)}
+          onSubmit={(dto) => updateDrop(editingDrop.id, dto)}
         />
       )}
     </div>

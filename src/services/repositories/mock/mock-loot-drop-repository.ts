@@ -57,7 +57,9 @@ export class MockLootDropRepository implements ILootDropRepository {
     await delay();
     const index = dropsStore.findIndex((d) => d.id === id);
     if (index === -1) throw new Error('Drop nao encontrado');
-    dropsStore[index] = { ...dropsStore[index], ...dto };
+    // '' e o sentinela usado pelo form pra "limpar" a data de venda (mesma semantica do HttpLootDropRepository)
+    const patch = dto.saleDate === '' ? { ...dto, saleDate: undefined } : dto;
+    dropsStore[index] = { ...dropsStore[index], ...patch };
     return dropsStore[index];
   }
 

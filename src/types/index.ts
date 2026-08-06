@@ -1,6 +1,6 @@
 export type { Account, AccountType, AuthSession, CreateAccountDto, LoginDto } from './account';
 export type { Member, CreateMemberDto, HighscoreSkillCategory } from './member';
-export type { LootDrop, PartyComposition, CreateLootDropDto, LootDropFilters } from './loot-drop';
+export type { LootDrop, PartyComposition, DropService, CreateLootDropDto, LootDropFilters } from './loot-drop';
 export type { Hunt, CreateHuntDto, HuntSummary } from './hunt';
 export type {
   IndividualSplit,
