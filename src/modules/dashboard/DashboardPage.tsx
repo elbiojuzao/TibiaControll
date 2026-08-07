@@ -5,9 +5,11 @@ import { useMembers } from '@/hooks/useMembers';
 import { useMemberLiveStats } from '@/hooks/useMemberLiveStats';
 import { useDashboardKpis } from '@/hooks/useDashboardKpis';
 import { useMemberXpStats } from '@/hooks/useMemberXpStats';
+import { useBossHuntSheet } from '@/hooks/useBossHuntSheet';
 import { formatTibiaGold } from '@/services/split';
 import { monthRangeAsBr } from '@/services/common/months';
 import { dateAsBr, todayAsBr } from '@/services/common/br-date';
+import { parseDateKey } from '@/services/calendar';
 import { getItemIconUrl } from '@/services/lootdrop/item-icons';
 import type { LootDropFilters, MemberXpStats } from '@/types';
 
@@ -44,7 +46,8 @@ export function DashboardPage() {
   const liveStats = useMemberLiveStats(members);
   const { kpis } = useDashboardKpis(accountId);
   const { statsByName } = useMemberXpStats(accountId);
-  
+  const { series: bossHuntSeries } = useBossHuntSheet();
+
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState<string>(String(now.getMonth() + 1));
   const [selectedYear, setSelectedYear] = useState<string>(String(now.getFullYear()));
@@ -61,6 +64,24 @@ export function DashboardPage() {
   }, [selectedMonth, selectedYear, bossFilter, soldFilter]);
 
   const { drops, loading, error } = useLootDrops(accountId, filters);
+
+  // KKs Hunt/KKs Boss = soma do profit individual (aba "Boss hunt" da planilha, já
+  // dividido por 4/5) dos dias dentro do Mês/Ano selecionado ao lado — mesmo range
+  // usado pra filtrar "Drops no mês".
+  const bossHuntTotals = useMemo(() => {
+    const fromTs = filters.dateFrom ? parseDateKey(filters.dateFrom) : -Infinity;
+    const toTs = filters.dateTo ? parseDateKey(filters.dateTo) : Infinity;
+    let hunt = 0;
+    let boss = 0;
+    for (const entry of bossHuntSeries) {
+      const ts = parseDateKey(entry.date);
+      if (ts >= fromTs && ts <= toTs) {
+        hunt += entry.hunt;
+        boss += entry.boss;
+      }
+    }
+    return { hunt, boss };
+  }, [bossHuntSeries, filters.dateFrom, filters.dateTo]);
 
   // Independente do mês selecionado — "todos os itens não vendidos" é de todos os meses,
   // não só do mês em exibição na tabela "Drops no mês".
@@ -221,7 +242,7 @@ export function DashboardPage() {
             </div>
             <div style={{ background: '#1e293b', padding: '10px 8px', borderRadius: '6px', border: '1px solid #334155', textAlign: 'center' }}>
               <span style={{ fontSize: '10px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>KKs Hunt</span>
-              <strong style={{ fontSize: '11px', color: '#f8fafc' }}>{kpis ? kpis.kksHunt.toLocaleString('pt-BR') : '…'}</strong>
+              <strong style={{ fontSize: '11px', color: '#f8fafc' }}>{formatTibiaGold(bossHuntTotals.hunt)}</strong>
             </div>
 
             <div style={{ background: '#1e293b', padding: '10px 8px', borderRadius: '6px', border: '1px solid #334155', textAlign: 'center' }}>
@@ -242,7 +263,7 @@ export function DashboardPage() {
             </div>
             <div style={{ background: '#1e293b', padding: '10px 8px', borderRadius: '6px', border: '1px solid #334155', textAlign: 'center' }}>
               <span style={{ fontSize: '10px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>KKs Boss</span>
-              <strong style={{ fontSize: '11px', color: '#38bdf8' }}>{kpis ? kpis.kksBoss.toLocaleString('pt-BR') : '…'}</strong>
+              <strong style={{ fontSize: '11px', color: '#38bdf8' }}>{formatTibiaGold(bossHuntTotals.boss)}</strong>
             </div>
           </div>
 

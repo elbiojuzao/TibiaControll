@@ -2,8 +2,17 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAccount } from '@/hooks/useAccount';
 import { useHunts } from '@/hooks/useHunts';
 import { useLootDrops } from '@/hooks/useLootDrops';
+import { useMembers } from '@/hooks/useMembers';
+import { useXpSheet } from '@/hooks/useXpSheet';
+import { useBossHuntSheet } from '@/hooks/useBossHuntSheet';
+import { Modal } from '@/components/common/Modal';
 import { formatTibiaGold } from '@/services/split';
 import { formatDateKey, findLatestActivityDate, groupActivityByDate } from '@/services/calendar';
+
+function formatXp(value: number): string {
+  const sign = value < 0 ? '-' : '+';
+  return sign + Math.abs(value).toLocaleString('pt-BR');
+}
 
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const MONTH_NAMES = [
@@ -33,10 +42,14 @@ export function CalendarioPage() {
   const { accountId } = useAccount();
   const { hunts, loading: huntsLoading } = useHunts(accountId);
   const { drops, loading: dropsLoading } = useLootDrops(accountId);
+  const { members } = useMembers(accountId);
+  const { data: xpData } = useXpSheet();
+  const { series: bossHuntSeries } = useBossHuntSheet();
 
   const now = new Date();
   const [view, setView] = useState({ year: now.getFullYear(), month: now.getMonth() });
   const [initialized, setInitialized] = useState(false);
+  const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
   const { year: viewYear, month: viewMonth } = view;
 
   const todayKey = formatDateKey(now.getDate(), now.getMonth() + 1, now.getFullYear());
@@ -54,6 +67,22 @@ export function CalendarioPage() {
 
   const activityByDate = useMemo(() => groupActivityByDate(hunts, drops), [hunts, drops]);
   const cells = useMemo(() => buildMonthCells(viewYear, viewMonth), [viewYear, viewMonth]);
+
+  /** XP de cada membro numa data específica (DD/MM/YYYY) — busca no histórico completo
+   * da planilha (useXpSheet), não só nos últimos 30 dias, já que o calendário pode
+   * navegar pra qualquer mês. */
+  const xpForDate = (dateKey: string): { name: string; value: number }[] => {
+    return members
+      .map((m) => {
+        const entry = xpData[m.characterName]?.series.find((e) => e.date === dateKey);
+        return entry ? { name: m.characterName, value: entry.value } : null;
+      })
+      .filter((v): v is { name: string; value: number } => v !== null);
+  };
+
+  const selectedActivity = selectedDateKey ? activityByDate.get(selectedDateKey) : undefined;
+  const selectedXp = selectedDateKey ? xpForDate(selectedDateKey) : [];
+  const selectedBossHunt = selectedDateKey ? bossHuntSeries.find((e) => e.date === selectedDateKey) : undefined;
 
   const goToPrevMonth = () => {
     setView((v) => {
@@ -78,7 +107,7 @@ export function CalendarioPage() {
       <header className="page-header" style={{ marginBottom: '20px', borderBottom: '1px solid #334155', paddingBottom: '15px' }}>
         <h2 style={{ margin: 0, fontSize: '20px', color: '#10b981' }}>Histórico — Calendário</h2>
         <p style={{ margin: '5px 0 0 0', color: '#94a3b8', fontSize: '14px' }}>
-          Passe o mouse em cima de um dia para ver as hunts, bosses e drops registrados naquela data.
+          Passe o mouse num dia pra um resumo rápido, ou clique pra abrir os detalhes completos (drops, hunts e XP por jogador).
         </p>
       </header>
 
@@ -110,7 +139,10 @@ export function CalendarioPage() {
             return (
               <div
                 key={idx}
+                onClick={() => setSelectedDateKey(cell.dateKey)}
+                title="Clique para ver os detalhes do dia"
                 className={`calendar-day${hasActivity ? ' has-activity' : ''}${cell.dateKey === todayKey ? ' today' : ''}`}
+                style={{ cursor: 'pointer' }}
               >
                 <span className="calendar-day-number">{cell.day}</span>
 
@@ -147,6 +179,62 @@ export function CalendarioPage() {
           })}
         </div>
       </div>
+
+      {selectedDateKey && (
+        <Modal title={`Detalhes de ${selectedDateKey}`} onClose={() => setSelectedDateKey(null)}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '13px' }}>
+            {/* Boss/Hunt: profit individual do dia, lido da aba "Boss hunt" da planilha
+                (já vem dividido — /4 hunt, /5 boss — ver useBossHuntSheet). */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '6px', padding: '10px' }}>
+                <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>Boss (individual)</span>
+                <strong style={{ color: selectedBossHunt ? (selectedBossHunt.boss < 0 ? '#ef4444' : '#10b981') : '#64748b' }}>
+                  {selectedBossHunt ? formatXp(selectedBossHunt.boss) : 'Sem dado'}
+                </strong>
+              </div>
+              <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '6px', padding: '10px' }}>
+                <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>Hunt (individual)</span>
+                <strong style={{ color: selectedBossHunt ? (selectedBossHunt.hunt < 0 ? '#ef4444' : '#10b981') : '#64748b' }}>
+                  {selectedBossHunt ? formatXp(selectedBossHunt.hunt) : 'Sem dado'}
+                </strong>
+              </div>
+            </div>
+
+            <div>
+              <h4 style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#38bdf8' }}>XP do dia</h4>
+              {selectedXp.length === 0 ? (
+                <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>Sem dado de XP pra esse dia.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {selectedXp.map(({ name, value }) => (
+                    <div key={name} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#f8fafc' }}>{name}</span>
+                      <strong style={{ color: value < 0 ? '#ef4444' : '#10b981' }}>{formatXp(value)}</strong>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <h4 style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#10b981' }}>Drops</h4>
+              {(selectedActivity?.drops.length ?? 0) === 0 ? (
+                <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>Nenhum drop registrado nesse dia.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {selectedActivity!.drops.map((drop) => (
+                    <div key={drop.id} style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '6px', padding: '8px' }}>
+                      💎 {drop.itemName} <span style={{ color: '#64748b' }}>({drop.bossName})</span><br />
+                      Valor: <strong style={{ color: '#10b981' }}>{formatTibiaGold(drop.totalValue)}</strong>{' '}
+                      · {drop.sold ? 'Vendido' : 'Pendente'}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

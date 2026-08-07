@@ -30,11 +30,10 @@ function RouteTable({ result, title, accentColor }: { result: TierRouteResult; t
               <thead>
                 <tr style={{ color: '#94a3b8', borderBottom: '1px solid #334155' }}>
                   <th style={{ textAlign: 'left', padding: '6px' }}>Etapa</th>
+                  <th style={{ textAlign: 'right', padding: '6px' }}>Fusões</th>
                   <th style={{ textAlign: 'right', padding: '6px' }}>Gold</th>
                   <th style={{ textAlign: 'right', padding: '6px' }}>Dust</th>
                   <th style={{ textAlign: 'right', padding: '6px' }}>Cores</th>
-                  <th style={{ textAlign: 'right', padding: '6px' }}>Itens (2x)</th>
-                  <th style={{ textAlign: 'right', padding: '6px' }}>Total etapa</th>
                 </tr>
               </thead>
               <tbody>
@@ -43,13 +42,10 @@ function RouteTable({ result, title, accentColor }: { result: TierRouteResult; t
                     <td style={{ padding: '6px', color: '#f8fafc' }}>
                       Tier {step.fromTier} → {step.toTier}
                     </td>
-                    <td style={{ padding: '6px', textAlign: 'right', color: '#f8fafc' }}>{formatTibiaGold(step.goldCost)}</td>
+                    <td style={{ padding: '6px', textAlign: 'right', color: '#94a3b8' }}>{step.fusionsCount}x</td>
+                    <td style={{ padding: '6px', textAlign: 'right', color: accentColor, fontWeight: 'bold' }}>{formatTibiaGold(step.goldCost)}</td>
                     <td style={{ padding: '6px', textAlign: 'right', color: '#94a3b8' }}>{step.dustCost}</td>
                     <td style={{ padding: '6px', textAlign: 'right', color: '#94a3b8' }}>{step.exaltedCoreCost}</td>
-                    <td style={{ padding: '6px', textAlign: 'right', color: '#94a3b8' }}>{formatTibiaGold(step.itemsCost)}</td>
-                    <td style={{ padding: '6px', textAlign: 'right', color: accentColor, fontWeight: 'bold' }}>
-                      {formatTibiaGold(step.totalCost)}
-                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -62,7 +58,7 @@ function RouteTable({ result, title, accentColor }: { result: TierRouteResult; t
               paddingTop: '10px',
               borderTop: '1px solid #334155',
               display: 'grid',
-              gridTemplateColumns: 'repeat(2, 1fr)',
+              gridTemplateColumns: 'repeat(3, 1fr)',
               gap: '8px',
               fontSize: '12px',
             }}
@@ -72,6 +68,11 @@ function RouteTable({ result, title, accentColor }: { result: TierRouteResult; t
             </div>
             <div style={{ color: '#94a3b8' }}>
               Exalted Cores: <strong style={{ color: '#f8fafc' }}>{result.totalExaltedCores}</strong>
+            </div>
+            <div style={{ color: '#94a3b8' }}>
+              Itens (tier {result.steps[0]?.fromTier}):{' '}
+              <strong style={{ color: '#f8fafc' }}>{formatTibiaGold(result.totalItemsCost)}</strong>{' '}
+              <span style={{ color: '#64748b' }}>(x{result.totalItemsCount})</span>
             </div>
             <div style={{ color: '#94a3b8', gridColumn: '1 / -1' }}>
               Custo total (gold + itens):{' '}
@@ -182,8 +183,10 @@ export function TierCalculatorPage() {
           </label>
 
           <p style={{ fontSize: '11px', color: '#64748b', margin: 0 }}>
-            Cada etapa de Fusão/Convergência consome 2 itens do tier atual. O custo mostrado é de 1 tentativa por etapa
-            (não projeta perda de item em caso de falha na rota de sorte).
+            Toda fusão consome 2 itens idênticos do tier anterior — nenhum é de graça. Pra ter 1 item no tier alvo,
+            cada nível abaixo dobra a quantidade de fusões necessárias (1, 2, 4, 8...); os itens tier atual só são
+            comprados no nível mais baixo, os demais níveis só consomem o que foi produzido antes. O custo mostrado é
+            de 1 tentativa por fusão, sem projetar perda de item em caso de falha na rota de sorte.
           </p>
         </div>
 

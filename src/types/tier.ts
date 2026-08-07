@@ -23,11 +23,12 @@ export interface TierRouteResult {
   /** 'fusion' = rota de sorte (65%); 'convergence' = rota garantida (100%), só existe p/ classe 4 */
   route: 'fusion' | 'convergence';
   successChancePercent: number;
-  steps: (TierStepCost & { itemsCost: number; totalCost: number })[];
+  steps: (TierStepCost & { itemsCost: number; itemsCount: number; fusionsCount: number; totalCost: number })[];
   totalGold: number;
   totalDust: number;
   totalExaltedCores: number;
   totalItemsCost: number;
+  totalItemsCount: number;
   grandTotal: number;
 }
 
