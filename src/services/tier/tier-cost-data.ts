@@ -46,7 +46,7 @@ export const CONVERGENCE_GOLD_COST: Record<number, number> = {
 };
 
 export const FUSION_DUST_COST = 100;
-export const FUSION_EXALTED_CORE_COST = 1;
+export const FUSION_EXALTED_CORE_COST = 2;
 export const FUSION_SUCCESS_CHANCE_PERCENT = 65;
 
 export const CONVERGENCE_DUST_COST = 130;

@@ -11,6 +11,16 @@ import {
   CONVERGENCE_SUCCESS_CHANCE_PERCENT,
 } from './tier-cost-data';
 
+/**
+ * Fusão/Convergência sempre consome 2 itens IDÊNTICOS do mesmo tier — nenhum dos dois
+ * é "de graça", nem o que você já tem: pra ter 1 item no tier alvo você precisa de 2 no
+ * tier anterior, que por sua vez precisam de 2 cada no tier anterior a esse, e assim
+ * por diante (tier N precisa de 2^N itens tier 0 no total). Isso forma uma árvore de
+ * fusões: pra chegar em `targetTier`, o nível que produz o tier T precisa de
+ * `2^(targetTier - T)` fusões (dobra a cada nível abaixo do topo) — só o nível mais
+ * baixo (a partir de `currentTier`) de fato compra itens novos; os níveis acima só
+ * consomem o que já foi produzido pelo nível de baixo.
+ */
 function buildRoute(
   route: 'fusion' | 'convergence',
   currentTier: number,
@@ -24,15 +34,25 @@ function buildRoute(
   const steps: TierRouteResult['steps'] = [];
 
   for (let toTier = currentTier + 1; toTier <= targetTier; toTier++) {
-    const goldCost = goldByTargetTier[toTier] ?? 0;
-    const itemsCost = itemValue * 2;
+    const fromTier = toTier - 1;
+    const fusionsAtThisLevel = 2 ** (targetTier - toTier);
+    const stepGoldCost = goldByTargetTier[toTier] ?? 0;
+
+    const goldCost = fusionsAtThisLevel * stepGoldCost;
+    const stepDustCost = fusionsAtThisLevel * dustCost;
+    const stepExaltedCoreCost = fusionsAtThisLevel * exaltedCoreCost;
+    const itemsCount = fromTier === currentTier ? fusionsAtThisLevel * 2 : 0;
+    const itemsCost = itemsCount * itemValue;
+
     steps.push({
-      fromTier: toTier - 1,
+      fromTier,
       toTier,
       goldCost,
-      dustCost,
-      exaltedCoreCost,
+      dustCost: stepDustCost,
+      exaltedCoreCost: stepExaltedCoreCost,
       itemsCost,
+      itemsCount,
+      fusionsCount: fusionsAtThisLevel,
       totalCost: goldCost + itemsCost,
     });
   }
@@ -45,6 +65,7 @@ function buildRoute(
     totalDust: steps.reduce((sum, s) => sum + s.dustCost, 0),
     totalExaltedCores: steps.reduce((sum, s) => sum + s.exaltedCoreCost, 0),
     totalItemsCost: steps.reduce((sum, s) => sum + s.itemsCost, 0),
+    totalItemsCount: steps.reduce((sum, s) => sum + s.itemsCount, 0),
     grandTotal: steps.reduce((sum, s) => sum + s.totalCost, 0),
   };
 }
