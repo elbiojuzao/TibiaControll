@@ -10,6 +10,7 @@ const navItems = [
   { to: '/tier-calculator', label: 'Calculadora Tier', icon: '⚒️' },
   { to: '/charm-planner', label: 'Charm Planner', icon: '🔮' },
   { to: '/calendario', label: 'Histórico', icon: '📅' },
+  { to: '/historico-xp', label: 'Histórico de XP', icon: '📈' },
   { to: '/serviceiros', label: 'Serviceiros', icon: '🤝' },
 ];
 

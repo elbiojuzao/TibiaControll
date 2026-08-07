@@ -7,12 +7,10 @@ const delay = (ms = 150) => new Promise((r) => setTimeout(r, ms));
 
 const EMPTY_KPIS: DashboardKpis = {
   kksPlunderInd: 0,
-  kksHunt: 0,
   qtdBags: 0,
   qtdPlunders: 0,
   totalInd: 0,
   kksBagsInd: 0,
-  kksBoss: 0,
 };
 
 /** "+197.664.728" / "-476.736.286" — igual ao formato que já existe no mock, mas sem o

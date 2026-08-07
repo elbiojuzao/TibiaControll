@@ -8,6 +8,7 @@ import { TierCalculatorPage } from '@/modules/tier-calculator';
 import { CharmPlannerPage } from '@/modules/charm-planner';
 import { CalendarioPage } from '@/modules/calendar-historico';
 import { ServiceirosPage } from '@/modules/serviceiros';
+import { XpHistoricoPage } from '@/modules/xp-historico';
 
 export function AppRouter() {
   return (
@@ -21,6 +22,7 @@ export function AppRouter() {
           <Route path="tier-calculator" element={<TierCalculatorPage />} />
           <Route path="charm-planner" element={<CharmPlannerPage />} />
           <Route path="calendario" element={<CalendarioPage />} />
+          <Route path="historico-xp" element={<XpHistoricoPage />} />
           <Route path="serviceiros" element={<ServiceirosPage />} />
         </Route>
       </Routes>

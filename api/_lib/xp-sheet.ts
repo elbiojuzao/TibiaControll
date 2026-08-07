@@ -9,61 +9,24 @@
  * Não busca aqui a tabela de "metas por nível" (previsão de XP/dia pra bater cada nível
  * até o fim do ano) — o usuário confirmou que isso continua mock por enquanto.
  */
+import { parseCsv, parseBrNumber } from './sheet-utils';
 
 const SHEET_ID = '1dDdNGq9paaJPxlyInZPQWw_1S5RZfK199TJO4HBiKtY';
 const XP_REALIZADA_GID = '421841615';
 const DAYS_FOR_XP_30_DIAS = 30;
 
+export interface XpDailyEntry {
+  /** DD/MM/YYYY, mesmo formato usado no resto do app (drops, hunts) */
+  date: string;
+  value: number;
+}
+
 export interface XpDailyStats {
   xpOntem: number;
   xp30Dias: number;
-}
-
-/** Parser CSV simples, mas correto pra campos entre aspas (padrão de export do Google Sheets) */
-function parseCsv(text: string): string[][] {
-  const rows: string[][] = [];
-  let row: string[] = [];
-  let field = '';
-  let inQuotes = false;
-
-  for (let i = 0; i < text.length; i++) {
-    const char = text[i];
-    if (inQuotes) {
-      if (char === '"' && text[i + 1] === '"') {
-        field += '"';
-        i++;
-      } else if (char === '"') {
-        inQuotes = false;
-      } else {
-        field += char;
-      }
-    } else if (char === '"') {
-      inQuotes = true;
-    } else if (char === ',') {
-      row.push(field);
-      field = '';
-    } else if (char === '\n' || char === '\r') {
-      if (char === '\r' && text[i + 1] === '\n') i++;
-      row.push(field);
-      rows.push(row);
-      row = [];
-      field = '';
-    } else {
-      field += char;
-    }
-  }
-  if (field.length > 0 || row.length > 0) {
-    row.push(field);
-    rows.push(row);
-  }
-  return rows.filter((r) => r.some((cell) => cell.trim() !== ''));
-}
-
-/** "077.648.574" -> 77648574 ; "-449.889.808" -> -449889808 */
-function parseXpNumber(raw: string): number {
-  const cleaned = (raw ?? '').trim().replace(/\./g, '');
-  const value = Number(cleaned);
-  return Number.isFinite(value) ? value : 0;
+  /** Histórico completo (não só os últimos 30 dias) — mais antigo primeiro. Usado pra
+   * buscar um dia específico (ex: modal do calendário), não só os agregados prontos. */
+  series: XpDailyEntry[];
 }
 
 export async function fetchXpStatsFromSheet(): Promise<Record<string, XpDailyStats>> {
@@ -76,23 +39,24 @@ export async function fetchXpStatsFromSheet(): Promise<Record<string, XpDailySta
   if (rows.length < 2) return {};
 
   const [header, ...dataRows] = rows;
+  const dayIndex = header.findIndex((h) => h.trim().toLowerCase() === 'dia');
   const charColumns = header
     .map((name, index) => ({ name: name.trim(), index }))
-    .filter(({ name }) => name && name.toLowerCase() !== 'dia');
+    .filter(({ name, index }) => name && index !== dayIndex);
 
   const result: Record<string, XpDailyStats> = {};
   for (const { name, index } of charColumns) {
     // A planilha tem linhas de datas futuras pré-preenchidas mas ainda vazias (a
     // rotina do usuário só grava até o dia corrente) — filtra pra pegar só as
     // linhas onde essa coluna de fato tem dado, senão "xpOntem" vira sempre 0.
-    const filledValues = dataRows
-      .map((row) => row[index])
-      .filter((raw) => (raw ?? '').trim() !== '')
-      .map(parseXpNumber);
+    const series: XpDailyEntry[] = dataRows
+      .map((row) => ({ date: (row[dayIndex] ?? '').trim(), raw: row[index] }))
+      .filter(({ raw }) => (raw ?? '').trim() !== '')
+      .map(({ date, raw }) => ({ date, value: parseBrNumber(raw) }));
 
-    const xpOntem = filledValues[filledValues.length - 1] ?? 0;
-    const xp30Dias = filledValues.slice(-DAYS_FOR_XP_30_DIAS).reduce((sum, v) => sum + v, 0);
-    result[name] = { xpOntem, xp30Dias };
+    const xpOntem = series[series.length - 1]?.value ?? 0;
+    const xp30Dias = series.slice(-DAYS_FOR_XP_30_DIAS).reduce((sum, e) => sum + e.value, 0);
+    result[name] = { xpOntem, xp30Dias, series };
   }
   return result;
 }

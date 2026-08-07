@@ -6,12 +6,10 @@
  */
 export interface DashboardKpis {
   kksPlunderInd: number;
-  kksHunt: number;
   qtdBags: number;
   qtdPlunders: number;
   totalInd: number;
   kksBagsInd: number;
-  kksBoss: number;
 }
 
 /** Histórico diário de XP por personagem — a API pública do Tibia não expõe isso (ver [[integracao-tibiadata]]) */
