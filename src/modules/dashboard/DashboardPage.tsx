@@ -83,6 +83,13 @@ export function DashboardPage() {
     return { hunt, boss };
   }, [bossHuntSeries, filters.dateFrom, filters.dateTo]);
 
+  // Total (ind) = soma dos 4 KKs individuais do mês/ano selecionado (pedido do usuário) —
+  // não é mais um valor pré-agregado do mock, é sempre recalculado a partir dos outros 3 cards.
+  const totalInd = useMemo(() => {
+    if (!kpis) return null;
+    return kpis.kksPlunderInd + kpis.kksBagsInd + bossHuntTotals.hunt + bossHuntTotals.boss;
+  }, [kpis, bossHuntTotals]);
+
   // Independente do mês selecionado — "todos os itens não vendidos" é de todos os meses,
   // não só do mês em exibição na tabela "Drops no mês".
   const { drops: allUnsoldDrops, loading: unsoldLoading, error: unsoldError } = useLootDrops(accountId, { sold: false });
@@ -255,7 +262,7 @@ export function DashboardPage() {
             </div>
             <div style={{ background: '#1e293b', padding: '10px 8px', borderRadius: '6px', border: '1px solid #334155', textAlign: 'center' }}>
               <span style={{ fontSize: '10px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Total (ind)</span>
-              <strong style={{ fontSize: '11px', color: '#10b981' }}>{kpis ? formatTibiaGold(kpis.totalInd) : '…'}</strong>
+              <strong style={{ fontSize: '11px', color: '#10b981' }}>{totalInd !== null ? formatTibiaGold(totalInd) : '…'}</strong>
             </div>
             <div style={{ background: '#1e293b', padding: '10px 8px', borderRadius: '6px', border: '1px solid #334155', textAlign: 'center' }}>
               <span style={{ fontSize: '10px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>KKs Bags(ind)</span>

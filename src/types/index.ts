@@ -29,5 +29,6 @@ export type { DayActivity } from './calendar';
 export type { Serviceiro, CreateServiceiroDto } from './serviceiro';
 export type { DashboardKpis, MemberXpStats } from './dashboard-stats';
 export type { PartySettings } from './party-settings';
+export type { XpCharacterStats, XpDailyEntry } from './xp-sheet';
 
 export type { Vocation } from './account';

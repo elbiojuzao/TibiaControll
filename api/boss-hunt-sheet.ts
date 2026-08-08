@@ -17,7 +17,9 @@ export default async function handler(
 
   try {
     const series = await fetchBossHuntFromSheet();
-    res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=86400');
+    // Sem cache de CDN — o Dashboard depende desse endpoint pra mostrar KKs Hunt/Boss
+    // sempre atualizados a cada entrada no sistema (pedido explícito do usuário).
+    res.setHeader('Cache-Control', 'no-store');
     res.status(200).json({ series });
   } catch (err) {
     res.status(502).json({ error: err instanceof Error ? err.message : 'Erro ao buscar planilha de Boss/Hunt' });

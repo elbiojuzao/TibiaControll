@@ -2,6 +2,7 @@ import type { DashboardKpis, MemberXpStats } from '@/types';
 import type { IDashboardRepository } from '../interfaces';
 import { mockDashboardKpis } from '@/mocks/data/dashboard-kpis';
 import { mockMemberXpStats } from '@/mocks/data/member-xp-stats';
+import { fetchXpSheetCached } from '@/services/xp-sheet/xp-sheet-cache';
 
 const delay = (ms = 150) => new Promise((r) => setTimeout(r, ms));
 
@@ -9,7 +10,6 @@ const EMPTY_KPIS: DashboardKpis = {
   kksPlunderInd: 0,
   qtdBags: 0,
   qtdPlunders: 0,
-  totalInd: 0,
   kksBagsInd: 0,
 };
 
@@ -39,9 +39,7 @@ export class MockDashboardRepository implements IDashboardRepository {
     const base = mockMemberXpStats[accountId] ?? {};
 
     try {
-      const res = await fetch('/api/xp-sheet');
-      if (!res.ok) throw new Error(`status ${res.status}`);
-      const sheetStats: Record<string, { xpOntem: number; xp30Dias: number }> = await res.json();
+      const sheetStats = await fetchXpSheetCached();
 
       const merged: Record<string, MemberXpStats> = { ...base };
       for (const [characterName, stats] of Object.entries(sheetStats)) {
