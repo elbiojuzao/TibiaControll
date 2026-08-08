@@ -83,13 +83,6 @@ export function DashboardPage() {
     return { hunt, boss };
   }, [bossHuntSeries, filters.dateFrom, filters.dateTo]);
 
-  // Total (ind) = soma dos 4 KKs individuais do mês/ano selecionado (pedido do usuário) —
-  // não é mais um valor pré-agregado do mock, é sempre recalculado a partir dos outros 3 cards.
-  const totalInd = useMemo(() => {
-    if (!kpis) return null;
-    return kpis.kksPlunderInd + kpis.kksBagsInd + bossHuntTotals.hunt + bossHuntTotals.boss;
-  }, [kpis, bossHuntTotals]);
-
   // Independente do mês selecionado — "todos os itens não vendidos" é de todos os meses,
   // não só do mês em exibição na tabela "Drops no mês".
   const { drops: allUnsoldDrops, loading: unsoldLoading, error: unsoldError } = useLootDrops(accountId, { sold: false });
@@ -104,13 +97,26 @@ export function DashboardPage() {
       .sort((a, b) => b.count - a.count || a.itemName.localeCompare(b.itemName));
   }, [allUnsoldDrops]);
 
+  // KKs Plunder(ind) / Qtd Plunders = soma do Valor Total (e contagem) dos drops do
+  // mês/ano selecionado cujo boss é "Plunder" (baú compartilhado, sem fragador único —
+  // ver comentário no ranking Top Drop mais abaixo). Pedido do usuário: puxar direto
+  // dos drops reais em vez de continuar como número solto do mock.
   const stats = useMemo(() => {
     const totalValue = drops.reduce((s, d) => s + d.totalValue, 0);
     const soldCount = drops.filter((d) => d.sold).length;
     const pendingCount = drops.filter((d) => !d.sold).length;
     const serviceiroDropsCount = drops.filter((d) => d.party.service).length;
-    return { totalValue, soldCount, pendingCount, totalDrops: drops.length, serviceiroDropsCount };
+    const plunderDrops = drops.filter((d) => d.bossName === 'Plunder');
+    const plunderTotal = plunderDrops.reduce((s, d) => s + d.totalValue, 0);
+    return { totalValue, soldCount, pendingCount, totalDrops: drops.length, serviceiroDropsCount, plunderTotal, plunderCount: plunderDrops.length };
   }, [drops]);
+
+  // Total (ind) = soma dos 4 KKs individuais do mês/ano selecionado (pedido do usuário) —
+  // não é mais um valor pré-agregado do mock, é sempre recalculado a partir dos outros 3 cards.
+  const totalInd = useMemo(() => {
+    if (!kpis) return null;
+    return stats.plunderTotal + kpis.kksBagsInd + bossHuntTotals.hunt + bossHuntTotals.boss;
+  }, [kpis, bossHuntTotals, stats.plunderTotal]);
 
   // Top Drop é dos últimos 365 dias — independente do seletor de Mês, então busca à parte.
   const last365Filters = useMemo(() => {
@@ -245,7 +251,7 @@ export function DashboardPage() {
             </div>
             <div style={{ background: '#1e293b', padding: '10px 8px', borderRadius: '6px', border: '1px solid #334155', textAlign: 'center' }}>
               <span style={{ fontSize: '10px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>KKs Plunder(ind)</span>
-              <strong style={{ fontSize: '11px', color: '#10b981' }}>{kpis ? formatTibiaGold(kpis.kksPlunderInd) : '…'}</strong>
+              <strong style={{ fontSize: '11px', color: '#10b981' }}>{formatTibiaGold(stats.plunderTotal)}</strong>
             </div>
             <div style={{ background: '#1e293b', padding: '10px 8px', borderRadius: '6px', border: '1px solid #334155', textAlign: 'center' }}>
               <span style={{ fontSize: '10px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>KKs Hunt</span>
@@ -258,7 +264,7 @@ export function DashboardPage() {
             </div>
             <div style={{ background: '#1e293b', padding: '10px 8px', borderRadius: '6px', border: '1px solid #334155', textAlign: 'center' }}>
               <span style={{ fontSize: '10px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Qtd Plunders</span>
-              <strong style={{ fontSize: '14px', color: '#fff' }}>{kpis?.qtdPlunders ?? '…'}</strong>
+              <strong style={{ fontSize: '14px', color: '#fff' }}>{stats.plunderCount}</strong>
             </div>
             <div style={{ background: '#1e293b', padding: '10px 8px', borderRadius: '6px', border: '1px solid #334155', textAlign: 'center' }}>
               <span style={{ fontSize: '10px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Total (ind)</span>

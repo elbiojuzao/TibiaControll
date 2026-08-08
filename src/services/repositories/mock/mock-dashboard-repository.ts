@@ -7,9 +7,7 @@ import { fetchXpSheetCached } from '@/services/xp-sheet/xp-sheet-cache';
 const delay = (ms = 150) => new Promise((r) => setTimeout(r, ms));
 
 const EMPTY_KPIS: DashboardKpis = {
-  kksPlunderInd: 0,
   qtdBags: 0,
-  qtdPlunders: 0,
   kksBagsInd: 0,
 };
 
