@@ -3,7 +3,6 @@ import { useAccount } from '@/hooks/useAccount';
 import { useLootDrops } from '@/hooks/useLootDrops';
 import { useMembers } from '@/hooks/useMembers';
 import { useMemberLiveStats } from '@/hooks/useMemberLiveStats';
-import { useDashboardKpis } from '@/hooks/useDashboardKpis';
 import { useMemberXpStats } from '@/hooks/useMemberXpStats';
 import { useBossHuntSheet } from '@/hooks/useBossHuntSheet';
 import { formatTibiaGold } from '@/services/split';
@@ -22,9 +21,10 @@ const MESES = [
   { value: '11', label: 'Novembro' }, { value: '12', label: 'Dezembro' },
 ];
 
-/** Lvl Atual e Skill vêm ao vivo da API do TibiaData (ver useMemberLiveStats). XP/metas e os
- * KPIs vêm do repositório mock (useMemberXpStats/useDashboardKpis) — ver memória do projeto
- * "checkpoint-banco-mock" pra saber por que essas duas continuam mock por enquanto. */
+/** Lvl Atual e Skill vêm ao vivo da API do TibiaData (ver useMemberLiveStats). previsaoFimAno
+ * e metas (dentro de MemberXpStats) continuam mock — ver memória do projeto
+ * "checkpoint-banco-mock"/"integracao-planilha-xp" pra saber por que essas duas continuam
+ * mock por enquanto (xpOntem/xp30Dias dentro do mesmo objeto já são reais, via planilha). */
 const EMPTY_XP_STATS: MemberXpStats = { xpOntem: '—', xp30Dias: '—', previsaoFimAno: '—', metas: {} };
 
 const NIVEIS_METAS = [1650, 1700, 1750, 1800, 1850, 1900, 1950, 2000, 2050, 2100, 2150, 2200, 2250, 2300, 2350, 2400];
@@ -44,7 +44,6 @@ export function DashboardPage() {
   const { account, accountId, loading: accountLoading } = useAccount();
   const { members } = useMembers(accountId);
   const liveStats = useMemberLiveStats(members);
-  const { kpis } = useDashboardKpis(accountId);
   const { statsByName } = useMemberXpStats(accountId);
   const { series: bossHuntSeries } = useBossHuntSheet();
 
@@ -99,8 +98,11 @@ export function DashboardPage() {
 
   // KKs Plunder(ind) / Qtd Plunders = soma do Valor Total (e contagem) dos drops do
   // mês/ano selecionado cujo boss é "Plunder" (baú compartilhado, sem fragador único —
-  // ver comentário no ranking Top Drop mais abaixo). Pedido do usuário: puxar direto
-  // dos drops reais em vez de continuar como número solto do mock.
+  // ver comentário no ranking Top Drop mais abaixo).
+  // KKs Bags(ind) / Qtd Bags = mesma ideia, só que pros "outros" bosses — todo drop cujo
+  // boss não seja "Plunder" nem "SoulCore" (esse último também é um baú compartilhado por
+  // categoria, não um boss de verdade — os itens dentro dele são sempre "SoulCore ...").
+  // Pedido do usuário: puxar os 2 direto dos drops reais em vez de número solto do mock.
   const stats = useMemo(() => {
     const totalValue = drops.reduce((s, d) => s + d.totalValue, 0);
     const soldCount = drops.filter((d) => d.sold).length;
@@ -108,15 +110,20 @@ export function DashboardPage() {
     const serviceiroDropsCount = drops.filter((d) => d.party.service).length;
     const plunderDrops = drops.filter((d) => d.bossName === 'Plunder');
     const plunderTotal = plunderDrops.reduce((s, d) => s + d.totalValue, 0);
-    return { totalValue, soldCount, pendingCount, totalDrops: drops.length, serviceiroDropsCount, plunderTotal, plunderCount: plunderDrops.length };
+    const bagsDrops = drops.filter((d) => d.bossName !== 'Plunder' && d.bossName !== 'SoulCore');
+    const bagsTotal = bagsDrops.reduce((s, d) => s + d.totalValue, 0);
+    return {
+      totalValue, soldCount, pendingCount, totalDrops: drops.length, serviceiroDropsCount,
+      plunderTotal, plunderCount: plunderDrops.length,
+      bagsTotal, bagsCount: bagsDrops.length,
+    };
   }, [drops]);
 
   // Total (ind) = soma dos 4 KKs individuais do mês/ano selecionado (pedido do usuário) —
-  // não é mais um valor pré-agregado do mock, é sempre recalculado a partir dos outros 3 cards.
+  // sempre recalculado a partir dos outros cards, nenhum deles vem mais de mock.
   const totalInd = useMemo(() => {
-    if (!kpis) return null;
-    return stats.plunderTotal + kpis.kksBagsInd + bossHuntTotals.hunt + bossHuntTotals.boss;
-  }, [kpis, bossHuntTotals, stats.plunderTotal]);
+    return stats.plunderTotal + stats.bagsTotal + bossHuntTotals.hunt + bossHuntTotals.boss;
+  }, [stats.plunderTotal, stats.bagsTotal, bossHuntTotals]);
 
   // Top Drop é dos últimos 365 dias — independente do seletor de Mês, então busca à parte.
   const last365Filters = useMemo(() => {
@@ -260,7 +267,7 @@ export function DashboardPage() {
 
             <div style={{ background: '#1e293b', padding: '10px 8px', borderRadius: '6px', border: '1px solid #334155', textAlign: 'center' }}>
               <span style={{ fontSize: '10px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Qtd Bags</span>
-              <strong style={{ fontSize: '14px', color: '#fff' }}>{kpis?.qtdBags ?? '…'}</strong>
+              <strong style={{ fontSize: '14px', color: '#fff' }}>{stats.bagsCount}</strong>
             </div>
             <div style={{ background: '#1e293b', padding: '10px 8px', borderRadius: '6px', border: '1px solid #334155', textAlign: 'center' }}>
               <span style={{ fontSize: '10px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Qtd Plunders</span>
@@ -268,11 +275,11 @@ export function DashboardPage() {
             </div>
             <div style={{ background: '#1e293b', padding: '10px 8px', borderRadius: '6px', border: '1px solid #334155', textAlign: 'center' }}>
               <span style={{ fontSize: '10px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Total (ind)</span>
-              <strong style={{ fontSize: '11px', color: '#10b981' }}>{totalInd !== null ? formatTibiaGold(totalInd) : '…'}</strong>
+              <strong style={{ fontSize: '11px', color: '#10b981' }}>{formatTibiaGold(totalInd)}</strong>
             </div>
             <div style={{ background: '#1e293b', padding: '10px 8px', borderRadius: '6px', border: '1px solid #334155', textAlign: 'center' }}>
               <span style={{ fontSize: '10px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>KKs Bags(ind)</span>
-              <strong style={{ fontSize: '11px', color: '#10b981' }}>{kpis ? formatTibiaGold(kpis.kksBagsInd) : '…'}</strong>
+              <strong style={{ fontSize: '11px', color: '#10b981' }}>{formatTibiaGold(stats.bagsTotal)}</strong>
             </div>
             <div style={{ background: '#1e293b', padding: '10px 8px', borderRadius: '6px', border: '1px solid #334155', textAlign: 'center' }}>
               <span style={{ fontSize: '10px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>KKs Boss</span>

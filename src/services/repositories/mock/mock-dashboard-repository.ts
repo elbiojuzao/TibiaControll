@@ -1,15 +1,9 @@
-import type { DashboardKpis, MemberXpStats } from '@/types';
+import type { MemberXpStats } from '@/types';
 import type { IDashboardRepository } from '../interfaces';
-import { mockDashboardKpis } from '@/mocks/data/dashboard-kpis';
 import { mockMemberXpStats } from '@/mocks/data/member-xp-stats';
 import { fetchXpSheetCached } from '@/services/xp-sheet/xp-sheet-cache';
 
 const delay = (ms = 150) => new Promise((r) => setTimeout(r, ms));
-
-const EMPTY_KPIS: DashboardKpis = {
-  qtdBags: 0,
-  kksBagsInd: 0,
-};
 
 /** "+197.664.728" / "-476.736.286" — igual ao formato que já existe no mock, mas sem o
  * bug do formatTibiaGold (que esconde o sinal de negativo com Math.abs). O sinal aqui
@@ -20,11 +14,6 @@ function formatXpValue(value: number): string {
 }
 
 export class MockDashboardRepository implements IDashboardRepository {
-  async getKpis(accountId: string): Promise<DashboardKpis> {
-    await delay();
-    return mockDashboardKpis[accountId] ?? EMPTY_KPIS;
-  }
-
   /**
    * xpOntem/xp30Dias vêm de verdade da planilha do usuário (rotina automática dele, a
    * gente só lê o resultado via /api/xp-sheet — ver api/_lib/xp-sheet.ts). previsaoFimAno
