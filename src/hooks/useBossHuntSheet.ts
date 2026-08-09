@@ -10,9 +10,14 @@ export interface BossHuntDailyEntry {
 }
 
 /**
- * Busca /api/boss-hunt-sheet uma vez e devolve o histórico completo de profit
- * individual de Hunt/Boss por dia, lido ao vivo da aba "Boss hunt" da planilha do
- * usuário. Usado no modal de dia do Calendário e nos KPIs de Hunt/Boss do Dashboard.
+ * Busca /api/boss-hunt-sheet e devolve o histórico completo de profit individual de
+ * Hunt/Boss por dia, lido ao vivo da aba "Boss hunt" da planilha do usuário. Usado no
+ * modal de dia do Calendário e nos KPIs de Hunt/Boss do Dashboard.
+ *
+ * Sem cache local (diferente do useXpSheet) — o usuário pediu que os KKs do Dashboard
+ * fiquem sempre atualizados, então busca de novo (bypassando cache HTTP com
+ * `cache: 'no-store'`) toda vez que o componente monta, ou seja, toda vez que a
+ * Dashboard/Calendário é aberta.
  */
 export function useBossHuntSheet() {
   const [series, setSeries] = useState<BossHuntDailyEntry[]>([]);
@@ -24,7 +29,7 @@ export function useBossHuntSheet() {
     setLoading(true);
     setError(null);
 
-    fetch('/api/boss-hunt-sheet')
+    fetch('/api/boss-hunt-sheet', { cache: 'no-store' })
       .then((res) => {
         if (!res.ok) throw new Error(`status ${res.status}`);
         return res.json();

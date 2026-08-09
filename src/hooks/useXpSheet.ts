@@ -1,22 +1,14 @@
 import { useEffect, useState } from 'react';
+import type { XpCharacterStats } from '@/types';
+import { fetchXpSheetCached } from '@/services/xp-sheet/xp-sheet-cache';
 
-export interface XpDailyEntry {
-  /** DD/MM/YYYY */
-  date: string;
-  value: number;
-}
-
-export interface XpCharacterStats {
-  xpOntem: number;
-  xp30Dias: number;
-  series: XpDailyEntry[];
-}
+export type { XpCharacterStats, XpDailyEntry } from '@/types';
 
 /**
- * Busca /api/xp-sheet uma vez e devolve o histórico completo de XP por personagem,
- * lido ao vivo da planilha do usuário (ver memória "integracao-planilha-xp"). Usado
- * tanto pelo Histórico de XP (últimos 30 dias) quanto pelo modal do Calendário
- * (busca um dia específico, que pode estar fora dos últimos 30 dias).
+ * Devolve o histórico completo de XP por personagem, lido da planilha do usuário (ver
+ * memória "integracao-planilha-xp"). Usado tanto pelo Histórico de XP (últimos 30 dias)
+ * quanto pelo modal do Calendário (busca um dia específico, que pode estar fora dos
+ * últimos 30 dias). A busca em si é cacheada localmente 1x/dia — ver xp-sheet-cache.ts.
  */
 export function useXpSheet() {
   const [data, setData] = useState<Record<string, XpCharacterStats>>({});
@@ -28,13 +20,9 @@ export function useXpSheet() {
     setLoading(true);
     setError(null);
 
-    fetch('/api/xp-sheet')
-      .then((res) => {
-        if (!res.ok) throw new Error(`status ${res.status}`);
-        return res.json();
-      })
-      .then((json) => {
-        if (!cancelled) setData(json);
+    fetchXpSheetCached()
+      .then((result) => {
+        if (!cancelled) setData(result);
       })
       .catch((err) => {
         if (!cancelled) setError(err instanceof Error ? err.message : 'Erro ao carregar XP da planilha');

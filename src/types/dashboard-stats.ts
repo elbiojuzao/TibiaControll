@@ -1,17 +1,3 @@
-/**
- * Indicadores agregados do Dashboard cuja regra de cálculo ainda não foi definida
- * (classificação de drop em Plunder/Bag/Boss não existe no modelo de LootDrop hoje).
- * Tratados como valores pré-agregados vindos do "banco" (mock agora, backend depois),
- * não computados no front — ver memória do projeto antes de tentar derivar isso de outra fonte.
- */
-export interface DashboardKpis {
-  kksPlunderInd: number;
-  qtdBags: number;
-  qtdPlunders: number;
-  totalInd: number;
-  kksBagsInd: number;
-}
-
 /** Histórico diário de XP por personagem — a API pública do Tibia não expõe isso (ver [[integracao-tibiadata]]) */
 export interface MemberXpStats {
   xpOntem: string;

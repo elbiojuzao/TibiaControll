@@ -47,7 +47,6 @@ export interface IServiceiroRepository {
 }
 
 export interface IDashboardRepository {
-  getKpis(accountId: string): Promise<import('@/types').DashboardKpis>;
   getMemberXpStats(accountId: string): Promise<Record<string, import('@/types').MemberXpStats>>;
 }
 
