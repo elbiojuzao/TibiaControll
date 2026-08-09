@@ -4,7 +4,7 @@
  * INDIVIDUAL (o usuário confirmou: já vem dividido — /4 pra hunt, /5 pra boss), então
  * não precisa dividir de novo aqui, só ler e repassar.
  */
-import { parseCsv, parseBrNumber } from './sheet-utils';
+import { parseCsv, parseBrNumber } from './sheet-utils.js';
 
 const SHEET_ID = '1dDdNGq9paaJPxlyInZPQWw_1S5RZfK199TJO4HBiKtY';
 const BOSS_HUNT_GID = '1868125467';

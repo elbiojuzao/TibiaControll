@@ -9,7 +9,7 @@
  * Não busca aqui a tabela de "metas por nível" (previsão de XP/dia pra bater cada nível
  * até o fim do ano) — o usuário confirmou que isso continua mock por enquanto.
  */
-import { parseCsv, parseBrNumber } from './sheet-utils';
+import { parseCsv, parseBrNumber } from './sheet-utils.js';
 
 const SHEET_ID = '1dDdNGq9paaJPxlyInZPQWw_1S5RZfK199TJO4HBiKtY';
 const XP_REALIZADA_GID = '421841615';
