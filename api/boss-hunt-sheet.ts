@@ -1,4 +1,4 @@
-import { fetchBossHuntFromSheet } from './_lib/boss-hunt-sheet';
+import { fetchBossHuntFromSheet } from './_lib/boss-hunt-sheet.js';
 
 /** Vercel Node Function — GET /api/boss-hunt-sheet. Mesmo padrão de api/xp-sheet.ts
  * (tipado à mão, sem @vercel/node). */

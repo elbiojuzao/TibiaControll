@@ -1,4 +1,4 @@
-import { fetchXpStatsFromSheet } from './_lib/xp-sheet';
+import { fetchXpStatsFromSheet } from './_lib/xp-sheet.js';
 
 /** Vercel Node Function — GET /api/xp-sheet. Tipado à mão (sem @vercel/node) pra não
  * adicionar dependência só por causa dos tipos; req/res seguem a assinatura padrão do
