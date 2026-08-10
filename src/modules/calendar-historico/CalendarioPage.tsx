@@ -121,6 +121,12 @@ export function CalendarioPage() {
           <button className="calendar-nav-btn" onClick={goToNextMonth}>Próximo ›</button>
         </div>
 
+        <div className="calendar-legend">
+          <span className="calendar-legend-item"><span className="calendar-dot boss" /> Boss (teve valor na planilha)</span>
+          <span className="calendar-legend-item"><span className="calendar-dot hunt" /> Hunt (teve valor na planilha)</span>
+          <span className="calendar-legend-item"><span className="calendar-dot drop" /> Item — 1 bolinha por drop no dia</span>
+        </div>
+
         <div className="calendar-grid" style={{ marginBottom: '6px' }}>
           {WEEKDAYS.map((wd) => (
             <div key={wd} className="calendar-weekday">{wd}</div>
@@ -134,30 +140,50 @@ export function CalendarioPage() {
             }
 
             const activity = activityByDate.get(cell.dateKey!);
+            // "Teve valor adicionado nesse dia" — a leitura da planilha (useBossHuntSheet) só
+            // inclui uma linha se a célula de Hunt daquele dia não estiver em branco, então a
+            // simples existência da entrada já basta pro dot de Hunt. Pra Boss não tem esse
+            // mesmo filtro no fetch (ver api/_lib/boss-hunt-sheet.ts), então uma célula de Boss
+            // em branco vira 0 igual um lucro genuinamente zerado — usamos "!== 0" como
+            // aproximação (não distingue perfeitamente "sem dado" de "zerado de verdade").
+            const bossHuntEntry = bossHuntSeries.find((e) => e.date === cell.dateKey);
+            const hasBoss = bossHuntEntry !== undefined && bossHuntEntry.boss !== 0;
+            const hasHunt = bossHuntEntry !== undefined;
             const hasActivity = !!activity && (activity.hunts.length > 0 || activity.drops.length > 0);
+            const hasAnyIndicator = hasActivity || hasBoss || hasHunt;
 
             return (
               <div
                 key={idx}
                 onClick={() => setSelectedDateKey(cell.dateKey)}
                 title="Clique para ver os detalhes do dia"
-                className={`calendar-day${hasActivity ? ' has-activity' : ''}${cell.dateKey === todayKey ? ' today' : ''}`}
+                className={`calendar-day${hasAnyIndicator ? ' has-activity' : ''}${cell.dateKey === todayKey ? ' today' : ''}`}
                 style={{ cursor: 'pointer' }}
               >
                 <span className="calendar-day-number">{cell.day}</span>
 
-                {hasActivity && (
+                {hasAnyIndicator && (
                   <div className="calendar-day-dots">
-                    {activity!.hunts.length > 0 && <span className="calendar-dot hunt" title="Hunt" />}
-                    {activity!.drops.length > 0 && <span className="calendar-dot drop" title="Drop" />}
+                    {hasBoss && <span className="calendar-dot boss" title="Boss" />}
+                    {hasHunt && <span className="calendar-dot hunt" title="Hunt" />}
+                    {activity?.drops.map((drop) => (
+                      <span key={drop.id} className="calendar-dot drop" title={drop.itemName} />
+                    ))}
                   </div>
                 )}
 
-                {hasActivity && (
+                {hasAnyIndicator && (
                   <div className="calendar-tooltip">
                     <div className="calendar-tooltip-title">{cell.dateKey}</div>
 
-                    {activity!.hunts.map((hunt) => (
+                    {(hasBoss || hasHunt) && (
+                      <div className="calendar-tooltip-item">
+                        {hasBoss && <>🐲 Boss: <strong style={{ color: '#38bdf8' }}>{formatXp(bossHuntEntry!.boss)}</strong><br /></>}
+                        {hasHunt && <>🗡️ Hunt: <strong style={{ color: '#f59e0b' }}>{formatXp(bossHuntEntry!.hunt)}</strong></>}
+                      </div>
+                    )}
+
+                    {activity?.hunts.map((hunt) => (
                       <div key={hunt.id} className="calendar-tooltip-item">
                         🗡️ Hunt{hunt.bossName ? ` — ${hunt.bossName}` : ''}<br />
                         Profit: <strong style={{ color: '#10b981' }}>{formatTibiaGold(hunt.profitTotal)}</strong>{' '}
@@ -165,7 +191,7 @@ export function CalendarioPage() {
                       </div>
                     ))}
 
-                    {activity!.drops.map((drop) => (
+                    {activity?.drops.map((drop) => (
                       <div key={drop.id} className="calendar-tooltip-item">
                         💎 {drop.itemName} <span style={{ color: '#64748b' }}>({drop.bossName})</span><br />
                         Valor: <strong style={{ color: '#10b981' }}>{formatTibiaGold(drop.totalValue)}</strong>{' '}
