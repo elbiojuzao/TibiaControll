@@ -529,7 +529,23 @@ table {
 }
 
 .calendar-dot.hunt { background: #f59e0b; }
+.calendar-dot.boss { background: #38bdf8; }
 .calendar-dot.drop { background: #a29bfe; }
+
+.calendar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 10px 2px 14px;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+.calendar-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 
 .calendar-tooltip {
   display: none;
