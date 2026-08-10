@@ -8,11 +8,15 @@
  *
  * Não busca aqui a tabela de "metas por nível" (previsão de XP/dia pra bater cada nível
  * até o fim do ano) — o usuário confirmou que isso continua mock por enquanto.
+ *
+ * ID/gid da planilha vêm de env vars (XP_SHEET_ID, XP_SHEET_XP_REALIZADA_GID), não de
+ * constante no código — o repo é público no GitHub e a planilha é compartilhada como
+ * "qualquer um com o link pode ver", então o ID sozinho já dá acesso de leitura total a
+ * ela. Sem prefixo VITE_ de propósito: essas env vars só existem no lado servidor
+ * (Vercel Function / vite.config.ts em dev), nunca vão pro bundle do client.
  */
 import { parseCsv, parseBrNumber } from './sheet-utils.js';
 
-const SHEET_ID = '1dDdNGq9paaJPxlyInZPQWw_1S5RZfK199TJO4HBiKtY';
-const XP_REALIZADA_GID = '421841615';
 const DAYS_FOR_XP_30_DIAS = 30;
 
 export interface XpDailyEntry {
@@ -30,7 +34,13 @@ export interface XpDailyStats {
 }
 
 export async function fetchXpStatsFromSheet(): Promise<Record<string, XpDailyStats>> {
-  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${XP_REALIZADA_GID}`;
+  const sheetId = process.env.XP_SHEET_ID;
+  const gid = process.env.XP_SHEET_XP_REALIZADA_GID;
+  if (!sheetId || !gid) {
+    throw new Error('XP_SHEET_ID / XP_SHEET_XP_REALIZADA_GID não configuradas (env var ausente no servidor).');
+  }
+
+  const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Falha ao buscar a planilha de XP (status ${res.status})`);
 

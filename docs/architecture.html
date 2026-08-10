@@ -1,0 +1,958 @@
+<title>Tibia Party Manager — Mapa de Arquitetura</title>
+<style>
+  :root {
+    --bg: #0a0f1a;
+    --surface: #131b2c;
+    --surface-2: #1a2338;
+    --surface-3: #212c46;
+    --border: #263252;
+    --text: #e7ecf7;
+    --text-muted: #8b96b0;
+    --text-faint: #5c6684;
+    --accent: #34d399;
+    --accent-soft: #34d39922;
+    --accent-2: #38bdf8;
+    --accent-2-soft: #38bdf822;
+    --warn: #f5b754;
+    --warn-soft: #f5b75422;
+    --danger: #f87171;
+    --danger-soft: #f8717122;
+    --mono: ui-monospace, "Cascadia Code", "Cascadia Mono", "Fira Code", Consolas, "SF Mono", Menlo, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --radius: 8px;
+  }
+
+  :root[data-theme="light"] {
+    --bg: #f3f5fb;
+    --surface: #ffffff;
+    --surface-2: #eef1f8;
+    --surface-3: #e3e8f4;
+    --border: #d7deee;
+    --text: #131b2c;
+    --text-muted: #5b6478;
+    --text-faint: #8790a6;
+    --accent: #059669;
+    --accent-soft: #05966915;
+    --accent-2: #0369a1;
+    --accent-2-soft: #0369a115;
+    --warn: #b45309;
+    --warn-soft: #b4530915;
+    --danger: #b91c1c;
+    --danger-soft: #b91c1c15;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f3f5fb;
+      --surface: #ffffff;
+      --surface-2: #eef1f8;
+      --surface-3: #e3e8f4;
+      --border: #d7deee;
+      --text: #131b2c;
+      --text-muted: #5b6478;
+      --text-faint: #8790a6;
+      --accent: #059669;
+      --accent-soft: #05966915;
+      --accent-2: #0369a1;
+      --accent-2-soft: #0369a115;
+      --warn: #b45309;
+      --warn-soft: #b4530915;
+      --danger: #b91c1c;
+      --danger-soft: #b91c1c15;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  a { color: var(--accent-2); }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr);
+    max-width: 1320px;
+    margin: 0 auto;
+    align-items: start;
+  }
+
+  /* ---------- Sidebar / TOC ---------- */
+  .toc {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 28px 18px 40px 24px;
+    border-right: 1px solid var(--border);
+  }
+  .toc-brand {
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .toc-sub {
+    font-size: 12px;
+    color: var(--text-faint);
+    margin-bottom: 24px;
+  }
+  .toc nav a {
+    display: block;
+    padding: 6px 10px;
+    border-radius: 6px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 13px;
+    border-left: 2px solid transparent;
+  }
+  .toc nav a:hover { color: var(--text); background: var(--surface-2); }
+  .toc nav a.active { color: var(--accent); border-left-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+  .toc-group-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin: 18px 0 6px 10px;
+  }
+
+  /* ---------- Main content ---------- */
+  main { padding: 40px 48px 120px; min-width: 0; }
+
+  .hero {
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 40px;
+  }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent-2);
+    margin-bottom: 10px;
+  }
+  h1 {
+    font-family: var(--mono);
+    font-size: 34px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 0 0 12px;
+    text-wrap: balance;
+  }
+  .hero p { color: var(--text-muted); max-width: 62ch; margin: 0 0 20px; }
+  .hero-meta { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; }
+  .meta-pill {
+    font-family: var(--mono);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 5px 12px;
+    color: var(--text-muted);
+  }
+  .meta-pill b { color: var(--text); }
+
+  .callout {
+    display: flex;
+    gap: 12px;
+    background: var(--danger-soft);
+    border: 1px solid var(--danger);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-top: 20px;
+    font-size: 13.5px;
+  }
+  .callout .dot { color: var(--danger); font-weight: 700; flex-shrink: 0; }
+
+  section { margin-bottom: 56px; scroll-margin-top: 20px; }
+  h2 {
+    font-family: var(--mono);
+    font-size: 20px;
+    letter-spacing: -0.005em;
+    margin: 0 0 6px;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  h2 .num { color: var(--text-faint); font-weight: 400; }
+  .section-intro { color: var(--text-muted); max-width: 68ch; margin: 0 0 22px; font-size: 14px; }
+  h3 { font-family: var(--mono); font-size: 15px; margin: 0 0 10px; color: var(--text); }
+  code, .mono { font-family: var(--mono); font-size: 0.92em; }
+  code {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+  }
+
+  /* ---------- Cards / grids ---------- */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+  }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  @media (max-width: 900px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+  /* status chips */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .chip-real { color: var(--accent); background: var(--accent-soft); }
+  .chip-mock { color: var(--warn); background: var(--warn-soft); }
+  .chip-mixed { color: var(--accent-2); background: var(--accent-2-soft); }
+  .chip-issue-alto { color: var(--danger); background: var(--danger-soft); }
+  .chip-issue-medio { color: var(--warn); background: var(--warn-soft); }
+  .chip-issue-baixo { color: var(--text-muted); background: var(--surface-2); }
+  .chip-issue-info { color: var(--accent-2); background: var(--accent-2-soft); }
+
+  /* route cards */
+  .route-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  @media (max-width: 900px) { .route-grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 600px) { .route-grid { grid-template-columns: 1fr; } }
+  .route-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .route-path { font-family: var(--mono); font-size: 12px; color: var(--accent-2); display: block; margin-bottom: 6px; }
+  .route-label { font-weight: 600; margin-bottom: 8px; }
+
+  /* module details */
+  details.module {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+  details.module summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-weight: 600;
+  }
+  details.module summary::-webkit-details-marker { display: none; }
+  details.module summary::after {
+    content: "＋";
+    font-family: var(--mono);
+    color: var(--text-faint);
+    font-weight: 400;
+    transition: transform 0.15s ease;
+  }
+  details.module[open] summary::after { content: "－"; }
+  .summary-left { display: flex; align-items: center; gap: 10px; }
+  .summary-path { font-family: var(--mono); font-size: 11.5px; color: var(--text-faint); font-weight: 400; }
+  .module-body { padding: 0 18px 18px; border-top: 1px solid var(--border); }
+  .module-body p { color: var(--text-muted); font-size: 13.5px; margin: 14px 0 10px; }
+  .kv-list { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; font-size: 13px; margin-top: 10px; }
+  .kv-list dt { font-family: var(--mono); color: var(--text-faint); }
+  .kv-list dd { margin: 0; color: var(--text-muted); }
+
+  /* schema tables */
+  .schema-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 12px; }
+  .schema-head { padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--surface-2); display: flex; justify-content: space-between; align-items: center; }
+  .schema-head .name { font-family: var(--mono); font-weight: 700; }
+  .schema-head .src { font-family: var(--mono); font-size: 11px; color: var(--text-faint); }
+  table.fields { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.fields td { padding: 7px 16px; border-bottom: 1px solid var(--border); }
+  table.fields tr:last-child td { border-bottom: none; }
+  table.fields td.f-name { font-family: var(--mono); color: var(--text); white-space: nowrap; }
+  table.fields td.f-type { font-family: var(--mono); color: var(--accent-2); }
+  .schema-note { padding: 10px 16px; font-size: 12.5px; color: var(--text-muted); border-top: 1px solid var(--border); background: var(--surface-2); }
+
+  /* diagrams */
+  figure.diagram { margin: 0 0 10px; }
+  .diagram-frame {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    overflow-x: auto;
+  }
+  .diagram-frame svg { width: 100%; height: auto; display: block; min-width: 640px; }
+  figcaption { font-size: 12.5px; color: var(--text-muted); margin-top: 10px; max-width: 70ch; }
+  .diag-box { fill: var(--surface-2); stroke: var(--border); stroke-width: 1; }
+  .diag-box-accent { fill: var(--accent-soft); stroke: var(--accent); }
+  .diag-box-accent2 { fill: var(--accent-2-soft); stroke: var(--accent-2); }
+  .diag-box-warn { fill: var(--warn-soft); stroke: var(--warn); }
+  .diag-text { fill: var(--text); font-family: var(--sans); }
+  .diag-label { fill: var(--text-muted); font-family: var(--mono); }
+  .diag-line { stroke: var(--text-faint); stroke-width: 1.4; fill: none; }
+  .diag-lane-title { fill: var(--text-faint); font-family: var(--mono); letter-spacing: 0.05em; }
+
+  /* known issues */
+  .issue { display: grid; grid-template-columns: max-content 1fr; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .issue:last-child { border-bottom: none; }
+  .issue-title { font-weight: 600; margin: 0 0 4px; }
+  .issue-area { font-family: var(--mono); font-size: 11.5px; color: var(--text-faint); margin-bottom: 6px; }
+  .issue-desc { font-size: 13.5px; color: var(--text-muted); margin: 0; }
+
+  /* generic list */
+  ol.steps { margin: 0; padding-left: 20px; color: var(--text-muted); font-size: 13.5px; }
+  ol.steps li { margin-bottom: 6px; }
+  ol.steps b { color: var(--text); }
+
+  .flag-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .flag-table th { text-align: left; font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-faint); padding: 8px 12px; border-bottom: 1px solid var(--border); }
+  .flag-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .flag-table td.mono-cell { font-family: var(--mono); color: var(--accent-2); white-space: nowrap; }
+
+  footer { border-top: 1px solid var(--border); padding: 24px 48px; color: var(--text-faint); font-size: 12px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: 1fr; }
+    .toc { position: relative; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
+    main { padding: 28px 20px 80px; }
+  }
+</style>
+
+<div class="layout">
+  <aside class="toc">
+    <div class="toc-brand">Tibia PT Manager</div>
+    <div class="toc-sub">Mapa de arquitetura · gerado 2026-08-09</div>
+    <nav id="tocnav">
+      <a href="#overview">Visão geral</a>
+      <a href="#routes">Rotas &amp; navegação</a>
+      <a href="#datasourcing">Como o dado chega</a>
+      <div class="toc-group-label">Módulos</div>
+      <a href="#modules">Todos os módulos</a>
+      <div class="toc-group-label">Dados</div>
+      <a href="#models">Modelos de dado</a>
+      <a href="#repository">Padrão de repositório</a>
+      <div class="toc-group-label">Integrações</div>
+      <a href="#supabase">Supabase</a>
+      <a href="#tibiadata">TibiaData</a>
+      <a href="#sheets">Planilha Google Sheets</a>
+      <div class="toc-group-label">Regras</div>
+      <a href="#business">Regras de negócio</a>
+      <div class="toc-group-label">Atenção</div>
+      <a href="#issues">Problemas conhecidos</a>
+      <a href="#conventions">Convenções</a>
+    </nav>
+  </aside>
+
+  <main>
+    <header class="hero" id="overview">
+      <div class="eyebrow">Mapa de arquitetura · referência viva</div>
+      <h1>Tibia Party Manager</h1>
+      <p>Substitui as planilhas manuais de uma party de Tibia: log de drops, split de loot, timers de boss, calculadoras de tier/charm, histórico de XP e agenda de serviceiros. React 19 + TypeScript + Vite, dado real parcial via Supabase, dois proxies de leitura (TibiaData e a planilha pessoal do usuário) via Vercel Functions.</p>
+      <div class="hero-meta">
+        <span class="meta-pill">stack: <b>React 19 · Vite 6 · TypeScript</b></span>
+        <span class="meta-pill">9 <b>rotas</b></span>
+        <span class="meta-pill">8 <b>módulos</b></span>
+        <span class="meta-pill">deploy: <b>tibiacontroll.vercel.app</b></span>
+        <span class="meta-pill">repo: <b>elbiojuzao/TibiaControll</b></span>
+      </div>
+      <div class="callout">
+        <span class="dot">⚠</span>
+        <span><b>Produção builda a partir da branch <code>main</code></b>, não da branch de trabalho ativa. Um commit numa feature branch só chega em <code>tibiacontroll.vercel.app</code> depois de um merge (PR) explícito para <code>main</code> — confirmado na prática em 2026-08-09, quando um fix ficou ~10&nbsp;min "sem efeito" até isso ser percebido.</span>
+      </div>
+    </header>
+
+    <section id="routes">
+      <h2><span class="num">01</span> Rotas &amp; navegação</h2>
+      <p class="section-intro">Todas as rotas vivem sob um único <code>&lt;AppLayout&gt;</code> (sidebar fixa + <code>&lt;Outlet/&gt;</code>), definidas em <code>src/App.tsx</code>. Sem autenticação por rota — a conta é resolvida via <code>useAccount()</code> globalmente.</p>
+      <div class="route-grid">
+        <div class="route-card"><span class="route-path">/</span><div class="route-label">📊 Dashboard</div><span class="chip chip-mixed">misto</span></div>
+        <div class="route-card"><span class="route-path">/loot-log</span><div class="route-label">💎 Log de Drops</div><span class="chip chip-mixed">misto</span></div>
+        <div class="route-card"><span class="route-path">/split</span><div class="route-label">💰 Split Loot</div><span class="chip chip-real">cálculo puro</span></div>
+        <div class="route-card"><span class="route-path">/timers</span><div class="route-label">⏱️ Timers</div><span class="chip chip-mock">mock</span></div>
+        <div class="route-card"><span class="route-path">/tier-calculator</span><div class="route-label">⚒️ Calculadora Tier</div><span class="chip chip-real">regra do jogo</span></div>
+        <div class="route-card"><span class="route-path">/charm-planner</span><div class="route-label">🔮 Charm Planner</div><span class="chip chip-real">regra do jogo</span></div>
+        <div class="route-card"><span class="route-path">/calendario</span><div class="route-label">📅 Histórico</div><span class="chip chip-mixed">misto</span></div>
+        <div class="route-card"><span class="route-path">/historico-xp</span><div class="route-label">📈 Histórico de XP</div><span class="chip chip-real">planilha real</span></div>
+        <div class="route-card"><span class="route-path">/serviceiros</span><div class="route-label">🤝 Serviceiros</div><span class="chip chip-mixed">misto</span></div>
+      </div>
+    </section>
+
+    <section id="datasourcing">
+      <h2><span class="num">02</span> Como o dado chega em cada tela</h2>
+      <p class="section-intro">Três mecanismos coexistem, e cada um se comporta diferente. Este é o fato mais importante do projeto pra qualquer sessão futura: <b>nem todo hook segue o padrão repository/mock</b>, e cache não é uniforme entre eles.</p>
+      <figure class="diagram">
+        <div class="diagram-frame">
+          <svg viewBox="0 0 950 560" role="img" aria-label="Três formas de buscar dado: Drops/Serviceiros via repository trocável por flag e Supabase; TibiaData sempre ao vivo sem repository; planilha do usuário via Vercel Function, com XP cacheado 1x por dia e Boss/Hunt sempre buscado de novo.">
+            <defs>
+              <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 z" fill="currentColor" />
+              </marker>
+            </defs>
+
+            <!-- LANE A: Drops & Serviceiros -->
+            <text x="10" y="15" class="diag-lane-title" font-size="11">DROPS &amp; SERVICEIROS</text>
+            <g class="diag-line" color="var(--text-faint)">
+              <rect class="diag-box" x="10" y="45" width="110" height="50" rx="6"/>
+              <line x1="120" y1="70" x2="180" y2="70" marker-end="url(#arrow)"/>
+              <rect class="diag-box" x="185" y="45" width="110" height="50" rx="6"/>
+              <line x1="295" y1="70" x2="355" y2="70" marker-end="url(#arrow)"/>
+              <rect class="diag-box" x="360" y="45" width="140" height="50" rx="6"/>
+              <line x1="500" y1="60" x2="555" y2="35" marker-end="url(#arrow)"/>
+              <line x1="500" y1="82" x2="555" y2="115" marker-end="url(#arrow)"/>
+              <rect class="diag-box-warn" x="560" y="12" width="190" height="46" rx="6"/>
+              <rect class="diag-box" x="560" y="93" width="150" height="46" rx="6"/>
+              <line x1="710" y1="116" x2="755" y2="116" marker-end="url(#arrow)"/>
+              <rect class="diag-box-accent" x="760" y="93" width="150" height="46" rx="6"/>
+            </g>
+            <text x="65" y="65" text-anchor="middle" class="diag-text" font-size="12">Componente</text>
+            <text x="65" y="80" text-anchor="middle" class="diag-label" font-size="9.5">DropFormModal</text>
+            <text x="240" y="65" text-anchor="middle" class="diag-text" font-size="12">Hook</text>
+            <text x="240" y="80" text-anchor="middle" class="diag-label" font-size="9.5">useLootDrops</text>
+            <text x="430" y="65" text-anchor="middle" class="diag-text" font-size="12">Repository</text>
+            <text x="430" y="80" text-anchor="middle" class="diag-label" font-size="9.5">interface</text>
+            <text x="655" y="30" text-anchor="middle" class="diag-text" font-size="11.5">MockRepository</text>
+            <text x="655" y="44" text-anchor="middle" class="diag-label" font-size="9.5">array em memória</text>
+            <text x="635" y="120" text-anchor="middle" class="diag-text" font-size="11.5">HttpRepository</text>
+            <text x="835" y="112" text-anchor="middle" class="diag-text" font-size="12">Supabase</text>
+            <text x="835" y="127" text-anchor="middle" class="diag-label" font-size="9.5">Postgres</text>
+            <text x="527" y="18" text-anchor="middle" class="diag-label" font-size="9.5">flag = false</text>
+            <text x="527" y="150" text-anchor="middle" class="diag-label" font-size="9.5">VITE_*_USE_SUPABASE = true</text>
+            <text x="65" y="163" class="diag-label" font-size="10.5">única lane com escrita — e trocável mock↔real, por env flag, decidido 1x no boot</text>
+
+            <!-- LANE B: TibiaData -->
+            <text x="10" y="205" class="diag-lane-title" font-size="11">TIBIADATA — NÍVEL, SKILL, BOSTADOS</text>
+            <g class="diag-line" color="var(--text-faint)">
+              <rect class="diag-box" x="10" y="235" width="110" height="50" rx="6"/>
+              <line x1="120" y1="260" x2="180" y2="260" marker-end="url(#arrow)"/>
+              <rect class="diag-box" x="185" y="235" width="140" height="50" rx="6"/>
+              <line x1="325" y1="260" x2="395" y2="260" marker-end="url(#arrow)"/>
+              <rect class="diag-box" x="400" y="235" width="140" height="50" rx="6"/>
+              <line x1="540" y1="260" x2="605" y2="260" marker-end="url(#arrow)"/>
+              <rect class="diag-box-accent2" x="610" y="235" width="200" height="50" rx="6"/>
+            </g>
+            <text x="65" y="255" text-anchor="middle" class="diag-text" font-size="12">Componente</text>
+            <text x="65" y="270" text-anchor="middle" class="diag-label" font-size="9.5">DashboardPage</text>
+            <text x="255" y="255" text-anchor="middle" class="diag-text" font-size="12">Hook</text>
+            <text x="255" y="270" text-anchor="middle" class="diag-label" font-size="9.5">useMemberLiveStats</text>
+            <text x="470" y="260" text-anchor="middle" class="diag-text" font-size="12">fetch() direto</text>
+            <text x="710" y="255" text-anchor="middle" class="diag-text" font-size="12">api.tibiadata.com</text>
+            <text x="710" y="270" text-anchor="middle" class="diag-label" font-size="9.5">API pública do jogo</text>
+            <text x="65" y="317" class="diag-label" font-size="10.5">único lane sem repository nem mock — sempre ao vivo, sem cache, direto no hook</text>
+
+            <!-- LANE C: Planilha -->
+            <text x="10" y="358" class="diag-lane-title" font-size="11">PLANILHA DO USUÁRIO — XP · BOSS/HUNT</text>
+            <g class="diag-line" color="var(--text-faint)">
+              <rect class="diag-box" x="10" y="388" width="110" height="50" rx="6"/>
+              <line x1="120" y1="413" x2="180" y2="413" marker-end="url(#arrow)"/>
+              <rect class="diag-box" x="185" y="388" width="150" height="50" rx="6"/>
+              <line x1="335" y1="413" x2="405" y2="413" marker-end="url(#arrow)"/>
+              <rect class="diag-box" x="410" y="378" width="210" height="70" rx="6"/>
+              <line x1="620" y1="413" x2="685" y2="413" marker-end="url(#arrow)"/>
+              <rect class="diag-box-accent2" x="690" y="388" width="180" height="50" rx="6"/>
+              <line x1="260" y1="438" x2="260" y2="470" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+            </g>
+            <text x="65" y="408" text-anchor="middle" class="diag-text" font-size="12">Componente</text>
+            <text x="65" y="423" text-anchor="middle" class="diag-label" font-size="9.5">Dashboard / Calendário</text>
+            <text x="260" y="408" text-anchor="middle" class="diag-text" font-size="12">Hook</text>
+            <text x="260" y="423" text-anchor="middle" class="diag-label" font-size="9.5">useXpSheet / useBossHuntSheet</text>
+            <text x="515" y="403" text-anchor="middle" class="diag-text" font-size="11.5">Vercel Function</text>
+            <text x="515" y="418" text-anchor="middle" class="diag-label" font-size="9.5">/api/xp-sheet</text>
+            <text x="515" y="431" text-anchor="middle" class="diag-label" font-size="9.5">/api/boss-hunt-sheet</text>
+            <text x="780" y="408" text-anchor="middle" class="diag-text" font-size="12">Google Sheets</text>
+            <text x="780" y="423" text-anchor="middle" class="diag-label" font-size="9.5">export CSV (gviz)</text>
+            <rect class="diag-box-warn" x="150" y="470" width="230" height="46" rx="6"/>
+            <text x="265" y="490" text-anchor="middle" class="diag-text" font-size="11">cache localStorage — só XP</text>
+            <text x="265" y="504" text-anchor="middle" class="diag-label" font-size="9.5">1×/dia, válido após 7h15</text>
+            <text x="65" y="545" class="diag-label" font-size="10.5">único lane com proxy server-side (contorna CORS do Sheets) — Boss/Hunt nunca cacheia, sempre busca de novo</text>
+          </svg>
+        </div>
+        <figcaption>As três formas de buscar dado no app. Drops/Serviceiros passam pelo padrão repository e podem ser trocados entre mock e Supabase por env flag; TibiaData é sempre ao vivo, direto do hook, sem repository; a planilha do usuário passa por uma Vercel Function (contorna CORS) e só a série de XP é cacheada localmente — Boss/Hunt é sempre buscado de novo a cada entrada no sistema.</figcaption>
+      </figure>
+    </section>
+
+    <section id="modules">
+      <h2><span class="num">03</span> Módulos</h2>
+      <p class="section-intro">Um <code>&lt;details&gt;</code> por módulo — clique pra expandir. Caminho, propósito, arquivos-chave e de onde vem o dado.</p>
+
+      <details class="module" open>
+        <summary><span class="summary-left">📊 Dashboard <span class="summary-path">src/modules/dashboard/</span></span><span class="chip chip-mixed">misto</span></summary>
+        <div class="module-body">
+          <p>Painel central: KPIs financeiros do mês, tabela de membros com Lvl/Skill/XP, log completo de drops com registro/edição.</p>
+          <dl class="kv-list">
+            <dt>Rotas</dt><dd><code>/</code>, <code>/loot-log</code></dd>
+            <dt>DashboardPage.tsx</dt><dd>~480 linhas — todos os KPIs (Plunder/Bags/Hunt/Boss/Total) derivados <b>ao vivo</b> de <code>drops</code> (filtrado por mês) + <code>bossHuntSeries</code>; nenhum vem de mock.</dd>
+            <dt>DropFormModal.tsx</dt><dd>Modal único create+edit — EK/ED/MS/RP/5º, N serviceiros por drop (cada um com "jogador servido"), Boss→Item em cascata, Valor Cada calculado.</dd>
+            <dt>Fórmulas KPI</dt><dd>
+              <code>kksPlunderInd</code> = Σ totalValue onde boss=<code>'Plunder'</code> · <code>kksBagsInd</code> = Σ onde boss ∉ {Plunder, SoulCore} · <code>kksHunt/kksBoss</code> = soma da planilha no mês · <code>totalInd</code> = soma dos 4 acima
+            </dd>
+          </dl>
+        </div>
+      </details>
+
+      <details class="module">
+        <summary><span class="summary-left">💰 Split Loot <span class="summary-path">src/modules/split-calculator/</span></span><span class="chip chip-real">cálculo puro</span></summary>
+        <div class="module-body">
+          <p>Cola o texto bruto do "Party Hunt Analyzer" do próprio jogo, parseia com regex e calcula quem deve/recebe pra fechar o saldo da hunt.</p>
+          <dl class="kv-list">
+            <dt>Rota</dt><dd><code>/split</code></dd>
+            <dt>Lógica</dt><dd><code>services/split/split-calculator.ts</code> — ver seção Regras de negócio</dd>
+            <dt>Dado</dt><dd>Nenhuma persistência — cálculo client-side sobre texto colado; <code>PartySettings</code> (mock) só pra pré-preencher a cotação de TC.</dd>
+          </dl>
+        </div>
+      </details>
+
+      <details class="module">
+        <summary><span class="summary-left">⏱️ Timers <span class="summary-path">src/modules/timers/</span></span><span class="chip chip-mock">mock</span></summary>
+        <div class="module-body">
+          <p>Dois cronômetros simultâneos por boss: Timer Global (duração da sala) e Timer de Loop (mecânica que se repete), com beep via Web Audio API.</p>
+          <dl class="kv-list">
+            <dt>Rota</dt><dd><code>/timers</code></dd>
+            <dt>Dado</dt><dd><code>BossMechanic</code> — 5 bosses fixos, 100% mock. <b>Universo diferente</b> dos 16 bosses de loot table usados no Log de Drops — não unificar.</dd>
+          </dl>
+        </div>
+      </details>
+
+      <details class="module">
+        <summary><span class="summary-left">⚒️ Calculadora Tier <span class="summary-path">src/modules/tier-calculator/</span></span><span class="chip chip-real">regra do jogo</span></summary>
+        <div class="module-body">
+          <p>Custo total (gold + dust + exalted cores + itens consumidos) pra evoluir um item de tier X pra Y no Exaltation Forge.</p>
+          <dl class="kv-list">
+            <dt>Rota</dt><dd><code>/tier-calculator</code></dd>
+            <dt>Lógica</dt><dd><code>services/tier/tier-calculator.ts</code> — árvore exponencial, ver Regras de negócio</dd>
+            <dt>Dado</dt><dd>Constantes estáticas (<code>tier-cost-data.ts</code>) — regra oficial do jogo, não é dado de conta.</dd>
+          </dl>
+        </div>
+      </details>
+
+      <details class="module">
+        <summary><span class="summary-left">🔮 Charm Planner <span class="summary-path">src/modules/charm-planner/</span></span><span class="chip chip-real">regra do jogo</span></summary>
+        <div class="module-body">
+          <p>Calcula quantos Major/Minor Charm Points são necessários pros níveis escolhidos, e quanto sobra do saldo disponível.</p>
+          <dl class="kv-list">
+            <dt>Rota</dt><dd><code>/charm-planner</code></dd>
+            <dt>Regra</dt><dd>Custo <b>acumulado</b> desde o zero, nunca incremental — ver Regras de negócio.</dd>
+          </dl>
+        </div>
+      </details>
+
+      <details class="module">
+        <summary><span class="summary-left">📅 Histórico <span class="summary-path">src/modules/calendar-historico/</span></span><span class="chip chip-mixed">misto</span></summary>
+        <div class="module-body">
+          <p>Calendário mensal — hover mostra resumo rápido, clique abre modal completo com Boss/Hunt (planilha), XP por jogador (planilha) e Drops daquele dia.</p>
+          <dl class="kv-list">
+            <dt>Rota</dt><dd><code>/calendario</code></dd>
+            <dt>Dado</dt><dd><code>Hunt</code> (mock) + <code>LootDrop</code> (real) pro hover/pontinhos; <code>useXpSheet</code> + <code>useBossHuntSheet</code> pro modal de clique.</dd>
+            <dt>Atenção</dt><dd>A lista de Hunts mock foi <b>removida do modal</b> de clique (redundante com Boss/Hunt real) mas <b>continua</b> no hover e nos pontinhos.</dd>
+          </dl>
+        </div>
+      </details>
+
+      <details class="module">
+        <summary><span class="summary-left">📈 Histórico de XP <span class="summary-path">src/modules/xp-historico/</span></span><span class="chip chip-real">planilha real</span></summary>
+        <div class="module-body">
+          <p>Página própria (não é aba do Calendário) com tabela dos últimos 30 dias de XP por personagem + total do período.</p>
+          <dl class="kv-list">
+            <dt>Rota</dt><dd><code>/historico-xp</code></dd>
+            <dt>Dado</dt><dd><code>useXpSheet</code> — cacheado 1×/dia (ver seção Planilha).</dd>
+          </dl>
+        </div>
+      </details>
+
+      <details class="module">
+        <summary><span class="summary-left">🤝 Serviceiros <span class="summary-path">src/modules/serviceiros/</span></span><span class="chip chip-mixed">misto</span></summary>
+        <div class="module-body">
+          <p>Agenda de contatos de "serviceiros" (jogam conta de terceiro pra completar vaga) — nome, boneco de pagamento, vocações atendidas, WhatsApp.</p>
+          <dl class="kv-list">
+            <dt>Rota</dt><dd><code>/serviceiros</code></dd>
+            <dt>Dado</dt><dd><code>Serviceiro</code> via <code>IServiceiroRepository</code> — Mock ou Http/Supabase por <code>VITE_SERVICEIROS_USE_SUPABASE</code>.</dd>
+            <dt>Atenção</dt><dd>Telefone nunca é exibido na UI — só usado pra montar o link <code>wa.me</code>.</dd>
+          </dl>
+        </div>
+      </details>
+    </section>
+
+    <section id="models">
+      <h2><span class="num">04</span> Modelos de dado</h2>
+      <p class="section-intro">Os tipos de domínio centrais. Nomes de campo em <span style="color:var(--accent-2)">azul</span> são o tipo; <code>?</code> = opcional.</p>
+
+      <div class="grid-2">
+        <div class="schema-card">
+          <div class="schema-head"><span class="name">LootDrop</span><span class="src">src/types/loot-drop.ts</span></div>
+          <table class="fields">
+            <tr><td class="f-name">id, accountId</td><td class="f-type">string</td></tr>
+            <tr><td class="f-name">date</td><td class="f-type">DD/MM/YYYY</td></tr>
+            <tr><td class="f-name">party</td><td class="f-type">PartyComposition</td></tr>
+            <tr><td class="f-name">unitValue, totalValue</td><td class="f-type">number</td></tr>
+            <tr><td class="f-name">looter</td><td class="f-type">string (Fragador)</td></tr>
+            <tr><td class="f-name">itemName, bossName</td><td class="f-type">string</td></tr>
+            <tr><td class="f-name">sold</td><td class="f-type">boolean</td></tr>
+            <tr><td class="f-name">saleDate?</td><td class="f-type">DD/MM/YYYY</td></tr>
+          </table>
+          <div class="schema-note">Supabase: tabela <code>drops</code>. <code>bossName</code> "Plunder"/"SoulCore" = categorias de baú compartilhado, não bosses reais.</div>
+        </div>
+
+        <div class="schema-card">
+          <div class="schema-head"><span class="name">DropService</span><span class="src">src/types/loot-drop.ts</span></div>
+          <table class="fields">
+            <tr><td class="f-name">serviceiroId, serviceiroName</td><td class="f-type">string</td></tr>
+            <tr><td class="f-name">vocation?</td><td class="f-type">Vocation</td></tr>
+            <tr><td class="f-name">servedCharacterName?</td><td class="f-type">string</td></tr>
+          </table>
+          <div class="schema-note">Supabase: tabela <code>drop_services</code>. <code>servedCharacterName</code> = qual EK/ED/MS/RP/5º esse serviceiro serviu <i>nesse drop específico</i>.</div>
+        </div>
+
+        <div class="schema-card">
+          <div class="schema-head"><span class="name">Serviceiro</span><span class="src">src/types/serviceiro.ts</span></div>
+          <table class="fields">
+            <tr><td class="f-name">id, accountId, name</td><td class="f-type">string</td></tr>
+            <tr><td class="f-name">characterName</td><td class="f-type">string (boneco de pagto)</td></tr>
+            <tr><td class="f-name">phoneNumber</td><td class="f-type">string (nunca exibido)</td></tr>
+            <tr><td class="f-name">vocations</td><td class="f-type">Vocation[]</td></tr>
+          </table>
+          <div class="schema-note">Supabase: tabela <code>serviceiros</code>.</div>
+        </div>
+
+        <div class="schema-card">
+          <div class="schema-head"><span class="name">Hunt</span><span class="src">src/types/hunt.ts</span></div>
+          <table class="fields">
+            <tr><td class="f-name">id, accountId, date</td><td class="f-type">string</td></tr>
+            <tr><td class="f-name">lootTotal, wasteTotal, profitTotal</td><td class="f-type">number</td></tr>
+            <tr><td class="f-name">xpGained</td><td class="f-type">number</td></tr>
+            <tr><td class="f-name">bossName?, notes?</td><td class="f-type">string</td></tr>
+          </table>
+          <div class="schema-note">100% mock. Ver módulo Histórico sobre onde ainda é usada.</div>
+        </div>
+
+        <div class="schema-card">
+          <div class="schema-head"><span class="name">Member</span><span class="src">src/types/member.ts</span></div>
+          <table class="fields">
+            <tr><td class="f-name">id, accountId, characterName</td><td class="f-type">string</td></tr>
+            <tr><td class="f-name">vocation</td><td class="f-type">Vocation</td></tr>
+            <tr><td class="f-name">isServiceiro</td><td class="f-type">boolean</td></tr>
+            <tr><td class="f-name">serviceiroSharePercent?</td><td class="f-type">number</td></tr>
+            <tr><td class="f-name">skillCategory?</td><td class="f-type">HighscoreSkillCategory</td></tr>
+          </table>
+          <div class="schema-note">100% mock — jogador real da party, distinto de Serviceiro.</div>
+        </div>
+
+        <div class="schema-card">
+          <div class="schema-head"><span class="name">MemberXpStats</span><span class="src">src/types/dashboard-stats.ts</span></div>
+          <table class="fields">
+            <tr><td class="f-name">xpOntem, xp30Dias</td><td class="f-type">string (real, planilha)</td></tr>
+            <tr><td class="f-name">previsaoFimAno</td><td class="f-type">string (mock)</td></tr>
+            <tr><td class="f-name">metas</td><td class="f-type">Record&lt;nível,string&gt; (mock)</td></tr>
+          </table>
+          <div class="schema-note">Um único objeto mistura campo real e mock — ver <code>getMemberXpStats</code>.</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:14px; border-color: var(--danger); background: var(--danger-soft);">
+        <b style="color:var(--danger)">Removido — não recriar:</b> <code>DashboardKpis</code> (tipo mock com <code>kksPlunderInd</code>, <code>qtdBags</code>, <code>qtdPlunders</code>, <code>kksBagsInd</code>, <code>totalInd</code>). Todos os 5 campos viraram <code>useMemo</code> no <code>DashboardPage</code>, computados de <code>LootDrop</code>/planilha. Pedido futuro de "novo KPI no Dashboard" → seguir esse padrão, não reintroduzir repositório mock pra isso.
+      </div>
+    </section>
+
+    <section id="repository">
+      <h2><span class="num">05</span> Padrão de repositório</h2>
+      <p class="section-intro">Toda entidade "de conta" passa por uma interface com implementação Mock (array em memória) e, hoje, só 2 com implementação Http (Supabase). A escolha é feita <b>1 vez no boot</b>, em <code>src/services/repositories/index.ts</code>, e não muda em runtime.</p>
+
+      <table class="flag-table">
+        <tr><th>Entidade</th><th>Interface</th><th>Mock</th><th>Http (real)</th></tr>
+        <tr><td>account</td><td class="mono-cell">IAccountRepository</td><td>MockAccountRepository</td><td>—</td></tr>
+        <tr><td>member</td><td class="mono-cell">IMemberRepository</td><td>MockMemberRepository</td><td>—</td></tr>
+        <tr><td>lootDrop</td><td class="mono-cell">ILootDropRepository</td><td>MockLootDropRepository</td><td>HttpLootDropRepository <span class="chip chip-real" style="margin-left:4px">supabase</span></td></tr>
+        <tr><td>hunt</td><td class="mono-cell">IHuntRepository</td><td>MockHuntRepository</td><td>—</td></tr>
+        <tr><td>boss</td><td class="mono-cell">IBossRepository</td><td>MockBossRepository</td><td>—</td></tr>
+        <tr><td>split</td><td class="mono-cell">ISplitRepository</td><td>MockSplitRepository</td><td>—</td></tr>
+        <tr><td>serviceiro</td><td class="mono-cell">IServiceiroRepository</td><td>MockServiceiroRepository</td><td>HttpServiceiroRepository <span class="chip chip-real" style="margin-left:4px">supabase</span></td></tr>
+        <tr><td>dashboard</td><td class="mono-cell">IDashboardRepository</td><td>MockDashboardRepository</td><td>— (getMemberXpStats mistura mock+planilha internamente)</td></tr>
+        <tr><td>settings</td><td class="mono-cell">ISettingsRepository</td><td>MockSettingsRepository</td><td>—</td></tr>
+      </table>
+
+      <h3 style="margin-top:24px">Flags de ambiente</h3>
+      <table class="flag-table">
+        <tr><th>Flag</th><th>Efeito</th></tr>
+        <tr><td class="mono-cell">VITE_USE_MOCK</td><td>Global — <code>'false'</code> quebra o app (HTTP genérico ainda não implementado). Deixar sempre <code>true</code>.</td></tr>
+        <tr><td class="mono-cell">VITE_LOOTDROPS_USE_SUPABASE</td><td><code>'true'</code> → HttpLootDropRepository; independe do VITE_USE_MOCK global.</td></tr>
+        <tr><td class="mono-cell">VITE_SERVICEIROS_USE_SUPABASE</td><td><code>'true'</code> → HttpServiceiroRepository; independe do VITE_USE_MOCK global.</td></tr>
+      </table>
+
+      <div class="card" style="margin-top:16px">
+        <b>Lição crítica — client Supabase é um singleton preguiçoso.</b> <code>getSupabaseClient()</code> só cria o client dentro de cada método, nunca no top-level do módulo. Os módulos Http são importados incondicionalmente mesmo com as flags desligadas — um client eager (<code>createClient()</code> no top-level) lançava erro na hora do <i>import</i> quando as env vars não existiam, o que causou tela preta total em produção antes das env vars serem configuradas no Vercel. <b>Não reverter</b> pra um <code>export const supabase = createClient(...)</code> no topo do arquivo.
+      </div>
+    </section>
+
+    <section id="supabase">
+      <h2><span class="num">06</span> Integração — Supabase</h2>
+      <p class="section-intro">Banco relacional real, só para <b>Drops</b> e <b>Serviceiros</b> — o resto do app é mock. Sem Auth integrado; RLS desligada em todas as tabelas.</p>
+
+      <div class="grid-2">
+        <div class="schema-card">
+          <div class="schema-head"><span class="name">drops</span></div>
+          <table class="fields">
+            <tr><td class="f-name">id, account_id</td><td class="f-type">uuid</td></tr>
+            <tr><td class="f-name">data_drop</td><td class="f-type">date</td></tr>
+            <tr><td class="f-name">ek, ed, ms, rp, quinto_player</td><td class="f-type">text (livre, sem FK)</td></tr>
+            <tr><td class="f-name">fragador, item, boss</td><td class="f-type">text not null</td></tr>
+            <tr><td class="f-name">valor_cada, valor_total</td><td class="f-type">bigint</td></tr>
+            <tr><td class="f-name">vendido</td><td class="f-type">boolean</td></tr>
+            <tr><td class="f-name">data_venda</td><td class="f-type">date (exige vendido=true)</td></tr>
+          </table>
+          <div class="schema-note">gold sempre inteiro no Tibia → <code>bigint</code>, nunca numeric.</div>
+        </div>
+        <div class="schema-card">
+          <div class="schema-head"><span class="name">drop_services</span></div>
+          <table class="fields">
+            <tr><td class="f-name">id, drop_id (fk cascade)</td><td class="f-type">uuid</td></tr>
+            <tr><td class="f-name">serviceiro_id (fk restrict)</td><td class="f-type">uuid</td></tr>
+            <tr><td class="f-name">vocacao</td><td class="f-type">enum EK/ED/MS/RP/EM</td></tr>
+            <tr><td class="f-name">served_character_name</td><td class="f-type">text (nullable)</td></tr>
+          </table>
+          <div class="schema-note"><code>unique(drop_id, vocacao)</code> — 1 vaga só pode ter 1 serviceiro por drop.</div>
+        </div>
+        <div class="schema-card">
+          <div class="schema-head"><span class="name">serviceiros</span></div>
+          <table class="fields">
+            <tr><td class="f-name">id, account_id</td><td class="f-type">uuid</td></tr>
+            <tr><td class="f-name">name, character_name</td><td class="f-type">text</td></tr>
+            <tr><td class="f-name">phone_number</td><td class="f-type">text</td></tr>
+            <tr><td class="f-name">vocations</td><td class="f-type">text[]</td></tr>
+          </table>
+        </div>
+        <div class="schema-card">
+          <div class="schema-head"><span class="name">accounts</span></div>
+          <table class="fields">
+            <tr><td class="f-name">id</td><td class="f-type">uuid pk</td></tr>
+            <tr><td class="f-name">party_name</td><td class="f-type">text</td></tr>
+            <tr><td class="f-name">type</td><td class="f-type">'party' | 'solo'</td></tr>
+          </table>
+          <div class="schema-note">Placeholder mínimo — sem Supabase Auth de verdade ainda.</div>
+        </div>
+      </div>
+      <div class="callout" style="margin-top:6px">
+        <span class="dot">⚠</span>
+        <span>RLS desligada em todas as tabelas — a <b>anon key</b> (pública, no bundle do frontend) tem acesso de leitura <b>e escrita</b> total. Aceitável só porque não há Auth real ainda. Verificar se <code>VITE_SUPABASE_URL</code>/<code>VITE_SUPABASE_PUBLISHABLE_KEY</code>/as 2 flags de módulo já estão configuradas no dashboard do Vercel (não propagam do <code>.env.local</code> automaticamente).</span>
+      </div>
+    </section>
+
+    <section id="tibiadata">
+      <h2><span class="num">07</span> Integração — TibiaData</h2>
+      <p class="section-intro"><code>src/services/tibiadata/tibiadata-client.ts</code> — API pública do jogo (<code>api.tibiadata.com/v4</code>). Não passa pelo padrão repository/mock porque não é dado de conta.</p>
+      <table class="flag-table">
+        <tr><th>Endpoint</th><th>Função</th><th>Uso</th></tr>
+        <tr><td class="mono-cell">GET /creatures</td><td>fetchBoostedCreature()</td><td>criatura bostada do dia</td></tr>
+        <tr><td class="mono-cell">GET /boostablebosses</td><td>fetchBoostedBoss()</td><td>boss bostado do dia</td></tr>
+        <tr><td class="mono-cell">GET /character/{name}</td><td>fetchCharacterBasics()</td><td>level/vocation/world — retorna <code>null</code> se não achar</td></tr>
+        <tr><td class="mono-cell">GET /highscores/{world}/{cat}/all/{page}</td><td>findSkillValue()</td><td>varre até 10 páginas (top 500); fora disso = <code>null</code></td></tr>
+      </table>
+      <p style="font-size:13px; color:var(--text-muted); margin-top:10px">Sem cache — busca ao vivo a cada mount de <code>useMemberLiveStats</code>/<code>useBoostedToday</code>.</p>
+    </section>
+
+    <section id="sheets">
+      <h2><span class="num">08</span> Integração — planilha do usuário (Google Sheets)</h2>
+      <p class="section-intro">Planilha <b>pessoal</b> do usuário, com rotina automática dele preenchendo dados diariamente entre 6h–7h. O app só lê. Pública ("qualquer um com o link pode ver"), sem OAuth.</p>
+
+      <table class="flag-table">
+        <tr><th>Aba</th><th>gid</th><th>Conteúdo</th></tr>
+        <tr><td>Xp Realizada</td><td class="mono-cell">421841615</td><td>XP ganha no dia (já subtraída), 1 coluna/personagem. Linhas futuras pré-preenchidas <i>vazias</i> até 2027 — filtrar por célula não-vazia, nunca pegar "última linha" direto.</td></tr>
+        <tr><td>Boss hunt</td><td class="mono-cell">1868125467</td><td>Data / profit·ind hunt / profit·ind Boss — já <b>individual</b> (hunt÷4, boss÷5).</td></tr>
+        <tr><td>PT</td><td class="mono-cell">496786528</td><td>XP acumulada por dia (fonte primária, não lida diretamente pelo app).</td></tr>
+      </table>
+
+      <div class="grid-2" style="margin-top:16px">
+        <div class="card">
+          <h3>useXpSheet</h3>
+          <p style="color:var(--text-muted); font-size:13px; margin:0 0 8px">Cache local — no máx. 1 fetch/dia via <code>fetchXpSheetCached()</code>.</p>
+          <code style="display:block; font-size:11.5px">localStorage['tibia-pts:xp-sheet-cache-v1']</code>
+        </div>
+        <div class="card">
+          <h3>useBossHuntSheet</h3>
+          <p style="color:var(--text-muted); font-size:13px; margin:0 0 8px">Sem cache — busca de novo a cada mount.</p>
+          <code style="display:block; font-size:11.5px">fetch(url, {cache: 'no-store'})</code>
+        </div>
+      </div>
+      <p style="font-size:13px; color:var(--text-muted); margin-top:14px">CSV export não tem <code>Access-Control-Allow-Origin</code> — resolvido com Vercel Functions como proxy (<code>api/xp-sheet.ts</code>, <code>api/boss-hunt-sheet.ts</code>), espelhadas em <code>npm run dev</code> por um plugin do Vite (<code>vite.config.ts</code>) pra dar pra testar sem publicar.</p>
+    </section>
+
+    <section id="business">
+      <h2><span class="num">09</span> Regras de negócio</h2>
+
+      <h3>Split Loot — matchmaking de transferências</h3>
+      <ol class="steps">
+        <li><b>Filtra</b> jogadores excluídos</li>
+        <li><b>globalBalance</b> = soma dos balances individuais − soma de despesas extras</li>
+        <li><b>fairShare</b> = globalBalance ÷ nº de jogadores ativos</li>
+        <li>Cada jogador vira <b>credor</b>, <b>devedor</b> ou <b>settled</b> (|delta| &lt; 1)</li>
+        <li><b>Matchmaking guloso</b>: maior devedor casa com maior credor, repete até zerar — minimiza nº de transferências</li>
+      </ol>
+
+      <h3 style="margin-top:26px">Calculadora Tier — árvore de fusão exponencial</h3>
+      <p style="color:var(--text-muted); font-size:13.5px; max-width:68ch">Fusão/Convergência sempre consome <b>2 itens idênticos</b> do mesmo tier — nunca de graça, nem o item que você já tem. <code>fusionsAtThisLevel(toTier) = 2^(targetTier − toTier)</code>. Levou 3 rodadas de correção nesta sessão (multiplicador linear → "metade de graça" → árvore exponencial certa) — não reintroduzir modelo linear.</p>
+      <figure class="diagram" style="margin-top:14px">
+        <div class="diagram-frame">
+          <svg viewBox="0 0 400 260" role="img" aria-label="Para chegar de tier 0 a tier 2 são necessários 4 itens base: 2 fusões na base produzem 2 itens de tier 1, que 1 fusão final combina em 1 item de tier 2.">
+            <defs>
+              <marker id="arrow2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 z" fill="currentColor" />
+              </marker>
+            </defs>
+            <g class="diag-line" color="var(--text-faint)">
+              <line x1="40" y1="200" x2="80" y2="150" marker-end="url(#arrow2)"/>
+              <line x1="120" y1="200" x2="80" y2="150" marker-end="url(#arrow2)"/>
+              <line x1="200" y1="200" x2="240" y2="150" marker-end="url(#arrow2)"/>
+              <line x1="280" y1="200" x2="240" y2="150" marker-end="url(#arrow2)"/>
+              <line x1="80" y1="110" x2="150" y2="60" marker-end="url(#arrow2)"/>
+              <line x1="240" y1="110" x2="170" y2="60" marker-end="url(#arrow2)"/>
+            </g>
+            <rect class="diag-box" x="10" y="200" width="60" height="40" rx="5"/>
+            <rect class="diag-box" x="90" y="200" width="60" height="40" rx="5"/>
+            <rect class="diag-box" x="170" y="200" width="60" height="40" rx="5"/>
+            <rect class="diag-box" x="250" y="200" width="60" height="40" rx="5"/>
+            <text x="40" y="224" text-anchor="middle" class="diag-text" font-size="12">T0</text>
+            <text x="120" y="224" text-anchor="middle" class="diag-text" font-size="12">T0</text>
+            <text x="200" y="224" text-anchor="middle" class="diag-text" font-size="12">T0</text>
+            <text x="280" y="224" text-anchor="middle" class="diag-text" font-size="12">T0</text>
+            <rect class="diag-box-accent2" x="45" y="110" width="70" height="40" rx="5"/>
+            <rect class="diag-box-accent2" x="205" y="110" width="70" height="40" rx="5"/>
+            <text x="80" y="134" text-anchor="middle" class="diag-text" font-size="12">T1</text>
+            <text x="240" y="134" text-anchor="middle" class="diag-text" font-size="12">T1</text>
+            <rect class="diag-box-accent" x="120" y="20" width="80" height="40" rx="5"/>
+            <text x="160" y="44" text-anchor="middle" class="diag-text" font-size="12">T2 ✓</text>
+            <text x="160" y="255" text-anchor="middle" class="diag-label" font-size="10">compra 4× itens T0</text>
+            <text x="360" y="130" text-anchor="middle" class="diag-label" font-size="10" transform="rotate(0)"></text>
+            <text x="50" y="180" class="diag-label" font-size="9.5">fusão 2→1</text>
+            <text x="230" y="180" class="diag-label" font-size="9.5">fusão 2→1</text>
+            <text x="185" y="90" class="diag-label" font-size="9.5">fusão 2→1</text>
+          </svg>
+        </div>
+        <figcaption>Tier 0 → Tier 2 exige 4 itens base (2² fusões na base), não 2. Cada nível consome 2 itens do nível anterior.</figcaption>
+      </figure>
+
+      <h3 style="margin-top:26px">Charm Planner — custo acumulado</h3>
+      <p style="color:var(--text-muted); font-size:13.5px; max-width:68ch"><code>cumulativeCost[level-1]</code> já inclui todos os níveis anteriores — <b>não somar</b> <code>cumulativeCost[0]+[1]+[2]</code> pra chegar no nível 3, o valor de <code>[2]</code> já é o total.</p>
+
+      <h3 style="margin-top:26px">Cache de XP — janela das 7h15</h3>
+      <p style="color:var(--text-muted); font-size:13.5px; max-width:68ch">O cache local só é considerado "de hoje" a partir das <b>7h15</b> — a rotina do usuário grava a XP entre 6h–7h, então um cache feito antes disso (mesmo que já seja "hoje") é tratado como do dia anterior e força nova busca.</p>
+    </section>
+
+    <section id="issues">
+      <h2><span class="num">10</span> Problemas conhecidos &amp; pegadinhas</h2>
+      <p class="section-intro">Coisas que já morderam nesta sessão — ler antes de reintroduzir o mesmo padrão.</p>
+
+      <div class="card">
+        <div class="issue">
+          <span class="chip chip-issue-alto">alto</span>
+          <div>
+            <p class="issue-title">Imports relativos em <code>api/</code> precisam de extensão <code>.js</code></p>
+            <p class="issue-area">api/ · api/_lib/</p>
+            <p class="issue-desc">Faltar a extensão (ex: <code>from './sheet-utils'</code>) quebra em produção com <code>FUNCTION_INVOCATION_FAILED</code> (500 puro, nem chega no try/catch) — mas passa limpo no <code>tsc --noEmit</code> local, porque <code>api/</code> não está em nenhum tsconfig do projeto. Corrigido no commit <code>60e02f9</code>.</p>
+          </div>
+        </div>
+        <div class="issue">
+          <span class="chip chip-issue-alto">alto</span>
+          <div>
+            <p class="issue-title">Produção builda de <code>main</code>, não da branch de trabalho</p>
+            <p class="issue-area">deploy</p>
+            <p class="issue-desc">Push numa feature branch não reflete em produção até merge (PR) pra <code>main</code>. Já causou ~10min de confusão real numa sessão.</p>
+          </div>
+        </div>
+        <div class="issue">
+          <span class="chip chip-issue-medio">médio</span>
+          <div>
+            <p class="issue-title"><code>formatTibiaGold</code> esconde o sinal negativo</p>
+            <p class="issue-area">src/services/split/index.ts</p>
+            <p class="issue-desc"><code>Math.abs(value)</code> sem prefixar <code>'-'</code> — nunca corrigido (evitar mexer, quebraria dependentes). Onde o sinal importa (XP, profit individual), usar um helper local <code>formatXp</code>-style duplicado, não essa função.</p>
+          </div>
+        </div>
+        <div class="issue">
+          <span class="chip chip-issue-medio">médio</span>
+          <div>
+            <p class="issue-title">RLS desligada no Supabase</p>
+            <p class="issue-area">Supabase</p>
+            <p class="issue-desc">Anon key com acesso total (leitura+escrita). Aceitável só por não haver Auth real ainda.</p>
+          </div>
+        </div>
+        <div class="issue">
+          <span class="chip chip-issue-baixo">baixo</span>
+          <div>
+            <p class="issue-title">Entidade <code>Hunt</code> mock parcialmente deprecada</p>
+            <p class="issue-area">Calendário</p>
+            <p class="issue-desc">Removida do modal de clique, mas ainda usada no hover e nos pontinhos do calendário — não é dado morto no app inteiro.</p>
+          </div>
+        </div>
+        <div class="issue">
+          <span class="chip chip-issue-info">info</span>
+          <div>
+            <p class="issue-title">"Plunder"/"SoulCore" são categorias, não bosses reais</p>
+            <p class="issue-area">LootDrop.bossName</p>
+            <p class="issue-desc">Marcam baú compartilhado sem fragador único — confirmado inspecionando o Supabase real (278 drops "Plunder", 5 "SoulCore"). Usado nas fórmulas de KPI e na exclusão do ranking Top Drop.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="conventions">
+      <h2><span class="num">11</span> Convenções &amp; env vars</h2>
+      <div class="grid-2">
+        <div class="card">
+          <h3>Convenções de produto</h3>
+          <ul style="font-size:13.5px; color:var(--text-muted); padding-left:18px; margin:0">
+            <li style="margin-bottom:8px">Nunca excluir dado persistido com 1 clique só — sempre confirmação</li>
+            <li style="margin-bottom:8px">Ícone de exclusão sempre 🗑️, nunca "✕"</li>
+            <li style="margin-bottom:8px">Datas em <code>DD/MM/YYYY</code> na UI/domínio; ISO só na borda com Supabase</li>
+            <li style="margin-bottom:8px">Gold sempre inteiro, formatado pt-BR com prefixo <code>+</code></li>
+            <li>Nunca commitar/dar push sem confirmação explícita do usuário</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Env vars</h3>
+          <table class="flag-table">
+            <tr><td class="mono-cell">VITE_SUPABASE_URL</td><td style="font-size:12px">URL do projeto Supabase</td></tr>
+            <tr><td class="mono-cell">VITE_SUPABASE_PUBLISHABLE_KEY</td><td style="font-size:12px">chave anon</td></tr>
+            <tr><td class="mono-cell">VITE_SERVICEIROS_USE_SUPABASE</td><td style="font-size:12px">liga Supabase pra Serviceiros</td></tr>
+            <tr><td class="mono-cell">VITE_LOOTDROPS_USE_SUPABASE</td><td style="font-size:12px">liga Supabase pra Drops</td></tr>
+          </table>
+          <p style="font-size:11.5px; color:var(--text-faint); margin:10px 0 0">Vivem em <code>.env.local</code> (gitignored) — não propagam pro Vercel automaticamente.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<footer>
+  <span>Gerado por Claude em 2026-08-09 · referência viva, atualizar conforme o app evolui</span>
+  <span>JSON companion: <code>docs/architecture.json</code></span>
+</footer>
+
+<script>
+  (function () {
+    var links = Array.prototype.slice.call(document.querySelectorAll('#tocnav a'));
+    var sections = links.map(function (a) { return document.querySelector(a.getAttribute('href')); }).filter(Boolean);
+
+    function onScroll() {
+      var pos = window.scrollY + 120;
+      var current = sections[0];
+      sections.forEach(function (s) { if (s.offsetTop <= pos) current = s; });
+      links.forEach(function (a) {
+        a.classList.toggle('active', current && a.getAttribute('href') === '#' + current.id);
+      });
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+  })();
+</script>
