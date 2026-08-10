@@ -6,9 +6,6 @@
  */
 import { parseCsv, parseBrNumber } from './sheet-utils.js';
 
-const SHEET_ID = '1dDdNGq9paaJPxlyInZPQWw_1S5RZfK199TJO4HBiKtY';
-const BOSS_HUNT_GID = '1868125467';
-
 export interface BossHuntDailyEntry {
   /** DD/MM/YYYY */
   date: string;
@@ -19,7 +16,13 @@ export interface BossHuntDailyEntry {
 }
 
 export async function fetchBossHuntFromSheet(): Promise<BossHuntDailyEntry[]> {
-  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${BOSS_HUNT_GID}`;
+  const sheetId = process.env.XP_SHEET_ID;
+  const gid = process.env.XP_SHEET_BOSS_HUNT_GID;
+  if (!sheetId || !gid) {
+    throw new Error('XP_SHEET_ID / XP_SHEET_BOSS_HUNT_GID não configuradas (env var ausente no servidor).');
+  }
+
+  const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Falha ao buscar a planilha de Boss/Hunt (status ${res.status})`);
 

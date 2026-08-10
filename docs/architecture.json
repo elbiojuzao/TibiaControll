@@ -1,0 +1,366 @@
+{
+  "$schema": "informal — mapa de arquitetura do Tibia Party Manager para sessões futuras do Claude",
+  "meta": {
+    "name": "Tibia Party Manager (Tibia PT Manager)",
+    "purpose": "Substitui as planilhas manuais de uma party de Tibia: log de drops, split de loot, timers de boss, calculadoras de tier/charm, histórico de XP e agenda de serviceiros.",
+    "generatedAt": "2026-08-09",
+    "generatedBy": "Claude, a pedido do usuário — mapa vivo, deve ser atualizado conforme o app evolui, não é um documento congelado",
+    "repository": "https://github.com/elbiojuzao/TibiaControll",
+    "defaultBranch": "main",
+    "activeBranch": "feature/mvp-modulos-e-integracoes",
+    "deployUrl": "https://tibiacontroll.vercel.app",
+    "criticalGotcha": "Produção no Vercel builda a partir da branch `main`, NÃO da branch de trabalho. Commits na feature branch só chegam em produção depois de um merge (PR) explícito para `main`. Não assumir que `git push` sozinho publica em produção."
+  },
+
+  "techStack": {
+    "frontend": { "framework": "React 19 + TypeScript", "bundler": "Vite 6", "router": "react-router-dom 7 (BrowserRouter)", "styling": "inline styles + src/styles/global.css (sem CSS framework)" },
+    "backend": {
+      "database": "Supabase (Postgres + PostgREST), parcial — só Drops e Serviceiros migrados",
+      "serverlessFunctions": "Vercel Functions em api/*.ts (zero-config, hand-typed sem @vercel/node), usadas só como proxy CORS para Google Sheets"
+    },
+    "externalApis": [
+      "api.tibiadata.com (dados públicos do jogo — level, skill, boosted boss/creature)",
+      "Google Sheets (planilha pessoal do usuário, export CSV público, lida via gviz/tq)"
+    ],
+    "moduleSystem": "ESM (package.json \"type\": \"module\"). CRÍTICO: dentro de api/, imports relativos PRECISAM de extensão .js explícita (ex: './sheet-utils.js'), mesmo apontando pra um arquivo .ts — o build do Vercel para Node Functions usa moduleResolution node16/nodenext, que exige isso. Faltar a extensão causa FUNCTION_INVOCATION_FAILED (500) em produção sem erro nenhum local, porque tsc/vite (moduleResolution 'bundler') não reclamam disso. Ver knownIssuesAndGotchas.",
+    "typescriptProjects": {
+      "tsconfig.app.json": "cobre src/ — moduleResolution bundler, allowImportingTsExtensions",
+      "tsconfig.node.json": "cobre só vite.config.ts",
+      "nota": "api/ NÃO está incluído em nenhum tsconfig do projeto — `npx tsc --noEmit` local NUNCA valida api/. O Vercel type-checa api/ com suas próprias regras (mais estritas) no build; erros lá só aparecem no log de build do Vercel."
+    }
+  },
+
+  "routes": [
+    { "path": "/", "module": "dashboard", "label": "Dashboard", "component": "DashboardPage" },
+    { "path": "/loot-log", "module": "dashboard", "label": "Log de Drops", "component": "LootLogPage" },
+    { "path": "/split", "module": "split-calculator", "label": "Split Loot", "component": "SplitCalculatorPage" },
+    { "path": "/timers", "module": "timers", "label": "Timers", "component": "TimersPage" },
+    { "path": "/tier-calculator", "module": "tier-calculator", "label": "Calculadora Tier", "component": "TierCalculatorPage" },
+    { "path": "/charm-planner", "module": "charm-planner", "label": "Charm Planner", "component": "CharmPlannerPage" },
+    { "path": "/calendario", "module": "calendar-historico", "label": "Histórico", "component": "CalendarioPage" },
+    { "path": "/historico-xp", "module": "xp-historico", "label": "Histórico de XP", "component": "XpHistoricoPage" },
+    { "path": "/serviceiros", "module": "serviceiros", "label": "Serviceiros", "component": "ServiceirosPage" }
+  ],
+
+  "modules": {
+    "dashboard": {
+      "path": "src/modules/dashboard/",
+      "routes": ["/", "/loot-log"],
+      "purpose": "Painel central: KPIs financeiros do mês, tabela de membros com Lvl/Skill/XP, log completo de drops com registro/edição.",
+      "keyFiles": {
+        "DashboardPage.tsx": "Painel principal (~480 linhas) — todos os KPIs (KKs Plunder/Bags/Hunt/Boss/Total) são derivados AO VIVO de `drops` (filtrado por mês/ano) + `bossHuntSeries` (planilha), nenhum vem mais de mock.",
+        "LootLogPage.tsx": "Tabela completa de drops com filtros (boss, fragador, vendido, mês/ano) e botão Registrar Drop.",
+        "components/DropFormModal.tsx": "Modal único (create+edit) — EK/ED/MS/RP/5º, Serviceiros (N por drop, cada um com 'jogador servido'), Boss→Item em cascata, Valor Cada calculado (Valor Total ÷ jogadores preenchidos).",
+        "components/LootTable.tsx": "Renderização da tabela de drops, formata coluna Service como 'emoji_vocação nome, ...'.",
+        "utils/loot-visuals.ts": "guessItemIcon (emoji fallback) e getBossBadgeStyle (cor determinística por hash do nome) — usados só onde não há ícone real."
+      },
+      "dataSource": "LootDrop via ILootDropRepository (Mock ou Http/Supabase conforme VITE_LOOTDROPS_USE_SUPABASE); MemberXpStats via IDashboardRepository.getMemberXpStats (xpOntem/xp30Dias reais da planilha, previsaoFimAno/metas ainda mock); KKs Hunt/Boss via useBossHuntSheet (planilha, sempre ao vivo).",
+      "kpiFormulas": {
+        "kksPlunderInd": "sum(totalValue) dos drops do mês/ano selecionado onde bossName === 'Plunder'",
+        "qtdPlunders": "count desses mesmos drops",
+        "kksBagsInd": "sum(totalValue) dos drops do mês/ano onde bossName NÃO é 'Plunder' nem 'SoulCore'",
+        "qtdBags": "count desses mesmos drops",
+        "kksHunt / kksBoss": "soma de hunt/boss (profit individual, já dividido /4 e /5 na planilha) dos dias dentro do mês/ano, via useBossHuntSheet",
+        "totalInd": "kksPlunderInd + kksBagsInd + kksHunt + kksBoss — computado no componente, não existe mais tipo DashboardKpis pra isso"
+      }
+    },
+
+    "split-calculator": {
+      "path": "src/modules/split-calculator/",
+      "routes": ["/split"],
+      "purpose": "Cola o texto bruto do 'Party Hunt Analyzer' do próprio jogo Tibia, parseia e calcula quem deve/recebe pra fechar o saldo da hunt.",
+      "keyFiles": { "SplitCalculatorPage.tsx": "Parser de texto (regex) do log colado + UI de resultado; usa usePartySettings pra pré-preencher a cotação de TC." },
+      "businessLogicRef": "services/split/split-calculator.ts — ver businessLogic.splitLoot",
+      "dataSource": "Nenhuma (cálculo client-side puro sobre texto colado pelo usuário) + PartySettings (mock) pra cotação de TC."
+    },
+
+    "timers": {
+      "path": "src/modules/timers/",
+      "routes": ["/timers"],
+      "purpose": "Dois cronômetros simultâneos por boss: Timer Global (duração da sala) e Timer de Loop (mecânica que se repete), com beep sonoro (Web Audio API) e preset por boss.",
+      "keyFiles": { "TimersPage.tsx": "306 linhas — lógica de countdown com setInterval, AudioContext pra beep, presets vindos de useBosses." },
+      "dataSource": "BossMechanic via IBossRepository (100% mock — 5 bosses fixos, mecânica de sala/tempo, NÃO confundir com os 16 bosses de loot table do Log de Drops)."
+    },
+
+    "tier-calculator": {
+      "path": "src/modules/tier-calculator/",
+      "routes": ["/tier-calculator"],
+      "purpose": "Calcula o custo total (gold + dust + exalted cores + itens consumidos) pra evoluir um item de tier X pra Y no Exaltation Forge do Tibia.",
+      "keyFiles": { "TierCalculatorPage.tsx": "209 linhas — tabela por etapa (Fusões/Gold/Dust/Cores) + resumo separado de custo de itens." },
+      "businessLogicRef": "services/tier/tier-calculator.ts — ver businessLogic.tierCalculator",
+      "dataSource": "Constantes estáticas em services/tier/tier-cost-data.ts (regra oficial do jogo, não é dado de conta)."
+    },
+
+    "charm-planner": {
+      "path": "src/modules/charm-planner/",
+      "routes": ["/charm-planner"],
+      "purpose": "Calcula quantos Major/Minor Charm Points são necessários pros níveis de charm escolhidos pelo usuário, e quanto sobra do saldo disponível.",
+      "keyFiles": { "CharmPlannerPage.tsx": "160 linhas." },
+      "businessLogicRef": "services/charm/charm-planner.ts — custo é ACUMULADO (cumulativeCost[level-1]), não incremental.",
+      "dataSource": "Constantes estáticas em services/charm/charm-data.ts (regra oficial do jogo)."
+    },
+
+    "calendar-historico": {
+      "path": "src/modules/calendar-historico/",
+      "routes": ["/calendario"],
+      "purpose": "Calendário mensal — hover mostra resumo rápido (Hunts+Drops do dia), clique abre modal completo com Boss/Hunt (planilha), XP por jogador (planilha) e Drops daquele dia.",
+      "keyFiles": {
+        "CalendarioPage.tsx": "240 linhas. Ao carregar, pula pro mês com atividade mais recente (findLatestActivityDate). Todo dia é clicável, não só os com atividade (pode ter XP sem drop/hunt)."
+      },
+      "dataSource": "Hunt (mock, via useHunts) + LootDrop (real via useLootDrops) pro hover/dots; useXpSheet + useBossHuntSheet (planilha) pro modal de clique.",
+      "note": "A lista de 'Hunts' do mock ainda existe no HOVER e nos pontinhos do calendário, mas foi REMOVIDA do modal de clique (ficava redundante com o campo real de Boss/Hunt individual — ver knownIssuesAndGotchas sobre a entidade Hunt mock)."
+    },
+
+    "xp-historico": {
+      "path": "src/modules/xp-historico/",
+      "routes": ["/historico-xp"],
+      "purpose": "Página própria (não é aba do Calendário — decisão explícita do usuário) com tabela dos últimos 30 dias de XP por personagem + total do período.",
+      "keyFiles": { "XpHistoricoPage.tsx": "112 linhas." },
+      "dataSource": "useXpSheet (planilha, cacheada 1x/dia — ver businessLogic.xpSheetCache)."
+    },
+
+    "serviceiros": {
+      "path": "src/modules/serviceiros/",
+      "routes": ["/serviceiros"],
+      "purpose": "Agenda de contatos de 'serviceiros' (quem joga conta de terceiro pra completar vaga na party) — nome, boneco de pagamento, vocações atendidas, WhatsApp.",
+      "keyFiles": { "ServiceirosPage.tsx": "370 linhas — form + lista com confirmação antes de excluir (regra geral do projeto, nunca 1 clique só)." },
+      "dataSource": "Serviceiro via IServiceiroRepository (Mock ou Http/Supabase conforme VITE_SERVICEIROS_USE_SUPABASE).",
+      "note": "Número de telefone nunca é exibido na UI (só usado pra montar o link wa.me) — ver services/serviceiro/whatsapp.ts."
+    }
+  },
+
+  "dataModels": {
+    "Account": { "file": "src/types/account.ts", "fields": { "id": "string", "username": "string", "partyName": "string", "type": "'party' | 'solo'", "createdAt": "string" }, "note": "Login/senha ainda não usa Supabase Auth de verdade — accounts é um placeholder no schema real." },
+    "Member": { "file": "src/types/member.ts", "fields": { "id": "string", "accountId": "string", "characterName": "string", "vocation": "Vocation", "isServiceiro": "boolean", "serviceiroSharePercent": "number?", "ownerCharacterName": "string?", "skillCategory": "HighscoreSkillCategory?" }, "note": "Membro da party (jogador de verdade, distinto de Serviceiro). 100% mock, nenhuma tabela Supabase ainda." },
+    "Vocation": { "file": "src/types/account.ts", "values": ["EK", "ED", "MS", "RP", "EM", "OTHER"] },
+    "LootDrop": {
+      "file": "src/types/loot-drop.ts",
+      "fields": { "id": "string", "accountId": "string", "huntId": "string?", "date": "DD/MM/YYYY", "party": "PartyComposition", "unitValue": "number", "totalValue": "number", "looter": "string (Fragador)", "itemName": "string", "itemIconUrl": "string? (nunca preenchido de fato, usar getItemIconUrl)", "bossName": "string", "sold": "boolean", "saleDate": "DD/MM/YYYY?" },
+      "supabaseTable": "drops",
+      "note": "bossName 'Plunder' e 'SoulCore' são CATEGORIAS de baú compartilhado (sem fragador único de verdade), não bosses reais do jogo — usados nas fórmulas de KKs Plunder/Bags do Dashboard."
+    },
+    "PartyComposition": { "file": "src/types/loot-drop.ts", "fields": { "ek": "string?", "ed": "string?", "ms": "string?", "rp": "string?", "fifthPlayer": "string?", "service": "string? (legado)", "services": "DropService[]" } },
+    "DropService": { "file": "src/types/loot-drop.ts", "fields": { "serviceiroId": "string", "serviceiroName": "string", "vocation": "Vocation? (pode faltar em drops históricos)", "servedCharacterName": "string? (qual EK/ED/MS/RP/5º ele serviu nesse drop específico)" }, "supabaseTable": "drop_services" },
+    "Hunt": { "file": "src/types/hunt.ts", "fields": { "id": "string", "accountId": "string", "date": "string", "lootTotal": "number", "wasteTotal": "number", "profitTotal": "number", "xpGained": "number", "bossName": "string?", "notes": "string?" }, "note": "100% mock. Ainda usado no hover/dots do Calendário, mas REMOVIDO do modal de clique (substituído pelo dado real de Boss/Hunt da planilha)." },
+    "BossMechanic": { "file": "src/types/boss.ts", "fields": { "id": "string", "name": "string", "roomDurationSeconds": "number (Timer Global)", "loopDurationSeconds": "number (Timer de Loop)", "iconUrl": "string?" }, "note": "5 bosses fixos, mock. Universo DIFERENTE dos 16 bosses de loot table (boss-items-data.ts) usados no Log de Drops — não confundir/unificar." },
+    "IndividualSplit / SplitPlayer / SplitCalculationInput / SplitCalculationResult / TransferInstruction": { "file": "src/types/split.ts", "note": "Ver businessLogic.splitLoot pro algoritmo." },
+    "ItemClassification / TierStepCost / TierCalculationInput / TierRouteResult / TierCalculationResult": { "file": "src/types/tier.ts", "note": "Ver businessLogic.tierCalculator." },
+    "CharmCategory / CharmLevel / CharmDefinition / CharmPlanInput / CharmCostRow / CharmPlanResult": { "file": "src/types/charm.ts", "note": "Ver businessLogic.charmPlanner." },
+    "DayActivity": { "file": "src/types/calendar.ts", "fields": { "date": "DD/MM/YYYY", "hunts": "Hunt[]", "drops": "LootDrop[]" } },
+    "Serviceiro": { "file": "src/types/serviceiro.ts", "fields": { "id": "string", "accountId": "string", "name": "string", "characterName": "string (boneco de pagamento)", "phoneNumber": "string (só dígitos, DDI+DDD — nunca exibido na UI)", "vocations": "Vocation[]" }, "supabaseTable": "serviceiros" },
+    "MemberXpStats": { "file": "src/types/dashboard-stats.ts", "fields": { "xpOntem": "string (formatado, ex '+197.664.728')", "xp30Dias": "string", "previsaoFimAno": "string (ainda mock)", "metas": "Record<nível, string> (ainda mock)" } },
+    "PartySettings": { "file": "src/types/party-settings.ts", "fields": { "tcGoldRate": "number" } },
+    "XpCharacterStats / XpDailyEntry": { "file": "src/types/xp-sheet.ts", "fields": { "xpOntem": "number", "xp30Dias": "number", "series": "{date, value}[] (histórico completo)" }, "note": "Vem da planilha, não do Supabase." },
+    "BossHuntDailyEntry": { "file": "src/hooks/useBossHuntSheet.ts", "fields": { "date": "DD/MM/YYYY", "hunt": "number (profit individual, já /4)", "boss": "number (profit individual, já /5)" }, "note": "Vem da planilha, não do Supabase." },
+    "removed_DashboardKpis": {
+      "status": "REMOVIDO em 2026-08-08 — não recriar",
+      "note": "Existia como tipo mock (kksPlunderInd, qtdBags, qtdPlunders, kksBagsInd, totalInd). Todos os 5 campos viraram cálculo ao vivo em cima de LootDrop/planilha — ver modules.dashboard.kpiFormulas. Se uma tarefa futura pedir 'adicionar um KPI ao Dashboard', o padrão agora é computar via useMemo no DashboardPage, não reintroduzir um repositório mock pra isso."
+    }
+  },
+
+  "repositoryPattern": {
+    "description": "Toda entidade 'de conta' (não dado público de jogo) passa por uma interface de repositório com implementação Mock (array em memória) e, pra 2 entidades, implementação Http (Supabase). A escolha de qual implementação usar é feita 1 VEZ no boot, em src/services/repositories/index.ts, e nunca muda em runtime.",
+    "containerFile": "src/services/repositories/index.ts",
+    "interfacesFile": "src/services/repositories/interfaces/index.ts",
+    "switchLogic": {
+      "globalFlag": "VITE_USE_MOCK (default true — se 'false', o app INTEIRO lança erro, HTTP genérico não foi implementado)",
+      "perEntityFlags": {
+        "VITE_SERVICEIROS_USE_SUPABASE": "true → HttpServiceiroRepository (Supabase); false/ausente → MockServiceiroRepository",
+        "VITE_LOOTDROPS_USE_SUPABASE": "true → HttpLootDropRepository (Supabase); false/ausente → MockLootDropRepository"
+      },
+      "important": "Essas 2 flags funcionam INDEPENDENTE do VITE_USE_MOCK global — dá pra ter o app 'em modo mock' mas com Drops e Serviceiros batendo no Supabase real ao mesmo tempo. Nenhuma outra entidade (Member, Hunt, Boss, Split, Settings, Dashboard-KPIs-antigos) tem implementação Http ainda."
+    },
+    "entities": {
+      "account": { "interface": "IAccountRepository", "mock": "MockAccountRepository", "http": null },
+      "member": { "interface": "IMemberRepository", "mock": "MockMemberRepository", "http": null },
+      "lootDrop": { "interface": "ILootDropRepository", "mock": "MockLootDropRepository", "http": "HttpLootDropRepository (Supabase, tabelas drops + drop_services)" },
+      "hunt": { "interface": "IHuntRepository", "mock": "MockHuntRepository", "http": null },
+      "boss": { "interface": "IBossRepository", "mock": "MockBossRepository", "http": null },
+      "split": { "interface": "ISplitRepository", "mock": "MockSplitRepository", "http": null },
+      "serviceiro": { "interface": "IServiceiroRepository", "mock": "MockServiceiroRepository", "http": "HttpServiceiroRepository (Supabase, tabela serviceiros)" },
+      "dashboard": { "interface": "IDashboardRepository", "mock": "MockDashboardRepository", "http": null, "note": "Só tem getMemberXpStats agora (getKpis foi removido — ver dataModels.removed_DashboardKpis). getMemberXpStats já mistura mock (previsaoFimAno/metas) com dado real (xpOntem/xp30Dias via planilha)." },
+      "settings": { "interface": "ISettingsRepository", "mock": "MockSettingsRepository", "http": null }
+    },
+    "criticalLesson": "supabase-client.ts usa um padrão de singleton PREGUIÇOSO (getSupabaseClient(), só cria o client dentro de cada método, nunca no top-level do módulo). Isso é proposital: os módulos Http são importados incondicionalmente por repositories/index.ts mesmo quando as flags estão desligadas, e um client Supabase eager (criado no top-level) lançava erro na hora do import se as env vars não estivessem configuradas — causou uma tela preta total em produção antes de configurar as env vars no Vercel. NÃO reverter pra um `export const supabase = createClient(...)` no top-level."
+  },
+
+  "externalIntegrations": {
+    "supabase": {
+      "projectPurpose": "Banco relacional real, só para Drops e Serviceiros (o resto do app é mock).",
+      "clientPattern": "src/services/supabase/supabase-client.ts — getSupabaseClient() lazy singleton, ver repositoryPattern.criticalLesson.",
+      "authStatus": "Sem Supabase Auth integrado. RLS DESLIGADA em todas as tabelas (anon key tem acesso total) — aceitável só porque ainda é single-tenant/dev. accounts é um placeholder mínimo.",
+      "migrations": [
+        "20260806000000_initial_drops_schema.sql — cria accounts, serviceiros, drops, drop_services",
+        "20260806010000_import_adjustments.sql",
+        "20260806020000_disable_rls_until_auth.sql",
+        "20260806030000_add_character_name_to_serviceiros.sql — coluna character_name (boneco de pagamento)",
+        "20260806040000_add_served_character_to_drop_services.sql — coluna served_character_name"
+      ],
+      "tables": {
+        "accounts": { "columns": ["id (uuid pk)", "party_name", "type ('party'|'solo')", "created_at"] },
+        "serviceiros": { "columns": ["id (uuid pk)", "account_id (fk)", "name", "character_name", "phone_number", "vocations (text[])", "created_at"] },
+        "drops": {
+          "columns": ["id (uuid pk)", "account_id (fk)", "data_drop (date)", "ek", "ed", "ms", "rp", "quinto_player", "fragador (not null)", "item (not null)", "boss (not null)", "valor_cada (bigint)", "valor_total (bigint)", "vendido (bool)", "data_venda (date, requer vendido=true)", "created_at"],
+          "note": "gold sempre inteiro no Tibia → bigint, nunca numeric/decimal. Colunas de personagem (ek/ed/ms/rp) são texto livre, não FK — não existe tabela members no Supabase."
+        },
+        "drop_services": { "columns": ["id (uuid pk)", "drop_id (fk, on delete cascade)", "serviceiro_id (fk, on delete restrict)", "vocacao (enum EK/ED/MS/RP/EM)", "served_character_name (nullable)", "created_at"], "constraint": "unique(drop_id, vocacao) — 1 vaga só pode ter 1 serviceiro por drop" }
+      },
+      "envVars": ["VITE_SUPABASE_URL", "VITE_SUPABASE_PUBLISHABLE_KEY"],
+      "prodStatus": "Configuradas na Vercel? verificar — ver knownIssuesAndGotchas."
+    },
+
+    "tibiaData": {
+      "baseUrl": "https://api.tibiadata.com/v4",
+      "client": "src/services/tibiadata/tibiadata-client.ts",
+      "purpose": "Dado PÚBLICO do jogo — não passa pelo padrão repository/mock porque não é dado de conta.",
+      "endpoints": {
+        "GET /creatures": "fetchBoostedCreature() — criatura bostada do dia",
+        "GET /boostablebosses": "fetchBoostedBoss() — boss bostado do dia",
+        "GET /character/{name}": "fetchCharacterBasics() — level/vocation/world; retorna null se não achar (não lança erro)",
+        "GET /highscores/{world}/{category}/all/{page}": "findSkillValue() — varre até 10 páginas dos Highscores (top 500) procurando o personagem; fora do top 500 = null"
+      },
+      "usedBy": ["useMemberLiveStats (Lvl Atual/Skill do Dashboard)", "useBoostedToday (sidebar)"],
+      "caching": "Nenhum — sempre busca ao vivo a cada mount."
+    },
+
+    "googleSheets": {
+      "sheetId": "NÃO documentar aqui — vem de env var XP_SHEET_ID (server-only, sem prefixo VITE_). Repo é público no GitHub; ver knownIssuesAndGotchas.googleSheetIdWasHardcoded.",
+      "ownership": "Planilha PESSOAL do usuário, com rotina automática dele (fora do app) preenchendo os dados diariamente entre 6h-7h da manhã. O app só LÊ, nunca escreve.",
+      "sharing": "Pública ('qualquer um com o link pode ver') — sem necessidade de credencial/OAuth. IMPORTANTE: como o compartilhamento é 'qualquer um com o link', o ID da planilha SOZINHO já concede acesso de leitura total — tratar como segredo, não como identificador inofensivo.",
+      "readMethod": "Export CSV via endpoint gviz (não é a API oficial do Sheets): https://docs.google.com/spreadsheets/d/{XP_SHEET_ID}/gviz/tq?tqx=out:csv&gid={GID}",
+      "corsProblem": "Esse endpoint NÃO tem Access-Control-Allow-Origin — fetch direto do browser quebra. Resolvido com Vercel Functions como proxy server-side.",
+      "tabs": {
+        "PT": { "gid": "não documentado aqui de propósito", "content": "XP total acumulada por dia, 1 coluna por personagem — NÃO é a aba usada pelo app (fica como fonte primária, mas o app lê a derivada abaixo)." },
+        "Xp Realizada": { "gid": "env var XP_SHEET_XP_REALIZADA_GID", "content": "XP GANHA naquele dia específico (já subtraída), 1 coluna por personagem. Usada por api/_lib/xp-sheet.ts.", "gotcha": "Tem linhas de datas futuras pré-preenchidas até 2027 mas VAZIAS — pegar 'a última linha' ingenuamente sempre dava 0. Fix: filtrar por coluna só linhas onde aquele personagem específico tem valor não-vazio, por personagem (não uma linha global)." },
+        "Boss hunt": { "gid": "env var XP_SHEET_BOSS_HUNT_GID", "content": "colunas Data / profit·ind hunt / profit·ind Boss — valores JÁ INDIVIDUAIS (hunt já dividido /4 = tamanho padrão de party; boss já dividido /5 = party + serviceiro). Usada por api/_lib/boss-hunt-sheet.ts." }
+      },
+      "serverSideLib": {
+        "sharedUtils": "api/_lib/sheet-utils.ts — parseCsv (parser CSV quote-aware feito à mão) e parseBrNumber ('077.648.574' → 77648574, ponto como separador de milhar; NÃO é Number() direto).",
+        "xpReader": "api/_lib/xp-sheet.ts → api/xp-sheet.ts (Vercel Function) → também servido em `npm run dev` pelo plugin sheetDevApiPlugin em vite.config.ts (senão só dava pra testar depois de publicar).",
+        "bossHuntReader": "api/_lib/boss-hunt-sheet.ts → api/boss-hunt-sheet.ts (mesmo padrão)."
+      },
+      "clientHooks": {
+        "useXpSheet": { "file": "src/hooks/useXpSheet.ts", "returns": "{data: Record<personagem, XpCharacterStats>, loading, error}", "caching": "SIM — via fetchXpSheetCached() (src/services/xp-sheet/xp-sheet-cache.ts). No máximo 1 fetch/dia, guardado em localStorage['tibia-pts:xp-sheet-cache-v1']. Válido até a próxima janela das 7h15 (a rotina do usuário só atualiza entre 6h-7h, então cache 'de hoje' feito antes das 7h15 é considerado inválido). Se o fetch falhar mas existir cache velho, devolve o cache velho em vez de quebrar." },
+        "useBossHuntSheet": { "file": "src/hooks/useBossHuntSheet.ts", "returns": "{series: BossHuntDailyEntry[], loading, error}", "caching": "NÃO — busca de novo a cada mount do componente (fetch com cache:'no-store', e a Vercel Function responde Cache-Control: no-store). Decisão do usuário: os KKs do Dashboard devem sempre refletir o dado mais recente ao entrar no sistema." }
+      },
+      "consumers": ["Dashboard (Xp Ontem/30Dias via MockDashboardRepository.getMemberXpStats + KKs Hunt/Boss via useBossHuntSheet)", "Histórico de XP (useXpSheet)", "Calendário — modal de dia (useXpSheet + useBossHuntSheet)"]
+    }
+  },
+
+  "businessLogic": {
+    "splitLoot": {
+      "file": "src/services/split/split-calculator.ts",
+      "algorithm": [
+        "1. Filtra jogadores excluídos (checkbox 'excluded')",
+        "2. globalBalance = soma dos balances individuais − soma de extraExpenses",
+        "3. fairShare = globalBalance / nº de jogadores ativos",
+        "4. Cada jogador vira credor (delta < -1), devedor (delta > 1) ou 'settled' (|delta| < 1)",
+        "5. Matchmaking guloso: ordena credores e devedores por valor desc, casa o maior devedor com o maior credor repetidamente até zerar ambas as listas — minimiza o número de transferências"
+      ],
+      "output": "TransferInstruction[] com tibiaCommand pronto ('transfer X to Y') pra colar no chat do jogo."
+    },
+    "tierCalculator": {
+      "file": "src/services/tier/tier-calculator.ts",
+      "rule": "Fusão/Convergência SEMPRE consome 2 itens IDÊNTICOS do mesmo tier — nunca 'de graça', nem o item que você já tem. Pra ter 1 item no tier alvo T, precisa de 2 no tier T-1, que precisam de 2 cada no T-2, etc. — árvore exponencial: tier N acima do atual precisa de 2^N itens base no total.",
+      "formula": "fusionsAtThisLevel(toTier) = 2 ** (targetTier - toTier). Só o nível mais baixo (a partir de currentTier) de fato COMPRA itens novos (itemsCount = fusionsAtThisLevel * 2); os níveis acima só consomem o que o nível de baixo produziu (itemsCount = 0).",
+      "constants": { "file": "src/services/tier/tier-cost-data.ts", "FUSION_EXALTED_CORE_COST": "2 (sempre, por tentativa de fusão)", "convergence": "só existe oficialmente pra classificação 4 (100% de chance, sem sorte, custo maior)" },
+      "historyNote": "Essa fórmula levou 3 rodadas de correção nesta sessão (multiplicador linear errado → 'metade de graça' errado → árvore exponencial certa). Não reintroduzir um modelo linear/flat."
+    },
+    "charmPlanner": {
+      "file": "src/services/charm/charm-planner.ts",
+      "rule": "Custo é ACUMULADO desde o zero (cumulativeCost[level-1] já inclui todos os níveis anteriores), NÃO incremental — não somar cumulativeCost[0]+cumulativeCost[1]+cumulativeCost[2] pra chegar no nível 3, o valor de cumulativeCost[2] já é o total."
+    },
+    "xpSheetCache": {
+      "file": "src/services/xp-sheet/xp-sheet-cache.ts",
+      "rule": "fetchXpSheetCached() — cache local (localStorage) válido até a PRÓXIMA janela das 7h15 (REFRESH_HOUR=7, REFRESH_MINUTE=15). Se agora < 7h15 de hoje, o boundary válido é 7h15 de ONTEM (protege contra achar que um cache feito às 6h30 de hoje, antes da rotina do usuário terminar, já é 'de hoje')."
+    },
+    "dashboardKpis": {
+      "file": "src/modules/dashboard/DashboardPage.tsx",
+      "rule": "Ver modules.dashboard.kpiFormulas — todos os 5 KPIs (KKs Plunder/Bags/Hunt/Boss + Total) são useMemo derivados de `drops` (já filtrado por mês/ano pra 'Drops no mês') + `bossHuntSeries`, ZERO fetch adicional."
+    }
+  },
+
+  "knownIssuesAndGotchas": [
+    {
+      "id": "esm-relative-imports-need-js-extension",
+      "severity": "alto",
+      "area": "api/",
+      "description": "Imports relativos dentro de api/ e api/_lib/ precisam de extensão .js explícita (ex: './sheet-utils.js'), mesmo importando um arquivo .ts. Faltar isso quebra em produção (Vercel) com FUNCTION_INVOCATION_FAILED (500 puro, sem chegar no try/catch do handler) — MAS passa limpo no `npx tsc --noEmit` local, porque api/ não está incluído em nenhum tsconfig do projeto. Confirmado em produção em 2026-08-09 e corrigido no commit 60e02f9.",
+      "howToVerify": "curl direto no endpoint de produção (não só o app) — um erro assim aparece como FUNCTION_INVOCATION_FAILED no corpo da resposta, diferente do 502 controlado que o próprio código gera se só a busca externa falhar."
+    },
+    {
+      "id": "prod-tracks-main-not-feature-branch",
+      "severity": "alto",
+      "area": "deploy",
+      "description": "O deploy de produção (tibiacontroll.vercel.app) builda a partir da branch `main`, não da branch de trabalho ativa. Push numa feature branch NÃO reflete em produção até um merge (PR) pra main. Isso já causou confusão real: um fix foi pushado, 'não fez efeito' por ~10 min, até se descobrir que produção nunca tinha recebido o commit.",
+      "howToVerify": "No dashboard do Vercel, aba Deployments, o card mostra 'Source: main' + o hash do commit. Comparar com `git log main..feature/... --oneline` pra ver o que ainda não chegou."
+    },
+    {
+      "id": "formatTibiaGold-hides-negative-sign",
+      "severity": "médio",
+      "area": "src/services/split/index.ts (formatTibiaGold)",
+      "description": "Pra valores negativos, a função faz Math.abs(value) sem prefixar '-' — um número negativo aparece formatado como se fosse positivo. NUNCA CORRIGIDO (evitado, não consertado) porque mexer nela afetaria todo lugar que já depende do comportamento atual.",
+      "workaround": "Em todo lugar onde o sinal importa (XP, profit individual de Boss/Hunt), existe um helper LOCAL duplicado tipo `formatXp`/`formatXpValue` que faz sign + Math.abs(...).toLocaleString(...) na mão. Ao adicionar um novo card/tela com valor que pode ser negativo, usar esse padrão — NÃO usar formatTibiaGold direto pra XP/profit individual."
+    },
+    {
+      "id": "supabase-rls-disabled",
+      "severity": "médio (aceitável por enquanto)",
+      "area": "Supabase",
+      "description": "RLS desligada em todas as tabelas — a anon key (pública, no bundle do frontend) tem acesso de leitura E ESCRITA total ao banco. Aceitável só porque não há Auth real ainda (single-tenant de fato). Ligar RLS exige primeiro integrar Supabase Auth (accounts hoje é só um placeholder)."
+    },
+    {
+      "id": "vercel-supabase-env-vars-status-unknown",
+      "severity": "verificar",
+      "area": "deploy",
+      "description": "Em 2026-08-06, as env vars do Supabase (VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY, VITE_SERVICEIROS_USE_SUPABASE, VITE_LOOTDROPS_USE_SUPABASE) não estavam configuradas no dashboard do Vercel (só existem no .env.local, gitignored). Sem confirmação recente de que já foram configuradas — se Drops/Serviceiros aparecerem com dado mock em produção (não o dado real do Supabase), checar isso primeiro."
+    },
+    {
+      "id": "hunt-entity-partially-deprecated",
+      "severity": "baixo",
+      "area": "Hunt (mock)",
+      "description": "A entidade Hunt (mock, nunca migrada pro Supabase) ainda é usada no HOVER e nos pontinhos do Calendário, mas foi removida do MODAL de clique do Calendário (2026-08-08) — o dado real de Boss/Hunt individual da planilha tornou a lista antiga redundante ali. Não é dado morto no app inteiro, só nesse um lugar específico."
+    },
+    {
+      "id": "plunder-soulcore-are-categories-not-real-bosses",
+      "severity": "informativo",
+      "area": "LootDrop.bossName",
+      "description": "'Plunder' e 'SoulCore' são valores literais de `boss` usados pra marcar baú compartilhado (sem fragador único de verdade), não bosses/criaturas reais do Tibia. Confirmado inspecionando o Supabase real: 278 drops com boss='Plunder', 5 com boss='SoulCore' (cujos itens são sempre 'SoulCore <algo>'). Usado nas fórmulas de KKs Plunder(ind)/Bags(ind) do Dashboard e na exclusão do ranking Top Drop."
+    },
+    {
+      "id": "no-supabase-generated-types",
+      "severity": "baixo",
+      "area": "src/services/repositories/http/",
+      "description": "Os tipos de linha crua (DropRow, ServiceiroRow etc.) são tipados à mão nos repositórios Http — `supabase gen types typescript` nunca foi rodado (precisa da CLI + projeto linkado). Se o schema mudar, atualizar esses tipos manualmente."
+    },
+    {
+      "id": "googleSheetIdWasHardcoded",
+      "severity": "alto (mitigado parcialmente)",
+      "area": "api/_lib/xp-sheet.ts, api/_lib/boss-hunt-sheet.ts",
+      "description": "Até 2026-08-10, o ID da planilha do usuário (e os gids das abas) ficavam como string literal nesses 2 arquivos. Como a planilha é compartilhada 'qualquer um com o link pode ver', o ID sozinho dava acesso de leitura total a ela — e o repositório GitHub (elbiojuzao/TibiaControll) é PÚBLICO, então o ID ficou exposto pra qualquer pessoa desde os commits 8567e7a e 4bc4f15 (confirmado via `git log -S`). Movido para env vars server-only (XP_SHEET_ID, XP_SHEET_XP_REALIZADA_GID, XP_SHEET_BOSS_HUNT_GID — sem prefixo VITE_, nunca vão pro bundle do client) em 2026-08-10.",
+      "mitigationStatus": "Decisão explícita do usuário: só mover pra env var daqui pra frente, SEM reescrever o histórico do git nem tornar o repo privado. Ou seja, o ID antigo continua recuperável por quem já tenha acesso ao histórico público (git log/blame), mesmo depois desse fix. Se o usuário decidir fechar essa exposição de vez no futuro, as opções são: tornar o repo privado, trocar o compartilhamento da planilha (exigiria reescrever o método de leitura, hoje é CSV público sem login), ou reescrever o histórico do git (destrutivo, force-push).",
+      "howToVerify": "`git log --all --oneline -S \"<id-antigo>\"` no repo mostra os commits onde o literal apareceu."
+    }
+  ],
+
+  "envVars": {
+    "VITE_USE_MOCK": "Flag global — 'false' quebra o app (HTTP genérico não implementado). Deixar sempre implícito/true.",
+    "VITE_API_URL": "Reservada pro backend HTTP genérico futuro — não usada ainda.",
+    "VITE_SUPABASE_URL": "URL do projeto Supabase.",
+    "VITE_SUPABASE_PUBLISHABLE_KEY": "Chave anon/publishable do Supabase (client-side, RLS desligada = acesso total).",
+    "VITE_SERVICEIROS_USE_SUPABASE": "'true' liga Supabase pro módulo Serviceiros.",
+    "VITE_LOOTDROPS_USE_SUPABASE": "'true' liga Supabase pro módulo Loot Drops.",
+    "XP_SHEET_ID": "ID da planilha Google Sheets pessoal do usuário. SEM prefixo VITE_ de propósito (server-only, nunca no bundle do client) — ver knownIssuesAndGotchas.googleSheetIdWasHardcoded. Lido só por api/_lib/xp-sheet.ts e api/_lib/boss-hunt-sheet.ts via process.env.",
+    "XP_SHEET_XP_REALIZADA_GID": "gid da aba 'Xp Realizada'. Server-only, mesmo motivo do XP_SHEET_ID.",
+    "XP_SHEET_BOSS_HUNT_GID": "gid da aba 'Boss hunt'. Server-only, mesmo motivo do XP_SHEET_ID.",
+    "location": ".env.local (gitignored, só local) — NÃO propaga automaticamente pro Vercel, precisa configurar manualmente no dashboard do projeto. As 3 vars XP_SHEET_* também precisam disso — sem elas configuradas em produção, /api/xp-sheet e /api/boss-hunt-sheet voltam a quebrar (dessa vez com erro controlado 502, não mais um crash 500, mas ainda quebrado)."
+  },
+
+  "conventions": {
+    "confirmationBeforeDelete": "Nunca excluir dado persistido (drop, serviceiro, etc.) com 1 clique só — sempre confirmação (modal ou 2º clique).",
+    "deleteIcon": "Sempre 🗑️ (lixeira), nunca '✕'.",
+    "dateFormat": "DD/MM/YYYY em toda a UI e nos types de domínio (LootDrop.date, Hunt.date etc.); conversão pra ISO (YYYY-MM-DD) só na borda com o Supabase, via src/services/common/br-date.ts (brToIso/isoToBr).",
+    "goldFormat": "Sempre inteiro (nunca decimal) — formatTibiaGold formata com separador de milhar pt-BR e prefixo '+' (ver knownIssuesAndGotchas sobre o bug de sinal negativo).",
+    "commitMessages": "Português, corpo explica o 'porquê', termina com 'Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>'.",
+    "onlyCommitOnExplicitAsk": "Nunca commitar/dar push sem o usuário confirmar explicitamente ('sim', 'pode') — mesmo depois de terminar uma feature."
+  }
+}

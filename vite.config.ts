@@ -1,4 +1,4 @@
-import { defineConfig, type Plugin } from 'vite'
+import { defineConfig, loadEnv, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 import { fetchXpStatsFromSheet } from './api/_lib/xp-sheet'
@@ -39,11 +39,20 @@ function sheetDevApiPlugin(): Plugin {
   }
 }
 
-export default defineConfig({
-  plugins: [react(), sheetDevApiPlugin()],
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
+export default defineConfig(({ mode }) => {
+  // loadEnv com prefixo '' (não só VITE_) pra também carregar XP_SHEET_ID e afins do
+  // .env.local pro process.env — essas variáveis são server-only de propósito (sem
+  // prefixo VITE_, nunca vão pro bundle do client), então o Vite não as injeta sozinho
+  // como faz com import.meta.env.VITE_*; o plugin de dev abaixo lê via process.env.
+  const env = loadEnv(mode, process.cwd(), '')
+  process.env = { ...process.env, ...env }
+
+  return {
+    plugins: [react(), sheetDevApiPlugin()],
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, './src'),
+      },
     },
-  },
+  }
 })
