@@ -59,7 +59,17 @@
         "components/LootTable.tsx": "Renderização da tabela de drops, formata coluna Service como 'emoji_vocação nome, ...'.",
         "utils/loot-visuals.ts": "guessItemIcon (emoji fallback) e getBossBadgeStyle (cor determinística por hash do nome) — usados só onde não há ícone real."
       },
-      "dataSource": "LootDrop via ILootDropRepository (Mock ou Http/Supabase conforme VITE_LOOTDROPS_USE_SUPABASE); MemberXpStats via IDashboardRepository.getMemberXpStats (xpOntem/xp30Dias reais da planilha, previsaoFimAno/metas ainda mock); KKs Hunt/Boss via useBossHuntSheet (planilha, sempre ao vivo).",
+      "dataSource": "LootDrop via ILootDropRepository (Mock ou Http/Supabase conforme VITE_LOOTDROPS_USE_SUPABASE); MemberXpStats via IDashboardRepository.getMemberXpStats (xpOntem/xp30Dias reais da planilha, metas ainda mock); KKs Hunt/Boss via useBossHuntSheet (planilha, sempre ao vivo); Previsão fim de ano computada no próprio componente (ver previsaoFimAno abaixo, real desde 2026-08-10).",
+      "previsaoFimAno": {
+        "status": "REAL desde 2026-08-10 — antes era um script no Google Apps Script do usuário, portado pro app (não fica mais em nenhum lugar mock).",
+        "formula": "services/xp-sheet/level-prediction.ts: xpParaNivel(L) = floor((50/3) * (L^3 - 6L^2 + 17L - 12)) (fórmula oficial de XP-por-nível do Tibia). predictEndOfYearLevel soma XP atual + (média diária × dias restantes até 31/12) e sobe de nível enquanto a XP prevista bate o próximo patamar.",
+        "inputs": {
+          "currentLevel/currentXp": "ao vivo via TibiaData Highscores categoria 'experience' — findExperienceValue() em services/tibiadata/tibiadata-client.ts. O Tibia não expõe XP total na página do personagem (só Level), mas os Highscores sim.",
+          "avgDailyXp": "xp90Dias / 90, onde xp90Dias vem de XpCharacterStats (planilha 'Xp Realizada', mesma fonte de xpOntem/xp30Dias, só somando uma janela maior — pedido do usuário pra ficar mais preciso que os 30 dias usados no card 'Xp 30Dias')."
+        },
+        "computedIn": "DashboardPage.tsx (useMemo previsaoPorMembro) — combina useMemberLiveStats (level+experience) com useXpSheet (xp90Dias), não faz nenhum fetch novo.",
+        "gotcha": "Retorna '—' se qualquer um dos insumos faltar (personagem fora do top 500 de Experience nos Highscores, ou sem 90 dias de histórico na planilha ainda)."
+      },
       "kpiFormulas": {
         "kksPlunderInd": "sum(totalValue) dos drops do mês/ano selecionado onde bossName === 'Plunder'",
         "qtdPlunders": "count desses mesmos drops",
@@ -159,9 +169,9 @@
     "CharmCategory / CharmLevel / CharmDefinition / CharmPlanInput / CharmCostRow / CharmPlanResult": { "file": "src/types/charm.ts", "note": "Ver businessLogic.charmPlanner." },
     "DayActivity": { "file": "src/types/calendar.ts", "fields": { "date": "DD/MM/YYYY", "hunts": "Hunt[]", "drops": "LootDrop[]" } },
     "Serviceiro": { "file": "src/types/serviceiro.ts", "fields": { "id": "string", "accountId": "string", "name": "string", "characterName": "string (boneco de pagamento)", "phoneNumber": "string (só dígitos, DDI+DDD — nunca exibido na UI)", "vocations": "Vocation[]" }, "supabaseTable": "serviceiros" },
-    "MemberXpStats": { "file": "src/types/dashboard-stats.ts", "fields": { "xpOntem": "string (formatado, ex '+197.664.728')", "xp30Dias": "string", "previsaoFimAno": "string (ainda mock)", "metas": "Record<nível, string> (ainda mock)" } },
+    "MemberXpStats": { "file": "src/types/dashboard-stats.ts", "fields": { "xpOntem": "string (formatado, ex '+197.664.728')", "xp30Dias": "string", "metas": "Record<nível, string> (ainda mock)" }, "note": "previsaoFimAno foi REMOVIDO daqui em 2026-08-10 (não é mais mock, nem fica misturado nesse objeto) — agora é computada à parte em DashboardPage.tsx, ver modules.dashboard.previsaoFimAno." },
     "PartySettings": { "file": "src/types/party-settings.ts", "fields": { "tcGoldRate": "number" } },
-    "XpCharacterStats / XpDailyEntry": { "file": "src/types/xp-sheet.ts", "fields": { "xpOntem": "number", "xp30Dias": "number", "series": "{date, value}[] (histórico completo)" }, "note": "Vem da planilha, não do Supabase." },
+    "XpCharacterStats / XpDailyEntry": { "file": "src/types/xp-sheet.ts", "fields": { "xpOntem": "number", "xp30Dias": "number", "xp90Dias": "number (desde 2026-08-10, usado só pra Previsão fim de ano)", "series": "{date, value}[] (histórico completo)" }, "note": "Vem da planilha, não do Supabase." },
     "BossHuntDailyEntry": { "file": "src/hooks/useBossHuntSheet.ts", "fields": { "date": "DD/MM/YYYY", "hunt": "number (profit individual, já /4)", "boss": "number (profit individual, já /5)" }, "note": "Vem da planilha, não do Supabase." },
     "removed_DashboardKpis": {
       "status": "REMOVIDO em 2026-08-08 — não recriar",
@@ -189,7 +199,7 @@
       "boss": { "interface": "IBossRepository", "mock": "MockBossRepository", "http": null },
       "split": { "interface": "ISplitRepository", "mock": "MockSplitRepository", "http": null },
       "serviceiro": { "interface": "IServiceiroRepository", "mock": "MockServiceiroRepository", "http": "HttpServiceiroRepository (Supabase, tabela serviceiros)" },
-      "dashboard": { "interface": "IDashboardRepository", "mock": "MockDashboardRepository", "http": null, "note": "Só tem getMemberXpStats agora (getKpis foi removido — ver dataModels.removed_DashboardKpis). getMemberXpStats já mistura mock (previsaoFimAno/metas) com dado real (xpOntem/xp30Dias via planilha)." },
+      "dashboard": { "interface": "IDashboardRepository", "mock": "MockDashboardRepository", "http": null, "note": "Só tem getMemberXpStats agora (getKpis foi removido — ver dataModels.removed_DashboardKpis). getMemberXpStats mistura mock (metas) com dado real (xpOntem/xp30Dias via planilha) — previsaoFimAno NÃO passa mais por aqui, é computada à parte no DashboardPage." },
       "settings": { "interface": "ISettingsRepository", "mock": "MockSettingsRepository", "http": null }
     },
     "criticalLesson": "supabase-client.ts usa um padrão de singleton PREGUIÇOSO (getSupabaseClient(), só cria o client dentro de cada método, nunca no top-level do módulo). Isso é proposital: os módulos Http são importados incondicionalmente por repositories/index.ts mesmo quando as flags estão desligadas, e um client Supabase eager (criado no top-level) lançava erro na hora do import se as env vars não estivessem configuradas — causou uma tela preta total em produção antes de configurar as env vars no Vercel. NÃO reverter pra um `export const supabase = createClient(...)` no top-level."
@@ -227,10 +237,10 @@
       "endpoints": {
         "GET /creatures": "fetchBoostedCreature() — criatura bostada do dia",
         "GET /boostablebosses": "fetchBoostedBoss() — boss bostado do dia",
-        "GET /character/{name}": "fetchCharacterBasics() — level/vocation/world; retorna null se não achar (não lança erro)",
-        "GET /highscores/{world}/{category}/all/{page}": "findSkillValue() — varre até 10 páginas dos Highscores (top 500) procurando o personagem; fora do top 500 = null"
+        "GET /character/{name}": "fetchCharacterBasics() — level/vocation/world; retorna null se não achar (não lança erro). NÃO expõe XP total, só Level — Tibia não mostra isso na página do personagem.",
+        "GET /highscores/{world}/{category}/all/{page}": "searchHighscoreValue() (helper compartilhado) — varre até 10 páginas dos Highscores (top 500) procurando o personagem; fora do top 500 = null. Duas categorias usadas: findSkillValue() (categoria de skill por vocação) e findExperienceValue() (categoria fixa 'experience', desde 2026-08-10 — dá o XP total/lifetime exato, usado só pra Previsão fim de ano)."
       },
-      "usedBy": ["useMemberLiveStats (Lvl Atual/Skill do Dashboard)", "useBoostedToday (sidebar)"],
+      "usedBy": ["useMemberLiveStats (Lvl Atual/Skill/Experience do Dashboard)", "useBoostedToday (sidebar)"],
       "caching": "Nenhum — sempre busca ao vivo a cada mount."
     },
 
@@ -283,7 +293,12 @@
     },
     "xpSheetCache": {
       "file": "src/services/xp-sheet/xp-sheet-cache.ts",
-      "rule": "fetchXpSheetCached() — cache local (localStorage) válido até a PRÓXIMA janela das 7h15 (REFRESH_HOUR=7, REFRESH_MINUTE=15). Se agora < 7h15 de hoje, o boundary válido é 7h15 de ONTEM (protege contra achar que um cache feito às 6h30 de hoje, antes da rotina do usuário terminar, já é 'de hoje')."
+      "rule": "fetchXpSheetCached() — cache local (localStorage) válido até a PRÓXIMA janela das 7h15 (REFRESH_HOUR=7, REFRESH_MINUTE=15). Se agora < 7h15 de hoje, o boundary válido é 7h15 de ONTEM (protege contra achar que um cache feito às 6h30 de hoje, antes da rotina do usuário terminar, já é 'de hoje').",
+      "cacheKeyVersioning": "STORAGE_KEY tem sufixo de versão (ex 'tibia-pts:xp-sheet-cache-v2') — bumpar esse sufixo sempre que o SHAPE do payload cacheado mudar (campo novo, campo removido). Sem isso, quem já tinha um cache da versão anterior fica preso com o payload velho até a próxima janela das 7h15 (até 1 dia inteiro), mesmo que o código novo já espere o campo novo. Aconteceu de verdade em 2026-08-10: xp90Dias foi adicionado à API mas o cache v1 não tinha esse campo, 'Previsão fim de ano' ficou em branco até o bump pra v2."
+    },
+    "previsaoFimAno": {
+      "file": "src/services/xp-sheet/level-prediction.ts",
+      "rule": "Ver modules.dashboard.previsaoFimAno — resumo: xpParaNivel(L) é a fórmula oficial do Tibia (floor((50/3)*(L³-6L²+17L-12))); predictEndOfYearLevel soma XP atual (Highscores 'experience', ao vivo) + média diária (xp90Dias/90) × dias até 31/12, e sobe de nível enquanto a XP prevista bate o próximo patamar. Substituiu um script do usuário no Google Apps Script — mesma lógica, fontes diferentes (antes vinha de células da planilha, agora é TibiaData + planilha combinados no próprio app)."
     },
     "dashboardKpis": {
       "file": "src/modules/dashboard/DashboardPage.tsx",
@@ -350,6 +365,13 @@
       "description": "Até 2026-08-10, o ID da planilha do usuário (e os gids das abas) ficavam como string literal nesses 2 arquivos. Como a planilha é compartilhada 'qualquer um com o link pode ver', o ID sozinho dava acesso de leitura total a ela — e o repositório GitHub (elbiojuzao/TibiaControll) é PÚBLICO, então o ID ficou exposto pra qualquer pessoa desde os commits 8567e7a e 4bc4f15 (confirmado via `git log -S`). Movido para env vars server-only (XP_SHEET_ID, XP_SHEET_XP_REALIZADA_GID, XP_SHEET_BOSS_HUNT_GID — sem prefixo VITE_, nunca vão pro bundle do client) em 2026-08-10.",
       "mitigationStatus": "Decisão explícita do usuário: só mover pra env var daqui pra frente, SEM reescrever o histórico do git nem tornar o repo privado. Ou seja, o ID antigo continua recuperável por quem já tenha acesso ao histórico público (git log/blame), mesmo depois desse fix. Se o usuário decidir fechar essa exposição de vez no futuro, as opções são: tornar o repo privado, trocar o compartilhamento da planilha (exigiria reescrever o método de leitura, hoje é CSV público sem login), ou reescrever o histórico do git (destrutivo, force-push).",
       "howToVerify": "`git log --all --oneline -S \"<id-antigo>\"` no repo mostra os commits onde o literal apareceu."
+    },
+    {
+      "id": "localStorage-cache-needs-version-bump-on-shape-change",
+      "severity": "médio",
+      "area": "src/services/xp-sheet/xp-sheet-cache.ts",
+      "description": "Mudar o shape do objeto salvo em fetchXpSheetCached() (campo novo/removido em XpCharacterStats) sem bumpar o sufixo de versão do STORAGE_KEY faz quem já tinha cache da versão anterior ficar preso no payload velho até a próxima janela das 7h15 (até 1 dia). Aconteceu em 2026-08-10 ao adicionar xp90Dias — 'Previsão fim de ano' ficou em branco em qualquer sessão com cache v1 já salvo, até o bump pra v2.",
+      "howToApply": "Toda vez que mexer no shape retornado por /api/xp-sheet (e por extensão em XpCharacterStats/XpDailyStats), bumpar o sufixo -vN do STORAGE_KEY em xp-sheet-cache.ts no mesmo commit."
     }
   ],
 

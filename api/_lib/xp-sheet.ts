@@ -6,8 +6,9 @@
  * (api/xp-sheet.ts) quanto no plugin de dev do Vite (vite.config.ts), que serve o mesmo
  * endpoint localmente sem precisar do `vercel dev`.
  *
- * Não busca aqui a tabela de "metas por nível" (previsão de XP/dia pra bater cada nível
- * até o fim do ano) — o usuário confirmou que isso continua mock por enquanto.
+ * Não busca aqui a tabela de "metas por nível" (XP/dia restante pra bater cada nível até
+ * o fim do ano) — continua mock por enquanto. "Previsão fim de ano" (nível único, não a
+ * tabela de metas) já usa xp90Dias daqui — ver services/xp-sheet/level-prediction.ts.
  *
  * ID/gid da planilha vêm de env vars (XP_SHEET_ID, XP_SHEET_XP_REALIZADA_GID), não de
  * constante no código — o repo é público no GitHub e a planilha é compartilhada como
@@ -18,6 +19,9 @@
 import { parseCsv, parseBrNumber } from './sheet-utils.js';
 
 const DAYS_FOR_XP_30_DIAS = 30;
+/** Janela maior usada só pela Previsão fim de ano (mais dias = média diária mais estável
+ * que os 30 dias usados pro card "Xp 30Dias") — pedido do usuário em 2026-08-10. */
+const DAYS_FOR_XP_90_DIAS = 90;
 
 export interface XpDailyEntry {
   /** DD/MM/YYYY, mesmo formato usado no resto do app (drops, hunts) */
@@ -28,7 +32,8 @@ export interface XpDailyEntry {
 export interface XpDailyStats {
   xpOntem: number;
   xp30Dias: number;
-  /** Histórico completo (não só os últimos 30 dias) — mais antigo primeiro. Usado pra
+  xp90Dias: number;
+  /** Histórico completo (não só os últimos 30/90 dias) — mais antigo primeiro. Usado pra
    * buscar um dia específico (ex: modal do calendário), não só os agregados prontos. */
   series: XpDailyEntry[];
 }
@@ -66,7 +71,8 @@ export async function fetchXpStatsFromSheet(): Promise<Record<string, XpDailySta
 
     const xpOntem = series[series.length - 1]?.value ?? 0;
     const xp30Dias = series.slice(-DAYS_FOR_XP_30_DIAS).reduce((sum, e) => sum + e.value, 0);
-    result[name] = { xpOntem, xp30Dias, series };
+    const xp90Dias = series.slice(-DAYS_FOR_XP_90_DIAS).reduce((sum, e) => sum + e.value, 0);
+    result[name] = { xpOntem, xp30Dias, xp90Dias, series };
   }
   return result;
 }

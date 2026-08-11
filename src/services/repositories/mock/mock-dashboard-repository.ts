@@ -16,10 +16,12 @@ function formatXpValue(value: number): string {
 export class MockDashboardRepository implements IDashboardRepository {
   /**
    * xpOntem/xp30Dias vêm de verdade da planilha do usuário (rotina automática dele, a
-   * gente só lê o resultado via /api/xp-sheet — ver api/_lib/xp-sheet.ts). previsaoFimAno
-   * e metas continuam mock por enquanto (decisão confirmada com o usuário em 2026-08-07;
-   * reimplementar a projeção de nível é escopo futuro). Se a planilha falhar por
-   * qualquer motivo (rede, mudou de lugar, etc.), cai pro valor mock sem quebrar a tela.
+   * gente só lê o resultado via /api/xp-sheet — ver api/_lib/xp-sheet.ts). metas continua
+   * mock por enquanto (decisão confirmada com o usuário em 2026-08-07; reimplementar a
+   * projeção por nível é escopo futuro — previsaoFimAno, a projeção de nível único, já foi
+   * portada em 2026-08-10, ver DashboardPage.tsx + services/xp-sheet/level-prediction.ts).
+   * Se a planilha falhar por qualquer motivo (rede, mudou de lugar, etc.), cai pro valor
+   * mock sem quebrar a tela.
    */
   async getMemberXpStats(accountId: string): Promise<Record<string, MemberXpStats>> {
     await delay();
@@ -31,7 +33,7 @@ export class MockDashboardRepository implements IDashboardRepository {
       const merged: Record<string, MemberXpStats> = { ...base };
       for (const [characterName, stats] of Object.entries(sheetStats)) {
         merged[characterName] = {
-          ...(merged[characterName] ?? { previsaoFimAno: '—', metas: {} }),
+          ...(merged[characterName] ?? { metas: {} }),
           xpOntem: formatXpValue(stats.xpOntem),
           xp30Dias: formatXpValue(stats.xp30Dias),
         };

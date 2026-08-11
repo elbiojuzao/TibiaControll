@@ -5,7 +5,9 @@ import { useMembers } from '@/hooks/useMembers';
 import { useMemberLiveStats } from '@/hooks/useMemberLiveStats';
 import { useMemberXpStats } from '@/hooks/useMemberXpStats';
 import { useBossHuntSheet } from '@/hooks/useBossHuntSheet';
+import { useXpSheet } from '@/hooks/useXpSheet';
 import { formatTibiaGold } from '@/services/split';
+import { predictEndOfYearLevel } from '@/services/xp-sheet/level-prediction';
 import { monthRangeAsBr } from '@/services/common/months';
 import { dateAsBr, todayAsBr } from '@/services/common/br-date';
 import { parseDateKey } from '@/services/calendar';
@@ -21,11 +23,11 @@ const MESES = [
   { value: '11', label: 'Novembro' }, { value: '12', label: 'Dezembro' },
 ];
 
-/** Lvl Atual e Skill vêm ao vivo da API do TibiaData (ver useMemberLiveStats). previsaoFimAno
- * e metas (dentro de MemberXpStats) continuam mock — ver memória do projeto
- * "checkpoint-banco-mock"/"integracao-planilha-xp" pra saber por que essas duas continuam
- * mock por enquanto (xpOntem/xp30Dias dentro do mesmo objeto já são reais, via planilha). */
-const EMPTY_XP_STATS: MemberXpStats = { xpOntem: '—', xp30Dias: '—', previsaoFimAno: '—', metas: {} };
+/** Lvl Atual e Skill vêm ao vivo da API do TibiaData (ver useMemberLiveStats). Previsão fim
+ * de ano também é real agora (2026-08-10, ver previsaoPorMembro/level-prediction.ts) — só
+ * "metas" (tabela de 16 níveis) dentro de MemberXpStats continua mock por enquanto, ver
+ * memória do projeto "checkpoint-banco-mock"/"integracao-planilha-xp". */
+const EMPTY_XP_STATS: MemberXpStats = { xpOntem: '—', xp30Dias: '—', metas: {} };
 
 const NIVEIS_METAS = [1650, 1700, 1750, 1800, 1850, 1900, 1950, 2000, 2050, 2100, 2150, 2200, 2250, 2300, 2350, 2400];
 
@@ -46,6 +48,25 @@ export function DashboardPage() {
   const liveStats = useMemberLiveStats(members);
   const { statsByName } = useMemberXpStats(accountId);
   const { series: bossHuntSeries } = useBossHuntSheet();
+  const { data: xpSheetData } = useXpSheet();
+
+  // Previsão fim de ano — antes vinha de um script no Google Sheets do usuário, portado
+  // pra cá em 2026-08-10 (ver services/xp-sheet/level-prediction.ts). XP atual vem ao vivo
+  // dos Highscores (categoria "experience", via useMemberLiveStats); média diária vem de
+  // xp90Dias da planilha (janela de 90 dias, mais estável que os 30 do card "Xp 30Dias").
+  // '—' se faltar level/XP atual/histórico de 90 dias pra esse personagem.
+  const previsaoPorMembro = useMemo(() => {
+    const result: Record<string, string> = {};
+    for (const m of members) {
+      const live = liveStats[m.characterName];
+      const xp90Dias = xpSheetData[m.characterName]?.xp90Dias;
+      if (!live?.level || !live.experience || !xp90Dias) continue;
+      result[m.characterName] = String(
+        predictEndOfYearLevel({ currentLevel: live.level, currentXp: live.experience, avgDailyXp: xp90Dias / 90 }),
+      );
+    }
+    return result;
+  }, [members, liveStats, xpSheetData]);
 
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState<string>(String(now.getMonth() + 1));
@@ -364,7 +385,7 @@ export function DashboardPage() {
                   <td style={{ padding: '6px', border: '1px solid #eab308', textAlign: 'left', paddingLeft: '10px' }}>Previsão fim de ano</td>
                   {members.map((m) => (
                     <td key={m.id} style={{ padding: '6px', border: '1px solid #eab308' }}>
-                      {(statsByName[m.characterName] ?? EMPTY_XP_STATS).previsaoFimAno}
+                      {previsaoPorMembro[m.characterName] ?? '—'}
                     </td>
                   ))}
                 </tr>

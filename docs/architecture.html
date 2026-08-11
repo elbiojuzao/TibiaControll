@@ -502,6 +502,9 @@
             <dt>Fórmulas KPI</dt><dd>
               <code>kksPlunderInd</code> = Σ totalValue onde boss=<code>'Plunder'</code> · <code>kksBagsInd</code> = Σ onde boss ∉ {Plunder, SoulCore} · <code>kksHunt/kksBoss</code> = soma da planilha no mês · <code>totalInd</code> = soma dos 4 acima
             </dd>
+            <dt>Previsão fim de ano</dt><dd>
+              <b>Real desde 2026-08-10</b> (antes era um script no Google Apps Script do usuário) — computada em <code>previsaoPorMembro</code> (useMemo), combinando level+XP total ao vivo (Highscores "experience" do TibiaData) com <code>xp90Dias</code> da planilha. Fórmula em <code>services/xp-sheet/level-prediction.ts</code>, ver seção Regras de negócio.
+            </dd>
           </dl>
         </div>
       </details>
@@ -659,10 +662,9 @@
           <div class="schema-head"><span class="name">MemberXpStats</span><span class="src">src/types/dashboard-stats.ts</span></div>
           <table class="fields">
             <tr><td class="f-name">xpOntem, xp30Dias</td><td class="f-type">string (real, planilha)</td></tr>
-            <tr><td class="f-name">previsaoFimAno</td><td class="f-type">string (mock)</td></tr>
             <tr><td class="f-name">metas</td><td class="f-type">Record&lt;nível,string&gt; (mock)</td></tr>
           </table>
-          <div class="schema-note">Um único objeto mistura campo real e mock — ver <code>getMemberXpStats</code>.</div>
+          <div class="schema-note"><code>previsaoFimAno</code> foi <b>removido</b> daqui em 2026-08-10 — não é mock e não fica mais misturada nesse objeto, é computada à parte no <code>DashboardPage.tsx</code> (ver módulo Dashboard).</div>
         </div>
       </div>
 
@@ -684,7 +686,7 @@
         <tr><td>boss</td><td class="mono-cell">IBossRepository</td><td>MockBossRepository</td><td>—</td></tr>
         <tr><td>split</td><td class="mono-cell">ISplitRepository</td><td>MockSplitRepository</td><td>—</td></tr>
         <tr><td>serviceiro</td><td class="mono-cell">IServiceiroRepository</td><td>MockServiceiroRepository</td><td>HttpServiceiroRepository <span class="chip chip-real" style="margin-left:4px">supabase</span></td></tr>
-        <tr><td>dashboard</td><td class="mono-cell">IDashboardRepository</td><td>MockDashboardRepository</td><td>— (getMemberXpStats mistura mock+planilha internamente)</td></tr>
+        <tr><td>dashboard</td><td class="mono-cell">IDashboardRepository</td><td>MockDashboardRepository</td><td>— (getMemberXpStats mistura mock "metas" + planilha; Previsão fim de ano não passa por aqui)</td></tr>
         <tr><td>settings</td><td class="mono-cell">ISettingsRepository</td><td>MockSettingsRepository</td><td>—</td></tr>
       </table>
 
@@ -761,8 +763,8 @@
         <tr><th>Endpoint</th><th>Função</th><th>Uso</th></tr>
         <tr><td class="mono-cell">GET /creatures</td><td>fetchBoostedCreature()</td><td>criatura bostada do dia</td></tr>
         <tr><td class="mono-cell">GET /boostablebosses</td><td>fetchBoostedBoss()</td><td>boss bostado do dia</td></tr>
-        <tr><td class="mono-cell">GET /character/{name}</td><td>fetchCharacterBasics()</td><td>level/vocation/world — retorna <code>null</code> se não achar</td></tr>
-        <tr><td class="mono-cell">GET /highscores/{world}/{cat}/all/{page}</td><td>findSkillValue()</td><td>varre até 10 páginas (top 500); fora disso = <code>null</code></td></tr>
+        <tr><td class="mono-cell">GET /character/{name}</td><td>fetchCharacterBasics()</td><td>level/vocation/world — retorna <code>null</code> se não achar. Não expõe XP total, só Level.</td></tr>
+        <tr><td class="mono-cell">GET /highscores/{world}/{cat}/all/{page}</td><td>findSkillValue() · findExperienceValue()</td><td>varre até 10 páginas (top 500); fora disso = <code>null</code>. <code>findExperienceValue</code> (2026-08-10) usa a categoria fixa "experience" pra pegar o XP total exato — usado só na Previsão fim de ano.</td></tr>
       </table>
       <p style="font-size:13px; color:var(--text-muted); margin-top:10px">Sem cache — busca ao vivo a cada mount de <code>useMemberLiveStats</code>/<code>useBoostedToday</code>.</p>
     </section>
@@ -857,6 +859,9 @@
 
       <h3 style="margin-top:26px">Cache de XP — janela das 7h15</h3>
       <p style="color:var(--text-muted); font-size:13.5px; max-width:68ch">O cache local só é considerado "de hoje" a partir das <b>7h15</b> — a rotina do usuário grava a XP entre 6h–7h, então um cache feito antes disso (mesmo que já seja "hoje") é tratado como do dia anterior e força nova busca.</p>
+
+      <h3 style="margin-top:26px">Previsão fim de ano — real desde 2026-08-10</h3>
+      <p style="color:var(--text-muted); font-size:13.5px; max-width:68ch">Substituiu um script do usuário no Google Apps Script — mesma lógica, fontes diferentes. <code>xpParaNivel(L) = floor((50/3) · (L³ − 6L² + 17L − 12))</code> é a fórmula oficial de XP-por-nível do Tibia (ex: nível 2 = 100 XP, nível 3 = 200 XP). <code>predictEndOfYearLevel</code> soma <b>XP atual</b> (ao vivo, via Highscores categoria "experience" — o Tibia não expõe XP total na página do personagem) + <b>média diária</b> (<code>xp90Dias ÷ 90</code>, da planilha) × dias restantes até 31/12, e sobe de nível enquanto essa XP prevista bate o próximo patamar. Tudo calculado em <code>services/xp-sheet/level-prediction.ts</code>, sem nenhum fetch novo (reaproveita <code>useMemberLiveStats</code> + <code>useXpSheet</code>).</p>
     </section>
 
     <section id="issues">
@@ -910,6 +915,14 @@
             <p class="issue-title">"Plunder"/"SoulCore" são categorias, não bosses reais</p>
             <p class="issue-area">LootDrop.bossName</p>
             <p class="issue-desc">Marcam baú compartilhado sem fragador único — confirmado inspecionando o Supabase real (278 drops "Plunder", 5 "SoulCore"). Usado nas fórmulas de KPI e na exclusão do ranking Top Drop.</p>
+          </div>
+        </div>
+        <div class="issue">
+          <span class="chip chip-issue-medio">médio</span>
+          <div>
+            <p class="issue-title">Cache local da planilha precisa de bump de versão quando o shape muda</p>
+            <p class="issue-area">src/services/xp-sheet/xp-sheet-cache.ts</p>
+            <p class="issue-desc">Mudar os campos de <code>XpCharacterStats</code> sem trocar o sufixo <code>-vN</code> do <code>STORAGE_KEY</code> deixa quem já tinha cache salvo preso no payload antigo até a próxima janela das 7h15 (até 1 dia). Aconteceu de verdade ao adicionar <code>xp90Dias</code> em 2026-08-10 — "Previsão fim de ano" ficou em branco até o bump de v1 pra v2.</p>
           </div>
         </div>
       </div>
