@@ -337,7 +337,7 @@
 <div class="layout">
   <aside class="toc">
     <div class="toc-brand">Tibia PT Manager</div>
-    <div class="toc-sub">Mapa de arquitetura · gerado 2026-08-09</div>
+    <div class="toc-sub">Mapa de arquitetura · gerado 2026-08-09 · atualizado 2026-08-10</div>
     <nav id="tocnav">
       <a href="#overview">Visão geral</a>
       <a href="#routes">Rotas &amp; navegação</a>
@@ -391,6 +391,7 @@
         <div class="route-card"><span class="route-path">/historico-xp</span><div class="route-label">📈 Histórico de XP</div><span class="chip chip-real">planilha real</span></div>
         <div class="route-card"><span class="route-path">/serviceiros</span><div class="route-label">🤝 Serviceiros</div><span class="chip chip-mixed">misto</span></div>
       </div>
+      <p style="font-size:12.5px; color:var(--text-faint); margin-top:14px"><code>vercel.json</code> (2026-08-10) tem um rewrite <code>/(.*)  → /index.html</code> — sem ele, acessar qualquer rota acima direto pela URL (ou dar F5 fora da raiz) retornava 404 do Vercel, já que só o React Router (client-side) sabe resolver esses caminhos. As Functions em <code>api/*.ts</code> não são afetadas — o roteamento por sistema de arquivos do Vercel tem prioridade sobre o rewrite.</p>
     </section>
 
     <section id="datasourcing">
@@ -557,8 +558,11 @@
           <p>Calendário mensal — hover mostra resumo rápido, clique abre modal completo com Boss/Hunt (planilha), XP por jogador (planilha) e Drops daquele dia.</p>
           <dl class="kv-list">
             <dt>Rota</dt><dd><code>/calendario</code></dd>
-            <dt>Dado</dt><dd><code>Hunt</code> (mock) + <code>LootDrop</code> (real) pro hover/pontinhos; <code>useXpSheet</code> + <code>useBossHuntSheet</code> pro modal de clique.</dd>
-            <dt>Atenção</dt><dd>A lista de Hunts mock foi <b>removida do modal</b> de clique (redundante com Boss/Hunt real) mas <b>continua</b> no hover e nos pontinhos.</dd>
+            <dt>Dado</dt><dd><code>LootDrop</code> (real) pros dots/hover de item; <code>useXpSheet</code> + <code>useBossHuntSheet</code> (planilha) pros dots de Boss/Hunt, hover e modal de clique.</dd>
+            <dt>Bolinhas do dia</dt><dd>
+              Legenda acima do grid (2026-08-10). <span style="color:#38bdf8">●</span> <b>Boss</b> = existe valor de boss na planilha nesse dia · <span style="color:#f59e0b">●</span> <b>Hunt</b> = existe valor de hunt na planilha nesse dia (substituiu a bolinha antiga baseada no <code>Hunt</code> mock) · <span style="color:#a29bfe">●</span> <b>Item</b> = 1 bolinha por drop do dia, não mais combinada.
+            </dd>
+            <dt>Atenção</dt><dd>A <i>lista de texto</i> de Hunts mock (não a bolinha) ainda existe no hover e alimenta <code>findLatestActivityDate</code>, mas foi <b>removida do modal</b> de clique (redundante com Boss/Hunt real).</dd>
           </dl>
         </div>
       </details>
@@ -767,11 +771,16 @@
       <h2><span class="num">08</span> Integração — planilha do usuário (Google Sheets)</h2>
       <p class="section-intro">Planilha <b>pessoal</b> do usuário, com rotina automática dele preenchendo dados diariamente entre 6h–7h. O app só lê. Pública ("qualquer um com o link pode ver"), sem OAuth.</p>
 
+      <div class="callout" style="margin-bottom:16px">
+        <span class="dot">⚠</span>
+        <span>Como o compartilhamento é "qualquer um com o link", o ID da planilha sozinho já dá acesso de leitura total a ela — por isso <b>não fica em texto neste documento nem no código</b>. Desde 2026-08-10 vive em env vars server-only (<code>XP_SHEET_ID</code>, <code>XP_SHEET_XP_REALIZADA_GID</code>, <code>XP_SHEET_BOSS_HUNT_GID</code> — sem prefixo <code>VITE_</code>, nunca vão pro bundle do client). O repo é público no GitHub e o ID ficou exposto em 2 commits antes desse fix — decisão do usuário foi só fechar a exposição daqui pra frente, sem reescrever histórico.</span>
+      </div>
+
       <table class="flag-table">
-        <tr><th>Aba</th><th>gid</th><th>Conteúdo</th></tr>
-        <tr><td>Xp Realizada</td><td class="mono-cell">421841615</td><td>XP ganha no dia (já subtraída), 1 coluna/personagem. Linhas futuras pré-preenchidas <i>vazias</i> até 2027 — filtrar por célula não-vazia, nunca pegar "última linha" direto.</td></tr>
-        <tr><td>Boss hunt</td><td class="mono-cell">1868125467</td><td>Data / profit·ind hunt / profit·ind Boss — já <b>individual</b> (hunt÷4, boss÷5).</td></tr>
-        <tr><td>PT</td><td class="mono-cell">496786528</td><td>XP acumulada por dia (fonte primária, não lida diretamente pelo app).</td></tr>
+        <tr><th>Aba</th><th>gid (env var)</th><th>Conteúdo</th></tr>
+        <tr><td>Xp Realizada</td><td class="mono-cell">XP_SHEET_XP_REALIZADA_GID</td><td>XP ganha no dia (já subtraída), 1 coluna/personagem. Linhas futuras pré-preenchidas <i>vazias</i> até 2027 — filtrar por célula não-vazia, nunca pegar "última linha" direto.</td></tr>
+        <tr><td>Boss hunt</td><td class="mono-cell">XP_SHEET_BOSS_HUNT_GID</td><td>Data / profit·ind hunt / profit·ind Boss — já <b>individual</b> (hunt÷4, boss÷5).</td></tr>
+        <tr><td>PT</td><td class="mono-cell">não documentado (não usada pelo app)</td><td>XP acumulada por dia (fonte primária, não lida diretamente pelo app).</td></tr>
       </table>
 
       <div class="grid-2" style="margin-top:16px">
@@ -892,7 +901,7 @@
           <div>
             <p class="issue-title">Entidade <code>Hunt</code> mock parcialmente deprecada</p>
             <p class="issue-area">Calendário</p>
-            <p class="issue-desc">Removida do modal de clique, mas ainda usada no hover e nos pontinhos do calendário — não é dado morto no app inteiro.</p>
+            <p class="issue-desc">Removida do modal de clique (2026-08-08) e da bolinha de dia (2026-08-10, virou bolinha real via <code>useBossHuntSheet</code>) — ainda usada só na lista de texto do hover e em <code>findLatestActivityDate</code>. Não é dado morto no app inteiro, mas o espaço onde aparece encolheu de novo.</p>
           </div>
         </div>
         <div class="issue">
@@ -916,7 +925,8 @@
             <li style="margin-bottom:8px">Ícone de exclusão sempre 🗑️, nunca "✕"</li>
             <li style="margin-bottom:8px">Datas em <code>DD/MM/YYYY</code> na UI/domínio; ISO só na borda com Supabase</li>
             <li style="margin-bottom:8px">Gold sempre inteiro, formatado pt-BR com prefixo <code>+</code></li>
-            <li>Nunca commitar/dar push sem confirmação explícita do usuário</li>
+            <li style="margin-bottom:8px">Nunca commitar/dar push sem confirmação explícita do usuário</li>
+            <li><b>Toda mudança no app atualiza este HTML e o <code>architecture.json</code> junto</b> — regra permanente do usuário (2026-08-10), não deixar os docs desatualizarem</li>
           </ul>
         </div>
         <div class="card">
@@ -926,8 +936,11 @@
             <tr><td class="mono-cell">VITE_SUPABASE_PUBLISHABLE_KEY</td><td style="font-size:12px">chave anon</td></tr>
             <tr><td class="mono-cell">VITE_SERVICEIROS_USE_SUPABASE</td><td style="font-size:12px">liga Supabase pra Serviceiros</td></tr>
             <tr><td class="mono-cell">VITE_LOOTDROPS_USE_SUPABASE</td><td style="font-size:12px">liga Supabase pra Drops</td></tr>
+            <tr><td class="mono-cell">XP_SHEET_ID</td><td style="font-size:12px">ID da planilha — <b>server-only</b>, sem prefixo VITE_ (segredo, ver seção Planilha)</td></tr>
+            <tr><td class="mono-cell">XP_SHEET_XP_REALIZADA_GID</td><td style="font-size:12px">gid da aba de XP — server-only</td></tr>
+            <tr><td class="mono-cell">XP_SHEET_BOSS_HUNT_GID</td><td style="font-size:12px">gid da aba de Boss/Hunt — server-only</td></tr>
           </table>
-          <p style="font-size:11.5px; color:var(--text-faint); margin:10px 0 0">Vivem em <code>.env.local</code> (gitignored) — não propagam pro Vercel automaticamente.</p>
+          <p style="font-size:11.5px; color:var(--text-faint); margin:10px 0 0">Vivem em <code>.env.local</code> (gitignored) — não propagam pro Vercel automaticamente, precisam ser configuradas manualmente no dashboard do projeto.</p>
         </div>
       </div>
     </section>
@@ -935,7 +948,7 @@
 </div>
 
 <footer>
-  <span>Gerado por Claude em 2026-08-09 · referência viva, atualizar conforme o app evolui</span>
+  <span>Gerado por Claude em 2026-08-09, atualizado 2026-08-10 · referência viva — regra permanente: toda mudança no app atualiza este arquivo e o architecture.json juntos</span>
   <span>JSON companion: <code>docs/architecture.json</code></span>
 </footer>
 

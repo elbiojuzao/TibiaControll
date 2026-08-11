@@ -4,12 +4,17 @@
     "name": "Tibia Party Manager (Tibia PT Manager)",
     "purpose": "Substitui as planilhas manuais de uma party de Tibia: log de drops, split de loot, timers de boss, calculadoras de tier/charm, histórico de XP e agenda de serviceiros.",
     "generatedAt": "2026-08-09",
-    "generatedBy": "Claude, a pedido do usuário — mapa vivo, deve ser atualizado conforme o app evolui, não é um documento congelado",
+    "lastUpdated": "2026-08-10",
+    "generatedBy": "Claude, a pedido do usuário — mapa vivo, deve ser atualizado conforme o app evolui, não é um documento congelado. Regra permanente do usuário (2026-08-10): toda mudança no app atualiza este JSON e o docs/architecture.html junto, na mesma leva de trabalho.",
     "repository": "https://github.com/elbiojuzao/TibiaControll",
     "defaultBranch": "main",
     "activeBranch": "feature/mvp-modulos-e-integracoes",
     "deployUrl": "https://tibiacontroll.vercel.app",
-    "criticalGotcha": "Produção no Vercel builda a partir da branch `main`, NÃO da branch de trabalho. Commits na feature branch só chegam em produção depois de um merge (PR) explícito para `main`. Não assumir que `git push` sozinho publica em produção."
+    "criticalGotcha": "Produção no Vercel builda a partir da branch `main`, NÃO da branch de trabalho. Commits na feature branch só chegam em produção depois de um merge (PR) explícito para `main`. Não assumir que `git push` sozinho publica em produção.",
+    "deploymentConfig": {
+      "file": "vercel.json",
+      "rewrite": "{ source: '/(.*)', destination: '/index.html' } — adicionado em 2026-08-10. Sem isso, acessar qualquer rota do React Router direto pela URL (ou dar F5 fora da raiz '/') retornava 404 do Vercel, porque não existe arquivo físico nesses caminhos e só o client-side router sabe resolver isso. Rotas de api/*.ts continuam funcionando normalmente — o roteamento por sistema de arquivos do Vercel tem prioridade sobre rewrites, então elas são resolvidas antes da regra de rewrite ser considerada."
+    }
   },
 
   "techStack": {
@@ -103,12 +108,18 @@
     "calendar-historico": {
       "path": "src/modules/calendar-historico/",
       "routes": ["/calendario"],
-      "purpose": "Calendário mensal — hover mostra resumo rápido (Hunts+Drops do dia), clique abre modal completo com Boss/Hunt (planilha), XP por jogador (planilha) e Drops daquele dia.",
+      "purpose": "Calendário mensal — hover mostra resumo rápido (Boss/Hunt+Drops do dia), clique abre modal completo com Boss/Hunt (planilha), XP por jogador (planilha) e Drops daquele dia.",
       "keyFiles": {
-        "CalendarioPage.tsx": "240 linhas. Ao carregar, pula pro mês com atividade mais recente (findLatestActivityDate). Todo dia é clicável, não só os com atividade (pode ter XP sem drop/hunt)."
+        "CalendarioPage.tsx": "~290 linhas. Ao carregar, pula pro mês com atividade mais recente (findLatestActivityDate). Todo dia é clicável, não só os com atividade (pode ter XP sem drop/hunt)."
       },
-      "dataSource": "Hunt (mock, via useHunts) + LootDrop (real via useLootDrops) pro hover/dots; useXpSheet + useBossHuntSheet (planilha) pro modal de clique.",
-      "note": "A lista de 'Hunts' do mock ainda existe no HOVER e nos pontinhos do calendário, mas foi REMOVIDA do modal de clique (ficava redundante com o campo real de Boss/Hunt individual — ver knownIssuesAndGotchas sobre a entidade Hunt mock)."
+      "dataSource": "LootDrop (real via useLootDrops) pros dots/hover de item; useXpSheet + useBossHuntSheet (planilha) pros dots de Boss/Hunt, pro modal de clique e pro resumo do hover.",
+      "dayIndicators": {
+        "description": "3 tipos de bolinha por dia no grid do calendário, com legenda acima do grid explicando as cores (2026-08-10, pedido do usuário).",
+        "boss": { "color": "#38bdf8 (azul)", "rule": "1 bolinha se existe entrada em useBossHuntSheet pra esse dia E boss !== 0. Aproximação: o fetch (api/_lib/boss-hunt-sheet.ts) só filtra linha em branco pela coluna Hunt, não pela de Boss — uma célula de Boss vazia vira 0 igual um lucro genuinamente zerado, então não dá pra distinguir os dois casos com 100% de precisão hoje." },
+        "hunt": { "color": "#f59e0b (âmbar)", "rule": "1 bolinha se existe entrada em useBossHuntSheet pra esse dia (o fetch já filtra por Hunt não-vazio, então a existência da entrada é suficiente e precisa). Substitui a bolinha antiga baseada na entidade Hunt mock — não coexistem, teria 2 'bolinhas de Hunt' com fontes diferentes." },
+        "item": { "color": "#a29bfe (lavanda)", "rule": "1 bolinha POR drop do dia (não é mais uma bolinha combinada única) — ex: 3 drops nesse dia = 3 bolinhas lavanda." }
+      },
+      "note": "A lista de 'Hunts' do mock ainda existe no HOVER (bloco de texto separado, abaixo do resumo real de Boss/Hunt) e alimenta `findLatestActivityDate`, mas foi REMOVIDA do modal de clique (ficava redundante com o campo real de Boss/Hunt individual — ver knownIssuesAndGotchas sobre a entidade Hunt mock). A bolinha de dia baseada nessa entidade mock foi removida em 2026-08-10 (ver dayIndicators.hunt acima) — a lista em si (texto no hover) permanece."
     },
 
     "xp-historico": {
@@ -318,7 +329,7 @@
       "id": "hunt-entity-partially-deprecated",
       "severity": "baixo",
       "area": "Hunt (mock)",
-      "description": "A entidade Hunt (mock, nunca migrada pro Supabase) ainda é usada no HOVER e nos pontinhos do Calendário, mas foi removida do MODAL de clique do Calendário (2026-08-08) — o dado real de Boss/Hunt individual da planilha tornou a lista antiga redundante ali. Não é dado morto no app inteiro, só nesse um lugar específico."
+      "description": "A entidade Hunt (mock, nunca migrada pro Supabase) foi removida do MODAL de clique do Calendário (2026-08-08) e da BOLINHA de dia do Calendário (2026-08-10, substituída pela bolinha real de Hunt via useBossHuntSheet — ver modules.calendar-historico.dayIndicators). Ainda é usada só na LISTA DE TEXTO do hover (mostra boss/profit/XP da hunt mock) e em findLatestActivityDate (decide o mês inicial ao abrir o calendário). Não é dado morto no app inteiro, mas o espaço onde ainda aparece encolheu de novo."
     },
     {
       "id": "plunder-soulcore-are-categories-not-real-bosses",
