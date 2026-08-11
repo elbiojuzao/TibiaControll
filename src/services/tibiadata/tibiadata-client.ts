@@ -87,14 +87,11 @@ interface TibiaDataHighscoresResponse {
 
 /**
  * Varre os Highscores do mundo/categoria em busca do personagem, página por página, até achar
- * ou atingir HIGHSCORE_SEARCH_PAGE_CAP. Retorna o valor de skill (não o rank) ou null se não
- * encontrado dentro do teto de busca.
+ * ou atingir HIGHSCORE_SEARCH_PAGE_CAP. Retorna o "value" da categoria (não o rank) ou null se
+ * não encontrado dentro do teto de busca. Compartilhado entre findSkillValue e
+ * findExperienceValue — a única diferença entre as duas é a categoria da URL.
  */
-export async function findSkillValue(
-  world: string,
-  category: HighscoreSkillCategory,
-  characterName: string,
-): Promise<number | null> {
+async function searchHighscoreValue(world: string, category: string, characterName: string): Promise<number | null> {
   const targetName = characterName.toLowerCase();
 
   for (let page = 1; page <= HIGHSCORE_SEARCH_PAGE_CAP; page++) {
@@ -109,6 +106,24 @@ export async function findSkillValue(
   }
 
   return null;
+}
+
+export async function findSkillValue(
+  world: string,
+  category: HighscoreSkillCategory,
+  characterName: string,
+): Promise<number | null> {
+  return searchHighscoreValue(world, category, characterName);
+}
+
+/**
+ * XP total acumulada (lifetime) do personagem, via categoria "experience" dos Highscores —
+ * o Tibia não expõe esse número na página do personagem (só Level), mas os Highscores sim.
+ * Usado pra "Previsão fim de ano" (ver services/xp-sheet/level-prediction.ts), que precisa da
+ * XP atual exata, não só do level.
+ */
+export async function findExperienceValue(world: string, characterName: string): Promise<number | null> {
+  return searchHighscoreValue(world, 'experience', characterName);
 }
 
 /** Deriva a categoria de Highscore a consultar a partir da vocação, quando o Member não define uma explícita */

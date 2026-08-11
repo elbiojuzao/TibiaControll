@@ -1,6 +1,9 @@
 import type { XpCharacterStats } from '@/types';
 
-const STORAGE_KEY = 'tibia-pts:xp-sheet-cache-v1';
+// v2 (2026-08-10): bump proposital — v1 não tinha xp90Dias no payload cacheado, e como o
+// cache só expira na próxima janela das 7h15, quem já tinha um cache v1 gravado ficaria com
+// "Previsão fim de ano" mostrando "—" por até um dia inteiro sem essa troca de chave.
+const STORAGE_KEY = 'tibia-pts:xp-sheet-cache-v2';
 
 /**
  * A rotina automática do usuário grava a XP do dia na planilha entre 6h e 7h da manhã.

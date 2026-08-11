@@ -7,7 +7,6 @@ export const mockMemberXpStats: Record<string, Record<string, MemberXpStats>> = 
     Marugo: {
       xpOntem: '-+404.674.446',
       xp30Dias: '+3.975.022.582',
-      previsaoFimAno: '2089',
       metas: {
         1650: 'Lvl Atingido', 1700: 'Lvl Atingido', 1750: 'Lvl Atingido', 1800: 'Lvl Atingido',
         1850: 'Lvl Atingido', 1900: 'Lvl Atingido', 1950: 'Lvl Atingido', 2000: 'Lvl Atingido',
@@ -18,7 +17,6 @@ export const mockMemberXpStats: Record<string, Record<string, MemberXpStats>> = 
     'Thanatos Celestial': {
       xpOntem: '+133.409.815',
       xp30Dias: '+3.942.915.127',
-      previsaoFimAno: '2080',
       metas: {
         1650: 'Lvl Atingido', 1700: 'Lvl Atingido', 1750: 'Lvl Atingido', 1800: 'Lvl Atingido',
         1850: 'Lvl Atingido', 1900: 'Lvl Atingido', 1950: 'Lvl Atingido', 2000: '+028.421.441',
@@ -29,7 +27,6 @@ export const mockMemberXpStats: Record<string, Record<string, MemberXpStats>> = 
     'Thor Zynz': {
       xpOntem: '-+476.736.286',
       xp30Dias: '+3.535.944.665',
-      previsaoFimAno: '2262',
       metas: {
         1650: 'Lvl Atingido', 1700: 'Lvl Atingido', 1750: 'Lvl Atingido', 1800: 'Lvl Atingido',
         1850: 'Lvl Atingido', 1900: 'Lvl Atingido', 1950: 'Lvl Atingido', 2000: 'Lvl Atingido',
@@ -40,7 +37,6 @@ export const mockMemberXpStats: Record<string, Record<string, MemberXpStats>> = 
     'Koe Psciko': {
       xpOntem: '+197.664.728',
       xp30Dias: '+4.354.607.931',
-      previsaoFimAno: '1951',
       metas: {
         1650: 'Lvl Atingido', 1700: 'Lvl Atingido', 1750: 'Lvl Atingido', 1800: 'Lvl Atingido',
         1850: '+007.119.747', 1900: '+066.386.284', 1950: '+128.850.794', 2000: '+194.408.997',
