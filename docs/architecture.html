@@ -390,6 +390,7 @@
         <div class="route-card"><span class="route-path">/calendario 🔒</span><div class="route-label">📅 Histórico</div><span class="chip chip-mixed">misto</span></div>
         <div class="route-card"><span class="route-path">/historico-xp 🔒</span><div class="route-label">📈 Histórico de XP</div><span class="chip chip-real">planilha real</span></div>
         <div class="route-card"><span class="route-path">/serviceiros 🔒</span><div class="route-label">🤝 Serviceiros</div><span class="chip chip-mixed">misto</span></div>
+        <div class="route-card"><span class="route-path">/configuracoes 🔒</span><div class="route-label">⚙️ Configurações</div><span class="chip chip-mixed">misto</span></div>
         <div class="route-card"><span class="route-path">/login</span><div class="route-label">🔑 Login</div><span class="chip chip-real">supabase auth</span></div>
       </div>
       <p style="font-size:12.5px; color:var(--text-faint); margin-top:14px"><code>vercel.json</code> (2026-08-10) tem um rewrite <code>/(.*)  → /index.html</code> — sem ele, acessar qualquer rota acima direto pela URL (ou dar F5 fora da raiz) retornava 404 do Vercel, já que só o React Router (client-side) sabe resolver esses caminhos. As Functions em <code>api/*.ts</code> não são afetadas — o roteamento por sistema de arquivos do Vercel tem prioridade sobre o rewrite.</p>
@@ -597,13 +598,25 @@
       </details>
 
       <details class="module">
+        <summary><span class="summary-left">⚙️ Configurações <span class="summary-path">src/modules/settings/</span></span><span class="chip chip-mixed">misto</span></summary>
+        <div class="module-body">
+          <p>Cadastro dos jogadores base da party (2026-08-14) — Dashboard, Histórico, Histórico de XP e Log de Drops antes liam um array mock fixo (<code>src/mocks/data/members.ts</code>); agora dá pra cadastrar/editar/remover pela UI.</p>
+          <dl class="kv-list">
+            <dt>Rota</dt><dd><code>/configuracoes</code></dd>
+            <dt>Dado</dt><dd><code>Member</code> via <code>IMemberRepository</code> — Mock ou Http/Supabase por <code>VITE_MEMBER_USE_SUPABASE</code>. <code>useMembers()</code> expõe <code>createMember</code>/<code>updateMember</code>/<code>removeMember</code> (mesmo padrão de <code>useServiceiros</code>).</dd>
+            <dt>Atenção</dt><dd><code>characterName</code> precisa bater EXATAMENTE com o nome real do personagem no Tibia (TibiaData) e com o cabeçalho da coluna na planilha de XP do usuário — é a chave de casamento em todo lugar, não um label decorativo.</dd>
+          </dl>
+        </div>
+      </details>
+
+      <details class="module">
         <summary><span class="summary-left">🔑 Login <span class="summary-path">src/modules/login/</span></span><span class="chip chip-real">supabase auth</span></summary>
         <div class="module-body">
-          <p>Login real (2026-08-14) via Supabase Auth — 1 única credencial compartilhada pela PT inteira (não é cadastro por pessoa). Gate pros 5 módulos exclusivos de conta.</p>
+          <p>Login real (2026-08-14) via Supabase Auth — 1 única credencial compartilhada pela PT inteira (não é cadastro por pessoa). Gate pros módulos exclusivos de conta.</p>
           <dl class="kv-list">
             <dt>Rota</dt><dd><code>/login</code> — standalone, fora do <code>&lt;AppLayout&gt;</code> (sem sidebar)</dd>
             <dt>Dado</dt><dd><code>services/supabase/supabase-auth.ts</code> via <code>useAuth()</code> — <code>signInWithPassword</code>/<code>signOut</code>/<code>getSession</code>/<code>onAuthStateChange</code></dd>
-            <dt>Rotas protegidas</dt><dd><code>/</code>, <code>/loot-log</code>, <code>/calendario</code>, <code>/historico-xp</code>, <code>/serviceiros</code> — envolvidas por <code>RequireAuth</code> em <code>App.tsx</code></dd>
+            <dt>Rotas protegidas</dt><dd><code>/</code>, <code>/loot-log</code>, <code>/calendario</code>, <code>/historico-xp</code>, <code>/serviceiros</code>, <code>/configuracoes</code> — envolvidas por <code>RequireAuth</code> em <code>App.tsx</code></dd>
             <dt>Rotas abertas</dt><dd><code>/split</code>, <code>/timers</code>, <code>/tier-calculator</code>, <code>/charm-planner</code> — calculadoras sem dado de conta, não pedem login</dd>
             <dt>Atenção</dt><dd>Desacoplado de <code>useAccount()</code> de propósito: <code>useAuth</code> responde "pode entrar?", <code>useAccount</code> responde "qual workspace" (via <code>HttpAccountRepository</code> quando <code>VITE_ACCOUNT_USE_SUPABASE=true</code>). Pendência real: precisa rodar a migration de RLS, criar o usuário e ligar <code>accounts.user_id</code> manualmente no Supabase antes de funcionar em produção (ver Problemas conhecidos).</dd>
             <dt>Multi-conta (2026-08-14)</dt><dd>Desenhado desde o início pra suportar N parties — "qual conta está conectada" nunca vem de URL/token do cliente, vem de <code>accounts.user_id</code> (FK real pro <code>auth.users</code>) resolvido via RLS. <code>HttpAccountRepository.getCurrentAccount()</code> nem filtra no código — só faz <code>select * from accounts</code>, o RLS já devolve a linha certa (ou vazio).</dd>
@@ -673,7 +686,7 @@
             <tr><td class="f-name">serviceiroSharePercent?</td><td class="f-type">number</td></tr>
             <tr><td class="f-name">skillCategory?</td><td class="f-type">HighscoreSkillCategory</td></tr>
           </table>
-          <div class="schema-note">100% mock — jogador real da party, distinto de Serviceiro.</div>
+          <div class="schema-note">Supabase: tabela <code>members</code> (desde 2026-08-14, gated por <code>VITE_MEMBER_USE_SUPABASE</code> — ver módulo Configurações). Jogador real da party, distinto de Serviceiro. <code>characterName</code> precisa bater exatamente com TibiaData e com a coluna da planilha de XP.</div>
         </div>
 
         <div class="schema-card">
@@ -693,12 +706,12 @@
 
     <section id="repository">
       <h2><span class="num">05</span> Padrão de repositório</h2>
-      <p class="section-intro">Toda entidade "de conta" passa por uma interface com implementação Mock (array em memória) e, hoje, só 2 com implementação Http (Supabase). A escolha é feita <b>1 vez no boot</b>, em <code>src/services/repositories/index.ts</code>, e não muda em runtime.</p>
+      <p class="section-intro">Toda entidade "de conta" passa por uma interface com implementação Mock (array em memória) e, hoje, 4 com implementação Http (Supabase). A escolha é feita <b>1 vez no boot</b>, em <code>src/services/repositories/index.ts</code>, e não muda em runtime.</p>
 
       <table class="flag-table">
         <tr><th>Entidade</th><th>Interface</th><th>Mock</th><th>Http (real)</th></tr>
         <tr><td>account</td><td class="mono-cell">IAccountRepository</td><td>MockAccountRepository</td><td>HttpAccountRepository <span class="chip chip-real" style="margin-left:4px">supabase</span> (só <code>getCurrentAccount()</code>; login/logout foram removidos em 2026-08-14, autenticação agora é Supabase Auth direto via <code>useAuth()</code>. Flag <code>VITE_ACCOUNT_USE_SUPABASE</code>)</td></tr>
-        <tr><td>member</td><td class="mono-cell">IMemberRepository</td><td>MockMemberRepository</td><td>—</td></tr>
+        <tr><td>member</td><td class="mono-cell">IMemberRepository</td><td>MockMemberRepository</td><td>HttpMemberRepository <span class="chip chip-real" style="margin-left:4px">supabase</span> (tabela <code>members</code>, flag <code>VITE_MEMBER_USE_SUPABASE</code>)</td></tr>
         <tr><td>lootDrop</td><td class="mono-cell">ILootDropRepository</td><td>MockLootDropRepository</td><td>HttpLootDropRepository <span class="chip chip-real" style="margin-left:4px">supabase</span></td></tr>
         <tr><td>hunt</td><td class="mono-cell">IHuntRepository</td><td>MockHuntRepository</td><td>—</td></tr>
         <tr><td>boss</td><td class="mono-cell">IBossRepository</td><td>MockBossRepository</td><td>—</td></tr>
@@ -715,6 +728,7 @@
         <tr><td class="mono-cell">VITE_LOOTDROPS_USE_SUPABASE</td><td><code>'true'</code> → HttpLootDropRepository; independe do VITE_USE_MOCK global.</td></tr>
         <tr><td class="mono-cell">VITE_SERVICEIROS_USE_SUPABASE</td><td><code>'true'</code> → HttpServiceiroRepository; independe do VITE_USE_MOCK global.</td></tr>
         <tr><td class="mono-cell">VITE_ACCOUNT_USE_SUPABASE</td><td><code>'true'</code> → HttpAccountRepository (resolve a conta via Supabase Auth + RLS). Adicionada 2026-08-14 — deixar <code>false</code> até rodar a migration de RLS e ligar um usuário real.</td></tr>
+        <tr><td class="mono-cell">VITE_MEMBER_USE_SUPABASE</td><td><code>'true'</code> → HttpMemberRepository (tabela <code>members</code>). Adicionada 2026-08-14 — deixar <code>false</code> até rodar a migration <code>20260814010000_create_members_table.sql</code>.</td></tr>
       </table>
 
       <div class="card" style="margin-top:16px">
@@ -724,7 +738,7 @@
 
     <section id="supabase">
       <h2><span class="num">06</span> Integração — Supabase</h2>
-      <p class="section-intro">Banco relacional real, só para <b>Drops</b> e <b>Serviceiros</b> — o resto do app é mock. <b>Supabase Auth + RLS ligados desde 2026-08-14</b> (ver módulo Login).</p>
+      <p class="section-intro">Banco relacional real, para <b>Drops</b>, <b>Serviceiros</b>, <b>Account</b> e <b>Members</b> — o resto do app é mock. <b>Supabase Auth + RLS ligados desde 2026-08-14</b> (ver módulo Login).</p>
 
       <div class="grid-2">
         <div class="schema-card">
@@ -769,10 +783,22 @@
           </table>
           <div class="schema-note"><code>user_id</code> (2026-08-14) é a peça que decide "qual conta está conectada" — 1 conta = 1 login do Supabase Auth. Não vem de URL nem de nada editável pelo cliente, é resolvido pelo RLS a partir do JWT da sessão.</div>
         </div>
+        <div class="schema-card">
+          <div class="schema-head"><span class="name">members</span></div>
+          <table class="fields">
+            <tr><td class="f-name">id, account_id</td><td class="f-type">uuid</td></tr>
+            <tr><td class="f-name">character_name</td><td class="f-type">text not null</td></tr>
+            <tr><td class="f-name">vocation</td><td class="f-type">text (check EK/ED/MS/RP/EM/OTHER)</td></tr>
+            <tr><td class="f-name">is_serviceiro</td><td class="f-type">boolean</td></tr>
+            <tr><td class="f-name">serviceiro_share_percent, owner_character_name</td><td class="f-type">nullable</td></tr>
+            <tr><td class="f-name">skill_category</td><td class="f-type">text nullable (check, só EK)</td></tr>
+          </table>
+          <div class="schema-note">Migration <code>20260814010000_create_members_table.sql</code> (2026-08-14) — RLS igual drops/serviceiros. Seed já insere os 4 membros da PT Thanatos (migrados do mock), editáveis pela UI de Configurações.</div>
+        </div>
       </div>
       <div class="callout" style="margin-top:6px; border-color: var(--accent); background: var(--accent-soft);">
         <span class="dot" style="color:var(--accent)">✓</span>
-        <span><b>RLS ligada desde 2026-08-14</b> nas 4 tabelas, <b>desenhada pra multi-conta desde o início</b> (pedido do usuário: "a intenção é futuramente ter mais de 1 conta") — não é mais um "qualquer autenticado vê tudo": <code>accounts</code> usa <code>user_id = auth.uid()</code>; <code>drops</code>/<code>serviceiros</code> usam <code>account_id in (select id from accounts where user_id = auth.uid())</code>; <code>drop_services</code> (sem <code>account_id</code> direto) sobe 1 nível com um <code>exists</code> até <code>drops</code>. Migration <code>20260814000000_enable_rls_with_auth.sql</code>. <b>Pendência real do usuário (3 passos manuais):</b> rodar a migration + criar o usuário de login (Authentication → Users) + rodar o <code>UPDATE</code> que liga <code>accounts.user_id</code> ao usuário criado (SQL pronto no fim da própria migration) — ver Problemas conhecidos.</span>
+        <span><b>RLS ligada desde 2026-08-14</b> em <code>accounts</code>/<code>drops</code>/<code>serviceiros</code>/<code>drop_services</code> (migration <code>20260814000000_enable_rls_with_auth.sql</code>) e em <code>members</code> (migration <code>20260814010000_create_members_table.sql</code>, mesmo padrão), <b>desenhada pra multi-conta desde o início</b> (pedido do usuário: "a intenção é futuramente ter mais de 1 conta") — não é mais um "qualquer autenticado vê tudo": <code>accounts</code> usa <code>user_id = auth.uid()</code>; <code>drops</code>/<code>serviceiros</code>/<code>members</code> usam <code>account_id in (select id from accounts where user_id = auth.uid())</code>; <code>drop_services</code> (sem <code>account_id</code> direto) sobe 1 nível com um <code>exists</code> até <code>drops</code>. <b>Pendência real do usuário:</b> além dos 3 passos manuais do login (rodar a migration + criar o usuário + ligar <code>accounts.user_id</code>), <code>members</code> exige rodar a migration de members e ligar <code>VITE_MEMBER_USE_SUPABASE=true</code> — ver Problemas conhecidos.</span>
       </div>
     </section>
 
@@ -900,6 +926,14 @@
         <div class="issue">
           <span class="chip chip-issue-alto">alto</span>
           <div>
+            <p class="issue-title">Members precisa da migration + flag antes de ir pro ar</p>
+            <p class="issue-area">Supabase · módulo Configurações</p>
+            <p class="issue-desc">O módulo Configurações e a <code>HttpMemberRepository</code> (2026-08-14) estão prontos e testados localmente com mock, mas <code>VITE_MEMBER_USE_SUPABASE</code> está <code>false</code> até rodar <code>supabase/migrations/20260814010000_create_members_table.sql</code> no SQL Editor. Enquanto isso, o app lê o array mock fixo (<code>accountId='acc-demo-001'</code>), que não bate com a conta real — Dashboard/Histórico/Histórico de XP aparecem sem nenhum membro em produção (mesmo problema já visto com Account antes do <code>ACCOUNT_USE_SUPABASE</code>). Depois de rodar a migration, falta configurar a flag no Vercel também.</p>
+          </div>
+        </div>
+        <div class="issue">
+          <span class="chip chip-issue-alto">alto</span>
+          <div>
             <p class="issue-title">Imports relativos em <code>api/</code> precisam de extensão <code>.js</code></p>
             <p class="issue-area">api/ · api/_lib/</p>
             <p class="issue-desc">Faltar a extensão (ex: <code>from './sheet-utils'</code>) quebra em produção com <code>FUNCTION_INVOCATION_FAILED</code> (500 puro, nem chega no try/catch) — mas passa limpo no <code>tsc --noEmit</code> local, porque <code>api/</code> não está em nenhum tsconfig do projeto. Corrigido no commit <code>60e02f9</code>.</p>
@@ -978,6 +1012,8 @@
             <tr><td class="mono-cell">VITE_SUPABASE_PUBLISHABLE_KEY</td><td style="font-size:12px">chave anon</td></tr>
             <tr><td class="mono-cell">VITE_SERVICEIROS_USE_SUPABASE</td><td style="font-size:12px">liga Supabase pra Serviceiros</td></tr>
             <tr><td class="mono-cell">VITE_LOOTDROPS_USE_SUPABASE</td><td style="font-size:12px">liga Supabase pra Drops</td></tr>
+            <tr><td class="mono-cell">VITE_ACCOUNT_USE_SUPABASE</td><td style="font-size:12px">liga a resolução de conta ao Supabase Auth</td></tr>
+            <tr><td class="mono-cell">VITE_MEMBER_USE_SUPABASE</td><td style="font-size:12px">liga Supabase pra Members (Configurações)</td></tr>
             <tr><td class="mono-cell">XP_SHEET_ID</td><td style="font-size:12px">ID da planilha — <b>server-only</b>, sem prefixo VITE_ (segredo, ver seção Planilha)</td></tr>
             <tr><td class="mono-cell">XP_SHEET_XP_REALIZADA_GID</td><td style="font-size:12px">gid da aba de XP — server-only</td></tr>
             <tr><td class="mono-cell">XP_SHEET_BOSS_HUNT_GID</td><td style="font-size:12px">gid da aba de Boss/Hunt — server-only</td></tr>

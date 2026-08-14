@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CreateServiceiroDto, Serviceiro } from '@/types';
 import { repositories } from '@/services/repositories';
 
@@ -10,17 +10,21 @@ export function useServiceiros(accountId: string) {
   const [serviceiros, setServiceiros] = useState<Serviceiro[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  /** Guarda contra a corrida do accountId trocando de mock pro UUID real logo após o mount
+   * (useAccount() resolve a sessão de forma assíncrona) — ver mesma nota em useLootDrops.ts. */
+  const requestIdRef = useRef(0);
 
   const load = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
     setLoading(true);
     setError(null);
     try {
       const data = await repositories.serviceiro.findByAccount(accountId);
-      setServiceiros(data);
+      if (requestIdRef.current === requestId) setServiceiros(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao carregar serviceiros');
+      if (requestIdRef.current === requestId) setError(err instanceof Error ? err.message : 'Erro ao carregar serviceiros');
     } finally {
-      setLoading(false);
+      if (requestIdRef.current === requestId) setLoading(false);
     }
   }, [accountId]);
 

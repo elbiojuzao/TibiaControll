@@ -45,6 +45,7 @@
     { "path": "/calendario", "module": "calendar-historico", "label": "Histórico", "component": "CalendarioPage", "requiresAuth": true },
     { "path": "/historico-xp", "module": "xp-historico", "label": "Histórico de XP", "component": "XpHistoricoPage", "requiresAuth": true },
     { "path": "/serviceiros", "module": "serviceiros", "label": "Serviceiros", "component": "ServiceirosPage", "requiresAuth": true },
+    { "path": "/configuracoes", "module": "settings", "label": "Configurações", "component": "SettingsPage", "requiresAuth": true },
     { "path": "/login", "module": "login", "label": "Login", "component": "LoginPage", "requiresAuth": false, "note": "Fora do <AppLayout> — página standalone, sem sidebar." }
   ],
 
@@ -151,13 +152,22 @@
       "note": "Número de telefone nunca é exibido na UI (só usado pra montar o link wa.me) — ver services/serviceiro/whatsapp.ts."
     },
 
+    "settings": {
+      "path": "src/modules/settings/",
+      "routes": ["/configuracoes"],
+      "purpose": "Cadastro dos jogadores base da party (2026-08-14, pedido do usuário: 'montar uma base de configurações onde o usuário vai poder cadastrar os 4 ou 5 jogadores'). Antes disso Dashboard/Histórico/Histórico de XP/Log de Drops liam um array mock fixo (src/mocks/data/members.ts) via useMembers() — o repository pattern já existia (IMemberRepository), só faltava a tabela real + UI de CRUD.",
+      "keyFiles": { "SettingsPage.tsx": "Form + lista com confirmação antes de excluir (mesmo padrão de ServiceirosPage). characterName, vocation, skillCategory (só exibido quando vocation===EK, as outras vocações inferem sozinhas via resolveSkillCategory), isServiceiro + serviceiroSharePercent + ownerCharacterName (condicionais)." },
+      "dataSource": "Member via IMemberRepository (Mock ou Http/Supabase conforme VITE_MEMBER_USE_SUPABASE) através de useMembers(), que agora também expõe createMember/updateMember/removeMember (mesmo padrão de useServiceiros).",
+      "note": "characterName precisa bater EXATAMENTE com (a) o nome real do personagem no Tibia (usado em useMemberLiveStats/TibiaData) e (b) o cabeçalho da coluna correspondente na planilha de XP do usuário (api/_lib/xp-sheet.ts) — é a chave usada pra casar dado em todo lugar, não é só um label decorativo."
+    },
+
     "login": {
       "path": "src/modules/login/",
       "routes": ["/login"],
-      "purpose": "Login real (2026-08-14) via Supabase Auth — 1 única credencial compartilhada pela PT inteira (não é cadastro por pessoa, ver [[regras-gestao-pts]]). Gate pros 5 módulos exclusivos de conta.",
+      "purpose": "Login real (2026-08-14) via Supabase Auth — 1 única credencial compartilhada pela PT inteira (não é cadastro por pessoa, ver [[regras-gestao-pts]]). Gate pros módulos exclusivos de conta.",
       "keyFiles": { "LoginPage.tsx": "Form email+senha standalone (fora do AppLayout, sem sidebar). Lê location.state.from (setado por RequireAuth) pra voltar pro lugar certo depois do login; se já autenticado, redireciona sozinho." },
       "dataSource": "services/supabase/supabase-auth.ts (signInWithPassword/signOut/getSession/onAuthStateChange) via useAuth().",
-      "gatedRoutes": ["/", "/loot-log", "/calendario", "/historico-xp", "/serviceiros"],
+      "gatedRoutes": ["/", "/loot-log", "/calendario", "/historico-xp", "/serviceiros", "/configuracoes"],
       "openRoutes": ["/split", "/timers", "/tier-calculator", "/charm-planner"],
       "note": "RequireAuth (src/components/auth/RequireAuth.tsx) envolve só as 5 rotas gated em App.tsx. AppLayout mostra 🔒 nos itens de nav gated quando não autenticado, e um botão Sair/Entrar no rodapé da sidebar.",
       "multiAccountDesign": "Preparado desde 2026-08-14 pra múltiplas contas/parties (pedido explícito do usuário: 'a intenção é futuramente ter mais de 1 conta'). 'Qual conta está conectada' NUNCA vem de URL/query string/token editável pelo cliente — vem de accounts.user_id (FK real pro auth.users do Supabase), resolvido via RLS no Postgres (auth.uid() do JWT da sessão). HttpAccountRepository.getCurrentAccount() faz um select * from accounts SEM filtro nenhum no código — o RLS já devolve só a linha certa (ou vazio, se ninguém logado). Ver externalIntegrations.supabase.authStatus e dataModels.Account."
@@ -166,7 +176,7 @@
 
   "dataModels": {
     "Account": { "file": "src/types/account.ts", "fields": { "id": "string", "partyName": "string", "type": "'party' | 'solo'", "createdAt": "string" }, "note": "Representa só o WORKSPACE/party (ainda mock — mockAccount/MOCK_ACCOUNT_ID), não tem mais username/senha (removidos em 2026-08-14). Quem pode ENTRAR no app é responsabilidade separada do Supabase Auth (ver módulo login) — Account e autenticação são conceitos desacoplados agora." },
-    "Member": { "file": "src/types/member.ts", "fields": { "id": "string", "accountId": "string", "characterName": "string", "vocation": "Vocation", "isServiceiro": "boolean", "serviceiroSharePercent": "number?", "ownerCharacterName": "string?", "skillCategory": "HighscoreSkillCategory?" }, "note": "Membro da party (jogador de verdade, distinto de Serviceiro). 100% mock, nenhuma tabela Supabase ainda." },
+    "Member": { "file": "src/types/member.ts", "fields": { "id": "string", "accountId": "string", "characterName": "string", "vocation": "Vocation", "isServiceiro": "boolean", "serviceiroSharePercent": "number?", "ownerCharacterName": "string?", "skillCategory": "HighscoreSkillCategory?" }, "supabaseTable": "members (desde 2026-08-14, gated por VITE_MEMBER_USE_SUPABASE — ver módulo settings)", "note": "Membro da party (jogador de verdade, distinto de Serviceiro). characterName é a chave de casamento com TibiaData e com a planilha de XP — precisa bater exatamente nos 3 lugares." },
     "Vocation": { "file": "src/types/account.ts", "values": ["EK", "ED", "MS", "RP", "EM", "OTHER"] },
     "LootDrop": {
       "file": "src/types/loot-drop.ts",
@@ -202,13 +212,14 @@
       "perEntityFlags": {
         "VITE_SERVICEIROS_USE_SUPABASE": "true → HttpServiceiroRepository (Supabase); false/ausente → MockServiceiroRepository",
         "VITE_LOOTDROPS_USE_SUPABASE": "true → HttpLootDropRepository (Supabase); false/ausente → MockLootDropRepository",
-        "VITE_ACCOUNT_USE_SUPABASE": "true → HttpAccountRepository (resolve a conta via Supabase Auth + RLS, accounts.user_id = auth.uid()); false/ausente → MockAccountRepository (sempre mockAccount fixo). Adicionada em 2026-08-14 junto com o login real — deixar false até rodar a migration 20260814000000_enable_rls_with_auth.sql E ligar um usuário de verdade a uma conta."
+        "VITE_ACCOUNT_USE_SUPABASE": "true → HttpAccountRepository (resolve a conta via Supabase Auth + RLS, accounts.user_id = auth.uid()); false/ausente → MockAccountRepository (sempre mockAccount fixo). Adicionada em 2026-08-14 junto com o login real — deixar false até rodar a migration 20260814000000_enable_rls_with_auth.sql E ligar um usuário de verdade a uma conta.",
+        "VITE_MEMBER_USE_SUPABASE": "true → HttpMemberRepository (Supabase, tabela members); false/ausente → MockMemberRepository. Adicionada em 2026-08-14 junto com o módulo Configurações — deixar false até rodar a migration 20260814010000_create_members_table.sql."
       },
-      "important": "Essas 3 flags funcionam INDEPENDENTE do VITE_USE_MOCK global — dá pra ter o app 'em modo mock' mas com Drops/Serviceiros/Account batendo no Supabase real ao mesmo tempo. Nenhuma outra entidade (Member, Hunt, Boss, Split, Settings, Dashboard-KPIs-antigos) tem implementação Http ainda."
+      "important": "Essas 4 flags funcionam INDEPENDENTE do VITE_USE_MOCK global — dá pra ter o app 'em modo mock' mas com Drops/Serviceiros/Account/Member batendo no Supabase real ao mesmo tempo. Nenhuma outra entidade (Hunt, Boss, Split, Settings genérico, Dashboard-KPIs-antigos) tem implementação Http ainda."
     },
     "entities": {
       "account": { "interface": "IAccountRepository", "mock": "MockAccountRepository", "http": "HttpAccountRepository (Supabase, gated por VITE_ACCOUNT_USE_SUPABASE)", "note": "Só getCurrentAccount() (resolve o workspace/party). Login()/logout()/createAccount() foram REMOVIDOS em 2026-08-14 — autenticação real não passa mais pelo padrão repository, é Supabase Auth direto via useAuth() (ver módulo login). HttpAccountRepository não filtra por usuário no código — RLS já resolve sozinho via accounts.user_id = auth.uid()." },
-      "member": { "interface": "IMemberRepository", "mock": "MockMemberRepository", "http": null },
+      "member": { "interface": "IMemberRepository", "mock": "MockMemberRepository", "http": "HttpMemberRepository (Supabase, tabela members, gated por VITE_MEMBER_USE_SUPABASE)" },
       "lootDrop": { "interface": "ILootDropRepository", "mock": "MockLootDropRepository", "http": "HttpLootDropRepository (Supabase, tabelas drops + drop_services)" },
       "hunt": { "interface": "IHuntRepository", "mock": "MockHuntRepository", "http": null },
       "boss": { "interface": "IBossRepository", "mock": "MockBossRepository", "http": null },
@@ -231,11 +242,13 @@
         "20260806020000_disable_rls_until_auth.sql",
         "20260806030000_add_character_name_to_serviceiros.sql — coluna character_name (boneco de pagamento)",
         "20260806040000_add_served_character_to_drop_services.sql — coluna served_character_name",
-        "20260814000000_enable_rls_with_auth.sql — RELIGA RLS (tinha sido desligado na migration de 2026-08-06) + policy 'authenticated_full_access' nas 4 tabelas, agora que existe Supabase Auth de verdade"
+        "20260814000000_enable_rls_with_auth.sql — RELIGA RLS (tinha sido desligado na migration de 2026-08-06) + policy 'authenticated_full_access' nas 4 tabelas, agora que existe Supabase Auth de verdade",
+        "20260814010000_create_members_table.sql — cria tabela members (cadastro dos jogadores base da party, módulo Configurações) + RLS scoped por account + seed dos 4 membros da PT Thanatos (migrados do mock)"
       ],
       "tables": {
         "accounts": { "columns": ["id (uuid pk)", "party_name", "type ('party'|'solo')", "created_at", "user_id (uuid, unique, fk auth.users — desde 2026-08-14, liga a conta ao login que pode acessá-la)"] },
         "serviceiros": { "columns": ["id (uuid pk)", "account_id (fk)", "name", "character_name", "phone_number", "vocations (text[])", "created_at"] },
+        "members": { "columns": ["id (uuid pk)", "account_id (fk)", "character_name", "vocation (check EK/ED/MS/RP/EM/OTHER)", "is_serviceiro (bool)", "serviceiro_share_percent (numeric, nullable)", "owner_character_name (nullable)", "skill_category (check magiclevel/axefighting/swordfighting/clubfighting/distancefighting, nullable — só relevante pra EK)", "created_at"], "note": "Seed inicial (migration 20260814010000) já insere Koe Psciko/Thanatos Celestial/Marugo/Thor Zynz pra account_id 7206010b-977b-4a8b-a48a-f3a073b9c917 (Thanatos PT) — editável depois pela UI de Configurações." },
         "drops": {
           "columns": ["id (uuid pk)", "account_id (fk)", "data_drop (date)", "ek", "ed", "ms", "rp", "quinto_player", "fragador (not null)", "item (not null)", "boss (not null)", "valor_cada (bigint)", "valor_total (bigint)", "vendido (bool)", "data_venda (date, requer vendido=true)", "created_at"],
           "note": "gold sempre inteiro no Tibia → bigint, nunca numeric/decimal. Colunas de personagem (ek/ed/ms/rp) são texto livre, não FK — não existe tabela members no Supabase."
@@ -324,6 +337,13 @@
 
   "knownIssuesAndGotchas": [
     {
+      "id": "members-precisa-migration-e-flag-antes-de-ir-pro-ar",
+      "severity": "alto (bloqueia Dashboard/Histórico/Histórico de XP mostrarem membros em produção)",
+      "area": "Supabase / módulo settings",
+      "description": "O módulo Configurações (2026-08-14) e a HttpMemberRepository estão prontos e testados localmente com mock, mas VITE_MEMBER_USE_SUPABASE está 'false' até o usuário rodar a migration supabase/migrations/20260814010000_create_members_table.sql no SQL Editor (cria a tabela members + RLS + seed dos 4 membros da PT Thanatos). Enquanto a flag ficar false, o app continua lendo o array mock fixo (src/mocks/data/members.ts, accountId='acc-demo-001') — que NÃO bate com a conta real (accountId Supabase), então Dashboard/Histórico/Histórico de XP aparecem sem nenhum membro em produção (mesmo problema já visto com Account antes do ACCOUNT_USE_SUPABASE). Depois de rodar a migration, também precisa configurar VITE_MEMBER_USE_SUPABASE=true no Vercel (Environment Variables).",
+      "howToVerify": "Acessar /configuracoes: se a lista de membros aparece vazia mesmo depois de cadastrar via UI (some ao recarregar a página), a flag ainda está false (mock não persiste entre reloads) ou a migration não rodou."
+    },
+    {
       "id": "login-precisa-de-passos-manuais-do-usuario",
       "severity": "alto (bloqueia o login funcionar)",
       "area": "Supabase Auth",
@@ -405,6 +425,8 @@
     "VITE_SUPABASE_PUBLISHABLE_KEY": "Chave anon/publishable do Supabase (client-side, RLS desligada = acesso total).",
     "VITE_SERVICEIROS_USE_SUPABASE": "'true' liga Supabase pro módulo Serviceiros.",
     "VITE_LOOTDROPS_USE_SUPABASE": "'true' liga Supabase pro módulo Loot Drops.",
+    "VITE_ACCOUNT_USE_SUPABASE": "'true' liga a resolução de conta ao usuário logado via Supabase Auth (RLS) — ver módulo login.",
+    "VITE_MEMBER_USE_SUPABASE": "'true' liga Supabase pro cadastro de membros (módulo Configurações) — precisa da migration 20260814010000_create_members_table.sql já rodada.",
     "XP_SHEET_ID": "ID da planilha Google Sheets pessoal do usuário. SEM prefixo VITE_ de propósito (server-only, nunca no bundle do client) — ver knownIssuesAndGotchas.googleSheetIdWasHardcoded. Lido só por api/_lib/xp-sheet.ts e api/_lib/boss-hunt-sheet.ts via process.env.",
     "XP_SHEET_XP_REALIZADA_GID": "gid da aba 'Xp Realizada'. Server-only, mesmo motivo do XP_SHEET_ID.",
     "XP_SHEET_BOSS_HUNT_GID": "gid da aba 'Boss hunt'. Server-only, mesmo motivo do XP_SHEET_ID.",

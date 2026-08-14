@@ -26,6 +26,7 @@ import { MockSettingsRepository } from './mock/mock-settings-repository';
 import { HttpServiceiroRepository } from './http/http-serviceiro-repository';
 import { HttpLootDropRepository } from './http/http-loot-drop-repository';
 import { HttpAccountRepository } from './http/http-account-repository';
+import { HttpMemberRepository } from './http/http-member-repository';
 
 export interface RepositoryContainer {
   account: IAccountRepository;
@@ -58,11 +59,15 @@ export const LOOTDROPS_USE_SUPABASE = import.meta.env.VITE_LOOTDROPS_USE_SUPABAS
  */
 export const ACCOUNT_USE_SUPABASE = import.meta.env.VITE_ACCOUNT_USE_SUPABASE === 'true';
 
+/** Mesma ideia, mas para o repositorio de Members — cadastro dos jogadores base da party
+ * (módulo Configurações), ver migration 20260814010000_create_members_table.sql. */
+export const MEMBER_USE_SUPABASE = import.meta.env.VITE_MEMBER_USE_SUPABASE === 'true';
+
 function createRepositories(): RepositoryContainer {
   if (USE_MOCK) {
     return {
       account: ACCOUNT_USE_SUPABASE ? new HttpAccountRepository() : new MockAccountRepository(),
-      member: new MockMemberRepository(),
+      member: MEMBER_USE_SUPABASE ? new HttpMemberRepository() : new MockMemberRepository(),
       lootDrop: LOOTDROPS_USE_SUPABASE ? new HttpLootDropRepository() : new MockLootDropRepository(),
       hunt: new MockHuntRepository(),
       boss: new MockBossRepository(),

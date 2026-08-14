@@ -10,6 +10,7 @@ import { CharmPlannerPage } from '@/modules/charm-planner';
 import { CalendarioPage } from '@/modules/calendar-historico';
 import { ServiceirosPage } from '@/modules/serviceiros';
 import { XpHistoricoPage } from '@/modules/xp-historico';
+import { SettingsPage } from '@/modules/settings';
 import { LoginPage } from '@/modules/login';
 
 export function AppRouter() {
@@ -27,6 +28,7 @@ export function AppRouter() {
           <Route path="calendario" element={<RequireAuth><CalendarioPage /></RequireAuth>} />
           <Route path="historico-xp" element={<RequireAuth><XpHistoricoPage /></RequireAuth>} />
           <Route path="serviceiros" element={<RequireAuth><ServiceirosPage /></RequireAuth>} />
+          <Route path="configuracoes" element={<RequireAuth><SettingsPage /></RequireAuth>} />
 
           <Route path="split" element={<SplitCalculatorPage />} />
           <Route path="timers" element={<TimersPage />} />
