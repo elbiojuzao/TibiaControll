@@ -155,9 +155,9 @@
       "path": "src/modules/serviceiros/",
       "routes": ["/serviceiros"],
       "purpose": "Agenda de contatos de 'serviceiros' (quem joga conta de terceiro pra completar vaga na party) — nome, boneco de pagamento, vocações atendidas, WhatsApp.",
-      "keyFiles": { "ServiceirosPage.tsx": "370 linhas — form + lista com confirmação antes de excluir (regra geral do projeto, nunca 1 clique só)." },
+      "keyFiles": { "ServiceirosPage.tsx": "form + lista com confirmação antes de excluir (regra geral do projeto, nunca 1 clique só) + banner de erro de exclusão (deleteError, 2026-08-14)." },
       "dataSource": "Serviceiro via IServiceiroRepository (Mock ou Http/Supabase conforme VITE_SERVICEIROS_USE_SUPABASE).",
-      "note": "Número de telefone nunca é exibido na UI (só usado pra montar o link wa.me) — ver services/serviceiro/whatsapp.ts."
+      "note": "Número de telefone nunca é exibido na UI (só usado pra montar o link wa.me) — ver services/serviceiro/whatsapp.ts. 'Excluir' é soft delete (coluna serviceiros.hidden, 2026-08-14) — nunca apaga de verdade, só esconde; cadastrar de novo com o mesmo telefone reativa em vez de duplicar. Ver knownIssuesAndGotchas.delete-serviceiro-vira-soft-delete."
     },
 
     "settings": {
@@ -252,11 +252,12 @@
         "20260806040000_add_served_character_to_drop_services.sql — coluna served_character_name",
         "20260814000000_enable_rls_with_auth.sql — RELIGA RLS (tinha sido desligado na migration de 2026-08-06) + policy 'authenticated_full_access' nas 4 tabelas, agora que existe Supabase Auth de verdade",
         "20260814010000_create_members_table.sql — cria tabela members (cadastro dos jogadores base da party, módulo Configurações) + RLS scoped por account + seed dos 4 membros da PT Thanatos (migrados do mock)",
-        "20260814020000_create_xp_levels_table.sql — cria tabela xp_levels (referência de XP total por nível, de 50 em 50 até o 4000, fórmula oficial do Tibia) + RLS de leitura pública, sem account_id (dado universal do jogo, não de conta). Plugada na Meta XP Diária do Dashboard no mesmo dia — ver modules.dashboard.metaXpDiaria."
+        "20260814020000_create_xp_levels_table.sql — cria tabela xp_levels (referência de XP total por nível, de 50 em 50 até o 4000, fórmula oficial do Tibia) + RLS de leitura pública, sem account_id (dado universal do jogo, não de conta). Plugada na Meta XP Diária do Dashboard no mesmo dia — ver modules.dashboard.metaXpDiaria.",
+        "20260814030000_soft_delete_serviceiros.sql — adiciona serviceiros.hidden (soft delete, default false) — ver knownIssuesAndGotchas.delete-serviceiro-vira-soft-delete."
       ],
       "tables": {
         "accounts": { "columns": ["id (uuid pk)", "party_name", "type ('party'|'solo')", "created_at", "user_id (uuid, unique, fk auth.users — desde 2026-08-14, liga a conta ao login que pode acessá-la)"] },
-        "serviceiros": { "columns": ["id (uuid pk)", "account_id (fk)", "name", "character_name", "phone_number", "vocations (text[])", "created_at"] },
+        "serviceiros": { "columns": ["id (uuid pk)", "account_id (fk)", "name", "character_name", "phone_number", "vocations (text[])", "created_at", "hidden (bool, default false — soft delete, migration 20260814030000)"] },
         "members": { "columns": ["id (uuid pk)", "account_id (fk)", "character_name", "vocation (check EK/ED/MS/RP/EM/OTHER)", "is_serviceiro (bool)", "serviceiro_share_percent (numeric, nullable)", "owner_character_name (nullable)", "skill_category (check magiclevel/axefighting/swordfighting/clubfighting/distancefighting, nullable — só relevante pra EK)", "created_at"], "note": "Seed inicial (migration 20260814010000) já insere Koe Psciko/Thanatos Celestial/Marugo/Thor Zynz pra account_id 7206010b-977b-4a8b-a48a-f3a073b9c917 (Thanatos PT) — editável depois pela UI de Configurações." },
         "drops": {
           "columns": ["id (uuid pk)", "account_id (fk)", "data_drop (date)", "ek", "ed", "ms", "rp", "quinto_player", "fragador (not null)", "item (not null)", "boss (not null)", "valor_cada (bigint)", "valor_total (bigint)", "vendido (bool)", "data_venda (date, requer vendido=true)", "created_at"],
@@ -400,6 +401,14 @@
       "severity": "verificar",
       "area": "deploy",
       "description": "Em 2026-08-06, as env vars do Supabase (VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY, VITE_SERVICEIROS_USE_SUPABASE, VITE_LOOTDROPS_USE_SUPABASE) não estavam configuradas no dashboard do Vercel (só existem no .env.local, gitignored). Sem confirmação recente de que já foram configuradas — se Drops/Serviceiros aparecerem com dado mock em produção (não o dado real do Supabase), checar isso primeiro."
+    },
+    {
+      "id": "delete-serviceiro-vira-soft-delete",
+      "severity": "informativo (era bug, virou feature)",
+      "area": "src/modules/serviceiros/ServiceirosPage.tsx, src/services/repositories/http/http-serviceiro-repository.ts",
+      "description": "`drop_services.serviceiro_id` é `on delete restrict` DE PROPÓSITO (migration 20260806000000) — não deixa apagar um serviceiro já referenciado num drop histórico. Até 2026-08-14, o botão 🗑️ não tinha try/catch nenhum: a exclusão falhava no Postgres (erro 23503) e o botão simplesmente 'não fazia nada', sem explicação — reportado pelo usuário como 'o botão não está excluindo'. A maioria dos 22 serviceiros importados TEM histórico (ex: Cael 8 vínculos, Highwin 9), então acontecia quase sempre.",
+      "fix": "Redesenhado a pedido do usuário (não é mais só uma mensagem de erro): 'excluir' virou soft delete de verdade. Migration 20260814030000_soft_delete_serviceiros.sql adiciona `serviceiros.hidden` (default false). `HttpServiceiroRepository.delete()` faz um UPDATE `hidden=true` em vez de DELETE (nunca aciona o on delete restrict, histórico em drop_services fica 100% intacto — decisão explícita do usuário de não desvincular). `findByAccount()` filtra `hidden=false`. `create()` verifica se já existe um serviceiro ESCONDIDO com o mesmo `phone_number` nessa conta antes de inserir — se existir, reativa (hidden=false) com os dados novos em vez de duplicar ('como se tivesse desexcluído'). MockServiceiroRepository espelha o comportamento com um Set de ids escondidos (sem desvincular de drops mock). ServiceirosPage.tsx/SettingsPage.tsx ganharam `deleteError` + banner vermelho + try/catch no botão de excluir, como rede de segurança genérica pra qualquer falha (não só essa).",
+      "howToVerify": "Excluir um serviceiro com histórico deve funcionar normalmente (sem erro) e ele some da lista. Cadastrar de novo com o MESMO telefone deve reaproveitar o registro escondido (reaparece com os dados novos), não criar duplicado."
     },
     {
       "id": "hunt-entity-partially-deprecated",

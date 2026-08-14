@@ -24,6 +24,7 @@ export function SettingsPage() {
   const [formOwnerCharacterName, setFormOwnerCharacterName] = useState('');
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const resetForm = () => {
     setShowForm(false);
@@ -236,6 +237,12 @@ export function SettingsPage() {
         </form>
       )}
 
+      {deleteError && (
+        <div style={{ background: 'rgba(239, 68, 68, 0.12)', border: '1px solid #ef4444', color: '#fca5a5', padding: '10px 14px', borderRadius: '8px', marginBottom: '14px', fontSize: '13px' }}>
+          {deleteError}
+        </div>
+      )}
+
       {loading && <div className="loading">Carregando...</div>}
       {error && <div style={{ padding: '20px', textAlign: 'center', color: '#ef4444', fontSize: '13px' }}>{error}</div>}
 
@@ -275,9 +282,13 @@ export function SettingsPage() {
                   ✏️
                 </button>
                 <button
-                  onClick={() => {
-                    if (window.confirm(`Remover "${m.characterName}" da lista de membros? Essa ação não pode ser desfeita.`)) {
-                      removeMember(m.id);
+                  onClick={async () => {
+                    if (!window.confirm(`Remover "${m.characterName}" da lista de membros? Essa ação não pode ser desfeita.`)) return;
+                    setDeleteError(null);
+                    try {
+                      await removeMember(m.id);
+                    } catch (err) {
+                      setDeleteError(err instanceof Error ? err.message : 'Erro ao remover membro.');
                     }
                   }}
                   title="Remover membro"

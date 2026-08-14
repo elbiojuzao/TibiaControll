@@ -30,6 +30,7 @@ export function ServiceirosPage() {
   const [formVocations, setFormVocations] = useState<Vocation[]>([]);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [filterVocations, setFilterVocations] = useState<Vocation[]>([]);
 
   const filteredServiceiros = useMemo(() => {
@@ -254,6 +255,12 @@ export function ServiceirosPage() {
         </label>
       </div>
 
+      {deleteError && (
+        <div style={{ background: 'rgba(239, 68, 68, 0.12)', border: '1px solid #ef4444', color: '#fca5a5', padding: '10px 14px', borderRadius: '8px', marginBottom: '14px', fontSize: '13px' }}>
+          {deleteError}
+        </div>
+      )}
+
       {!loading && serviceiros.length > 0 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
           <span style={{ fontSize: '12px', color: '#94a3b8' }}>Filtrar por vocação:</span>
@@ -350,9 +357,13 @@ export function ServiceirosPage() {
                   ✏️
                 </button>
                 <button
-                  onClick={() => {
-                    if (window.confirm(`Remover "${s.name}" da lista de serviceiros? Essa ação não pode ser desfeita.`)) {
-                      removeServiceiro(s.id);
+                  onClick={async () => {
+                    if (!window.confirm(`Remover "${s.name}" da lista de serviceiros? Essa ação não pode ser desfeita.`)) return;
+                    setDeleteError(null);
+                    try {
+                      await removeServiceiro(s.id);
+                    } catch (err) {
+                      setDeleteError(err instanceof Error ? err.message : 'Erro ao remover serviceiro.');
                     }
                   }}
                   title="Remover serviceiro"
