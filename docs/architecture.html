@@ -507,6 +507,9 @@
             <dt>Previsão fim de ano</dt><dd>
               <b>Real desde 2026-08-10</b> (antes era um script no Google Apps Script do usuário) — computada em <code>previsaoPorMembro</code> (useMemo), combinando level+XP total ao vivo (Highscores "experience" do TibiaData) com <code>xp90Dias</code> da planilha. Fórmula em <code>services/xp-sheet/level-prediction.ts</code>, ver seção Regras de negócio.
             </dd>
+            <dt>Meta XP Diária</dt><dd>
+              <b>Real desde 2026-08-14</b> (antes era <code>MemberXpStats.metas</code>, mock e vazio pra conta real — campo removido do tipo). Marcos de nível exibidos são dinâmicos, pedido do usuário: do menor nível atual da party − 2 estágios (100 níveis) até o maior nível + 4 estágios (200 níveis), sempre múltiplos de 50. XP necessária por marco vem da tabela real <code>xp_levels</code> (via <code>useXpLevels()</code>); "Lvl Atingido" ou <code>(xp_total − XP atual) / dias restantes até 31/12</code>. Lógica em <code>services/xp-sheet/meta-xp-diaria.ts</code>.
+            </dd>
           </dl>
         </div>
       </details>
@@ -693,9 +696,8 @@
           <div class="schema-head"><span class="name">MemberXpStats</span><span class="src">src/types/dashboard-stats.ts</span></div>
           <table class="fields">
             <tr><td class="f-name">xpOntem, xp30Dias</td><td class="f-type">string (real, planilha)</td></tr>
-            <tr><td class="f-name">metas</td><td class="f-type">Record&lt;nível,string&gt; (mock)</td></tr>
           </table>
-          <div class="schema-note"><code>previsaoFimAno</code> foi <b>removido</b> daqui em 2026-08-10 — não é mock e não fica mais misturada nesse objeto, é computada à parte no <code>DashboardPage.tsx</code> (ver módulo Dashboard).</div>
+          <div class="schema-note"><code>previsaoFimAno</code> (2026-08-10) e <code>metas</code> (2026-08-14) foram <b>removidos</b> daqui — nenhum dos dois é mock nem fica misturado nesse objeto, ambos são computados à parte no <code>DashboardPage.tsx</code> (ver módulo Dashboard).</div>
         </div>
       </div>
 
@@ -717,7 +719,7 @@
         <tr><td>boss</td><td class="mono-cell">IBossRepository</td><td>MockBossRepository</td><td>—</td></tr>
         <tr><td>split</td><td class="mono-cell">ISplitRepository</td><td>MockSplitRepository</td><td>—</td></tr>
         <tr><td>serviceiro</td><td class="mono-cell">IServiceiroRepository</td><td>MockServiceiroRepository</td><td>HttpServiceiroRepository <span class="chip chip-real" style="margin-left:4px">supabase</span></td></tr>
-        <tr><td>dashboard</td><td class="mono-cell">IDashboardRepository</td><td>MockDashboardRepository</td><td>— (getMemberXpStats mistura mock "metas" + planilha; Previsão fim de ano não passa por aqui)</td></tr>
+        <tr><td>dashboard</td><td class="mono-cell">IDashboardRepository</td><td>MockDashboardRepository</td><td>— (getMemberXpStats só devolve xpOntem/xp30Dias reais da planilha; Previsão fim de ano e Meta XP Diária não passam por aqui)</td></tr>
         <tr><td>settings</td><td class="mono-cell">ISettingsRepository</td><td>MockSettingsRepository</td><td>—</td></tr>
       </table>
 
@@ -794,6 +796,14 @@
             <tr><td class="f-name">skill_category</td><td class="f-type">text nullable (check, só EK)</td></tr>
           </table>
           <div class="schema-note">Migration <code>20260814010000_create_members_table.sql</code> (2026-08-14) — RLS igual drops/serviceiros. Seed já insere os 4 membros da PT Thanatos (migrados do mock), editáveis pela UI de Configurações.</div>
+        </div>
+        <div class="schema-card">
+          <div class="schema-head"><span class="name">xp_levels</span><span class="chip chip-real" style="margin-left:6px">real</span></div>
+          <table class="fields">
+            <tr><td class="f-name">level</td><td class="f-type">integer pk</td></tr>
+            <tr><td class="f-name">xp_total</td><td class="f-type">bigint</td></tr>
+          </table>
+          <div class="schema-note">Migration <code>20260814020000_create_xp_levels_table.sql</code> (2026-08-14) — <b>sem</b> <code>account_id</code>, dado universal do jogo (fórmula oficial do Tibia), não de conta/party. RLS liga só pra bloquear escrita via client — leitura é pública (<code>to anon, authenticated using (true)</code>). 80 linhas, nível 50 até 4000 de 50 em 50, <code>xp_total = floor((50/3) * (L³-6L²+17L-12))</code> (mesma fórmula de <code>xpParaNivel</code> em <code>level-prediction.ts</code>, conferida contra a TibiaWiki). Consumida via <code>useXpLevels()</code> pra alimentar a Meta XP Diária real do Dashboard.</div>
         </div>
       </div>
       <div class="callout" style="margin-top:6px; border-color: var(--accent); background: var(--accent-soft);">

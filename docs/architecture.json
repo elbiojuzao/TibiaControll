@@ -61,7 +61,7 @@
         "components/LootTable.tsx": "Renderização da tabela de drops, formata coluna Service como 'emoji_vocação nome, ...'.",
         "utils/loot-visuals.ts": "guessItemIcon (emoji fallback) e getBossBadgeStyle (cor determinística por hash do nome) — usados só onde não há ícone real."
       },
-      "dataSource": "LootDrop via ILootDropRepository (Mock ou Http/Supabase conforme VITE_LOOTDROPS_USE_SUPABASE); MemberXpStats via IDashboardRepository.getMemberXpStats (xpOntem/xp30Dias reais da planilha, metas ainda mock); KKs Hunt/Boss via useBossHuntSheet (planilha, sempre ao vivo); Previsão fim de ano computada no próprio componente (ver previsaoFimAno abaixo, real desde 2026-08-10).",
+      "dataSource": "LootDrop via ILootDropRepository (Mock ou Http/Supabase conforme VITE_LOOTDROPS_USE_SUPABASE); MemberXpStats via IDashboardRepository.getMemberXpStats (xpOntem/xp30Dias reais da planilha); KKs Hunt/Boss via useBossHuntSheet (planilha, sempre ao vivo); Previsão fim de ano e Meta XP Diária computadas no próprio componente (ver abaixo, ambas reais).",
       "previsaoFimAno": {
         "status": "REAL desde 2026-08-10 — antes era um script no Google Apps Script do usuário, portado pro app (não fica mais em nenhum lugar mock).",
         "formula": "services/xp-sheet/level-prediction.ts: xpParaNivel(L) = floor((50/3) * (L^3 - 6L^2 + 17L - 12)) (fórmula oficial de XP-por-nível do Tibia). predictEndOfYearLevel soma XP atual + (média diária × dias restantes até 31/12) e sobe de nível enquanto a XP prevista bate o próximo patamar.",
@@ -71,6 +71,14 @@
         },
         "computedIn": "DashboardPage.tsx (useMemo previsaoPorMembro) — combina useMemberLiveStats (level+experience) com useXpSheet (xp90Dias), não faz nenhum fetch novo.",
         "gotcha": "Retorna '—' se qualquer um dos insumos faltar (personagem fora do top 500 de Experience nos Highscores, ou sem 90 dias de histórico na planilha ainda)."
+      },
+      "metaXpDiaria": {
+        "status": "REAL desde 2026-08-14 — antes era MemberXpStats.metas, 100% mock e vazio pra conta real (só tinha dado hardcoded pro MOCK_ACCOUNT_ID). Campo `metas` foi REMOVIDO do tipo/mock/repository — não recriar.",
+        "file": "services/xp-sheet/meta-xp-diaria.ts",
+        "levelRange": "computeMetaLevelRange(currentLevels) — pedido do usuário: do menor nível atual da party arredondado pra baixo (múltiplo de 50) MENOS 2 estágios (100 níveis), até o maior nível arredondado pra baixo MAIS 4 estágios (200 níveis). Clampado ao range da tabela xp_levels (50 a 4000). Se nenhum membro tiver level ao vivo disponível, retorna [] (tabela fica só com o cabeçalho).",
+        "dailyGoal": "computeDailyGoals(currentXp, targetLevels, xpByLevel) — pra cada nível-alvo: 'Lvl Atingido' se currentXp >= xp_total da tabela xp_levels; senão (xp_total − currentXp) / diasRestantesNoAno(), arredondado pra cima. diasRestantesNoAno() foi extraído de level-prediction.ts (antes só inline em predictEndOfYearLevel) pra ser reusado aqui.",
+        "inputs": "xp_levels via useXpLevels() (tabela Supabase, fetch único, sem cache local — 80 linhas, estático) + level/experience ao vivo via useMemberLiveStats (mesmos dados já usados na Previsão fim de ano).",
+        "colSpanFix": "Cabeçalho da seção ('Meta XP Diaria...') usava colSpan={5} fixo (hardcoded pra exatamente 4 membros) — corrigido pra colSpan={members.length + 1} no mesmo commit, já que o módulo Configurações (2026-08-14) permite adicionar/remover membros dinamicamente."
       },
       "kpiFormulas": {
         "kksPlunderInd": "sum(totalValue) dos drops do mês/ano selecionado onde bossName === 'Plunder'",
@@ -193,7 +201,7 @@
     "CharmCategory / CharmLevel / CharmDefinition / CharmPlanInput / CharmCostRow / CharmPlanResult": { "file": "src/types/charm.ts", "note": "Ver businessLogic.charmPlanner." },
     "DayActivity": { "file": "src/types/calendar.ts", "fields": { "date": "DD/MM/YYYY", "hunts": "Hunt[]", "drops": "LootDrop[]" } },
     "Serviceiro": { "file": "src/types/serviceiro.ts", "fields": { "id": "string", "accountId": "string", "name": "string", "characterName": "string (boneco de pagamento)", "phoneNumber": "string (só dígitos, DDI+DDD — nunca exibido na UI)", "vocations": "Vocation[]" }, "supabaseTable": "serviceiros" },
-    "MemberXpStats": { "file": "src/types/dashboard-stats.ts", "fields": { "xpOntem": "string (formatado, ex '+197.664.728')", "xp30Dias": "string", "metas": "Record<nível, string> (ainda mock)" }, "note": "previsaoFimAno foi REMOVIDO daqui em 2026-08-10 (não é mais mock, nem fica misturado nesse objeto) — agora é computada à parte em DashboardPage.tsx, ver modules.dashboard.previsaoFimAno." },
+    "MemberXpStats": { "file": "src/types/dashboard-stats.ts", "fields": { "xpOntem": "string (formatado, ex '+197.664.728')", "xp30Dias": "string" }, "note": "previsaoFimAno foi REMOVIDO daqui em 2026-08-10 e `metas` foi REMOVIDO em 2026-08-14 (não recriar nenhum dos dois) — ambos são computados à parte em DashboardPage.tsx, ver modules.dashboard.previsaoFimAno e modules.dashboard.metaXpDiaria." },
     "PartySettings": { "file": "src/types/party-settings.ts", "fields": { "tcGoldRate": "number" } },
     "XpCharacterStats / XpDailyEntry": { "file": "src/types/xp-sheet.ts", "fields": { "xpOntem": "number", "xp30Dias": "number", "xp90Dias": "number (desde 2026-08-10, usado só pra Previsão fim de ano)", "series": "{date, value}[] (histórico completo)" }, "note": "Vem da planilha, não do Supabase." },
     "BossHuntDailyEntry": { "file": "src/hooks/useBossHuntSheet.ts", "fields": { "date": "DD/MM/YYYY", "hunt": "number (profit individual, já /4)", "boss": "number (profit individual, já /5)" }, "note": "Vem da planilha, não do Supabase." },
@@ -225,7 +233,7 @@
       "boss": { "interface": "IBossRepository", "mock": "MockBossRepository", "http": null },
       "split": { "interface": "ISplitRepository", "mock": "MockSplitRepository", "http": null },
       "serviceiro": { "interface": "IServiceiroRepository", "mock": "MockServiceiroRepository", "http": "HttpServiceiroRepository (Supabase, tabela serviceiros)" },
-      "dashboard": { "interface": "IDashboardRepository", "mock": "MockDashboardRepository", "http": null, "note": "Só tem getMemberXpStats agora (getKpis foi removido — ver dataModels.removed_DashboardKpis). getMemberXpStats mistura mock (metas) com dado real (xpOntem/xp30Dias via planilha) — previsaoFimAno NÃO passa mais por aqui, é computada à parte no DashboardPage." },
+      "dashboard": { "interface": "IDashboardRepository", "mock": "MockDashboardRepository", "http": null, "note": "Só tem getMemberXpStats agora (getKpis foi removido — ver dataModels.removed_DashboardKpis), e só devolve xpOntem/xp30Dias (reais, via planilha) — previsaoFimAno e metaXpDiaria NÃO passam mais por aqui, são computados à parte no DashboardPage (ver modules.dashboard)." },
       "settings": { "interface": "ISettingsRepository", "mock": "MockSettingsRepository", "http": null }
     },
     "criticalLesson": "supabase-client.ts usa um padrão de singleton PREGUIÇOSO (getSupabaseClient(), só cria o client dentro de cada método, nunca no top-level do módulo). Isso é proposital: os módulos Http são importados incondicionalmente por repositories/index.ts mesmo quando as flags estão desligadas, e um client Supabase eager (criado no top-level) lançava erro na hora do import se as env vars não estivessem configuradas — causou uma tela preta total em produção antes de configurar as env vars no Vercel. NÃO reverter pra um `export const supabase = createClient(...)` no top-level."
@@ -233,7 +241,7 @@
 
   "externalIntegrations": {
     "supabase": {
-      "projectPurpose": "Banco relacional real, só para Drops e Serviceiros (o resto do app é mock).",
+      "projectPurpose": "Banco relacional real para Drops, Serviceiros, Account, Members e a referência estática xp_levels (o resto do app ainda é mock).",
       "clientPattern": "src/services/supabase/supabase-client.ts — getSupabaseClient() lazy singleton, ver repositoryPattern.criticalLesson.",
       "authStatus": "Supabase Auth LIGADO desde 2026-08-14 (login real). RLS LIGADA nas 4 tabelas, DESENHADA PRA MULTI-TENANT desde o início (pedido do usuário: 'a intenção é futuramente ter mais de 1 conta') — policies filtram por accounts.user_id = auth.uid() (accounts), account_id in (select id from accounts where user_id = auth.uid()) (drops/serviceiros), ou um exists com join até drops (drop_services, que não tem account_id direto). NÃO é mais um 'authenticated using (true)' genérico — cada login só enxerga a própria conta. Continua sendo 1 credencial POR PARTY (login compartilhado entre os membros da mesma party), mas agora N parties diferentes podem coexistir no mesmo banco sem se enxergarem.",
       "migrations": [
@@ -243,7 +251,8 @@
         "20260806030000_add_character_name_to_serviceiros.sql — coluna character_name (boneco de pagamento)",
         "20260806040000_add_served_character_to_drop_services.sql — coluna served_character_name",
         "20260814000000_enable_rls_with_auth.sql — RELIGA RLS (tinha sido desligado na migration de 2026-08-06) + policy 'authenticated_full_access' nas 4 tabelas, agora que existe Supabase Auth de verdade",
-        "20260814010000_create_members_table.sql — cria tabela members (cadastro dos jogadores base da party, módulo Configurações) + RLS scoped por account + seed dos 4 membros da PT Thanatos (migrados do mock)"
+        "20260814010000_create_members_table.sql — cria tabela members (cadastro dos jogadores base da party, módulo Configurações) + RLS scoped por account + seed dos 4 membros da PT Thanatos (migrados do mock)",
+        "20260814020000_create_xp_levels_table.sql — cria tabela xp_levels (referência de XP total por nível, de 50 em 50 até o 4000, fórmula oficial do Tibia) + RLS de leitura pública, sem account_id (dado universal do jogo, não de conta). Plugada na Meta XP Diária do Dashboard no mesmo dia — ver modules.dashboard.metaXpDiaria."
       ],
       "tables": {
         "accounts": { "columns": ["id (uuid pk)", "party_name", "type ('party'|'solo')", "created_at", "user_id (uuid, unique, fk auth.users — desde 2026-08-14, liga a conta ao login que pode acessá-la)"] },
@@ -251,9 +260,13 @@
         "members": { "columns": ["id (uuid pk)", "account_id (fk)", "character_name", "vocation (check EK/ED/MS/RP/EM/OTHER)", "is_serviceiro (bool)", "serviceiro_share_percent (numeric, nullable)", "owner_character_name (nullable)", "skill_category (check magiclevel/axefighting/swordfighting/clubfighting/distancefighting, nullable — só relevante pra EK)", "created_at"], "note": "Seed inicial (migration 20260814010000) já insere Koe Psciko/Thanatos Celestial/Marugo/Thor Zynz pra account_id 7206010b-977b-4a8b-a48a-f3a073b9c917 (Thanatos PT) — editável depois pela UI de Configurações." },
         "drops": {
           "columns": ["id (uuid pk)", "account_id (fk)", "data_drop (date)", "ek", "ed", "ms", "rp", "quinto_player", "fragador (not null)", "item (not null)", "boss (not null)", "valor_cada (bigint)", "valor_total (bigint)", "vendido (bool)", "data_venda (date, requer vendido=true)", "created_at"],
-          "note": "gold sempre inteiro no Tibia → bigint, nunca numeric/decimal. Colunas de personagem (ek/ed/ms/rp) são texto livre, não FK — não existe tabela members no Supabase."
+          "note": "gold sempre inteiro no Tibia → bigint, nunca numeric/decimal. Colunas de personagem (ek/ed/ms/rp) são texto livre, não FK pra members — drops nunca referenciou members diretamente, mesmo depois da tabela members existir (2026-08-14)."
         },
-        "drop_services": { "columns": ["id (uuid pk)", "drop_id (fk, on delete cascade)", "serviceiro_id (fk, on delete restrict)", "vocacao (enum EK/ED/MS/RP/EM)", "served_character_name (nullable)", "created_at"], "constraint": "unique(drop_id, vocacao) — 1 vaga só pode ter 1 serviceiro por drop" }
+        "drop_services": { "columns": ["id (uuid pk)", "drop_id (fk, on delete cascade)", "serviceiro_id (fk, on delete restrict)", "vocacao (enum EK/ED/MS/RP/EM)", "served_character_name (nullable)", "created_at"], "constraint": "unique(drop_id, vocacao) — 1 vaga só pode ter 1 serviceiro por drop" },
+        "xp_levels": {
+          "columns": ["level (int pk)", "xp_total (bigint)"],
+          "note": "Sem account_id — dado universal do jogo (fórmula oficial do Tibia), não de conta/party. RLS ligada só pra bloquear escrita via client; leitura é pública (policy 'to anon, authenticated using (true)'). 80 linhas (nível 50 até 4000, de 50 em 50), migration 20260814020000. Consumida via useXpLevels() (src/hooks/useXpLevels.ts) pra alimentar a Meta XP Diária real do Dashboard — ver modules.dashboard.metaXpDiaria."
+        }
       },
       "envVars": ["VITE_SUPABASE_URL", "VITE_SUPABASE_PUBLISHABLE_KEY"],
       "prodStatus": "Configuradas na Vercel? verificar — ver knownIssuesAndGotchas."
@@ -293,7 +306,7 @@
         "useXpSheet": { "file": "src/hooks/useXpSheet.ts", "returns": "{data: Record<personagem, XpCharacterStats>, loading, error}", "caching": "SIM — via fetchXpSheetCached() (src/services/xp-sheet/xp-sheet-cache.ts). No máximo 1 fetch/dia, guardado em localStorage['tibia-pts:xp-sheet-cache-v1']. Válido até a próxima janela das 7h15 (a rotina do usuário só atualiza entre 6h-7h, então cache 'de hoje' feito antes das 7h15 é considerado inválido). Se o fetch falhar mas existir cache velho, devolve o cache velho em vez de quebrar." },
         "useBossHuntSheet": { "file": "src/hooks/useBossHuntSheet.ts", "returns": "{series: BossHuntDailyEntry[], loading, error}", "caching": "NÃO — busca de novo a cada mount do componente (fetch com cache:'no-store', e a Vercel Function responde Cache-Control: no-store). Decisão do usuário: os KKs do Dashboard devem sempre refletir o dado mais recente ao entrar no sistema." }
       },
-      "consumers": ["Dashboard (Xp Ontem/30Dias via MockDashboardRepository.getMemberXpStats + KKs Hunt/Boss via useBossHuntSheet)", "Histórico de XP (useXpSheet)", "Calendário — modal de dia (useXpSheet + useBossHuntSheet)"]
+      "consumers": ["Dashboard (Xp Ontem/30Dias via MockDashboardRepository.getMemberXpStats + KKs Hunt/Boss via useBossHuntSheet + Meta XP Diária via xp90Dias indiretamente pela Previsão fim de ano)", "Histórico de XP (useXpSheet)", "Calendário — modal de dia (useXpSheet + useBossHuntSheet)"]
     }
   },
 
@@ -327,7 +340,12 @@
     },
     "previsaoFimAno": {
       "file": "src/services/xp-sheet/level-prediction.ts",
-      "rule": "Ver modules.dashboard.previsaoFimAno — resumo: xpParaNivel(L) é a fórmula oficial do Tibia (floor((50/3)*(L³-6L²+17L-12))); predictEndOfYearLevel soma XP atual (Highscores 'experience', ao vivo) + média diária (xp90Dias/90) × dias até 31/12, e sobe de nível enquanto a XP prevista bate o próximo patamar. Substituiu um script do usuário no Google Apps Script — mesma lógica, fontes diferentes (antes vinha de células da planilha, agora é TibiaData + planilha combinados no próprio app)."
+      "rule": "Ver modules.dashboard.previsaoFimAno — resumo: xpParaNivel(L) é a fórmula oficial do Tibia (floor((50/3)*(L³-6L²+17L-12))); predictEndOfYearLevel soma XP atual (Highscores 'experience', ao vivo) + média diária (xp90Dias/90) × dias até 31/12, e sobe de nível enquanto a XP prevista bate o próximo patamar. Substituiu um script do usuário no Google Apps Script — mesma lógica, fontes diferentes (antes vinha de células da planilha, agora é TibiaData + planilha combinados no próprio app).",
+      "note": "Mesma fórmula (conferida contra a fonte oficial em 2026-08-14, https://www.tibiawiki.com.br/wiki/Fórmula_de_Experiência) também foi materializada na tabela Supabase xp_levels (de 50 em 50 níveis até 4000) — ver externalIntegrations.supabase.tables.xp_levels. Não são a mesma fonte de verdade fisicamente (uma é código, outra é tabela), mas DEVEM ficar consistentes — se a fórmula aqui mudar, a tabela precisa ser regerada/migrada junto."
+    },
+    "metaXpDiaria": {
+      "file": "src/services/xp-sheet/meta-xp-diaria.ts",
+      "rule": "Ver modules.dashboard.metaXpDiaria — resumo: computeMetaLevelRange(currentLevels) decide quais marcos de 50 mostrar (2 estágios abaixo do menor nível da party, 4 acima do maior — pedido do usuário em 2026-08-14); computeDailyGoals(currentXp, targetLevels, xpByLevel) calcula, pra cada marco, 'Lvl Atingido' ou a XP/dia necessária até 31/12 usando a tabela real xp_levels (Supabase) como fonte de XP-por-nível, em vez de xpParaNivel() direto — decisão explícita do usuário ('quero uma tabela no banco'), não trocar por cálculo em JS mesmo sendo redundante com level-prediction.ts."
     },
     "dashboardKpis": {
       "file": "src/modules/dashboard/DashboardPage.tsx",
