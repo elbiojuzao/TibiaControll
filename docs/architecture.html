@@ -595,7 +595,7 @@
           <dl class="kv-list">
             <dt>Rota</dt><dd><code>/serviceiros</code></dd>
             <dt>Dado</dt><dd><code>Serviceiro</code> via <code>IServiceiroRepository</code> — Mock ou Http/Supabase por <code>VITE_SERVICEIROS_USE_SUPABASE</code>.</dd>
-            <dt>Atenção</dt><dd>Telefone nunca é exibido na UI — só usado pra montar o link <code>wa.me</code>.</dd>
+            <dt>Atenção</dt><dd>Telefone nunca é exibido na UI — só usado pra montar o link <code>wa.me</code>. "Excluir" é soft delete (<code>serviceiros.hidden</code>, 2026-08-14) — nunca apaga de verdade, só esconde; cadastrar de novo com o mesmo telefone reativa em vez de duplicar (ver Problemas conhecidos).</dd>
           </dl>
         </div>
       </details>
@@ -773,6 +773,7 @@
             <tr><td class="f-name">name, character_name</td><td class="f-type">text</td></tr>
             <tr><td class="f-name">phone_number</td><td class="f-type">text</td></tr>
             <tr><td class="f-name">vocations</td><td class="f-type">text[]</td></tr>
+            <tr><td class="f-name">hidden</td><td class="f-type">bool (default false — soft delete, 2026-08-14)</td></tr>
           </table>
         </div>
         <div class="schema-card">
@@ -939,6 +940,14 @@
             <p class="issue-title">Members precisa da migration + flag antes de ir pro ar</p>
             <p class="issue-area">Supabase · módulo Configurações</p>
             <p class="issue-desc">O módulo Configurações e a <code>HttpMemberRepository</code> (2026-08-14) estão prontos e testados localmente com mock, mas <code>VITE_MEMBER_USE_SUPABASE</code> está <code>false</code> até rodar <code>supabase/migrations/20260814010000_create_members_table.sql</code> no SQL Editor. Enquanto isso, o app lê o array mock fixo (<code>accountId='acc-demo-001'</code>), que não bate com a conta real — Dashboard/Histórico/Histórico de XP aparecem sem nenhum membro em produção (mesmo problema já visto com Account antes do <code>ACCOUNT_USE_SUPABASE</code>). Depois de rodar a migration, falta configurar a flag no Vercel também.</p>
+          </div>
+        </div>
+        <div class="issue">
+          <span class="chip chip-issue-info">info (era bug, virou feature)</span>
+          <div>
+            <p class="issue-title">Excluir serviceiro virou soft delete</p>
+            <p class="issue-area">ServiceirosPage.tsx · http-serviceiro-repository.ts</p>
+            <p class="issue-desc"><code>drop_services.serviceiro_id</code> é <code>on delete restrict</code> DE PROPÓSITO (não deixa apagar um serviceiro já referenciado num drop histórico). Até 2026-08-14 o botão 🗑️ não tinha try/catch — a exclusão falhava no Postgres (erro <code>23503</code>) e "não fazia nada", sem explicação (reportado pelo usuário). Redesenhado a pedido do usuário: <code>serviceiros.hidden</code> (migration <code>20260814030000</code>) — excluir vira <code>UPDATE hidden=true</code> (nunca aciona o FK restrict, histórico 100% intacto), <code>findByAccount()</code> filtra <code>hidden=false</code>, e <code>create()</code> reativa um registro escondido com o mesmo telefone em vez de duplicar. Tela ganhou <code>deleteError</code> + banner + try/catch como rede de segurança genérica (mesmo padrão no módulo Configurações).</p>
           </div>
         </div>
         <div class="issue">
