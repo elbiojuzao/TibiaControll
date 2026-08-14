@@ -1,9 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { useBosses } from '@/hooks/useBosses';
+import { useLoopTimer } from '@/hooks/useLoopTimer';
+import { getPotionIconUrl } from '@/services/timers/potion-icons';
 
 const CUSTOM_OPTION = 'custom';
 const DEFAULT_GLOBAL_SECONDS = 1500;
 const DEFAULT_LOOP_SECONDS = 90;
+
+/** Mastermind/Berserk/Bullseye Potion — as 3 têm efeito de 10 minutos, mesmo timer serve
+ * pra lembrar de rebeber qualquer uma delas (pedido do usuário em 2026-08-14). */
+const SKILL_POTION_SECONDS = 10 * 60;
+const SKILL_POTIONS = ['Mastermind Potion', 'Berserk Potion', 'Bullseye Potion'];
 
 export function TimersPage() {
   const { bosses, loading: bossesLoading } = useBosses();
@@ -23,6 +30,8 @@ export function TimersPage() {
 
   const audioCtxRef = useRef<AudioContext | null>(null);
   const timerRef = useRef<number | null>(null);
+
+  const potionTimer = useLoopTimer(SKILL_POTION_SECONDS, volume);
 
   const applyDurations = (globalSeconds: number, loopSeconds: number) => {
     setIsRunning(false);
@@ -299,6 +308,73 @@ export function TimersPage() {
           />
         </div>
 
+      </div>
+
+      {/* TIMER DE POÇÕES DE SKILL — independente do timer de boss acima, loop fixo de 10min
+          (Mastermind/Berserk/Bullseye Potion têm o mesmo tempo de efeito) */}
+      <div style={{
+        backgroundColor: '#1e293b',
+        padding: '30px',
+        borderRadius: '16px',
+        boxShadow: '0 10px 25px rgba(0, 0, 0, 0.3)',
+        textAlign: 'center',
+        width: '100%',
+        maxWidth: '280px',
+        border: '1px solid #334155',
+      }}>
+        <h3 style={{ fontSize: '13px', color: '#38bdf8', margin: '0 0 12px 0' }}>Poções de Skill</h3>
+
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '16px' }}>
+          {SKILL_POTIONS.map((name) => {
+            const iconUrl = getPotionIconUrl(name);
+            return (
+              <img
+                key={name}
+                src={iconUrl}
+                alt={name}
+                title={name}
+                width={32}
+                height={32}
+                style={{ objectFit: 'contain', imageRendering: 'pixelated', opacity: iconUrl ? 1 : 0 }}
+              />
+            );
+          })}
+        </div>
+
+        <div style={{
+          backgroundColor: potionTimer.isBlinking ? '#38bdf8' : '#0f172a',
+          color: potionTimer.isBlinking ? '#0f172a' : '#f8fafc',
+          padding: '18px',
+          borderRadius: '12px',
+          border: '1px solid #334155',
+          marginBottom: '18px',
+          transition: 'background-color 0.2s ease, color 0.2s ease',
+        }}>
+          <div style={{ fontSize: '2.2rem', fontWeight: 'bold', letterSpacing: '1px' }}>
+            {formatTime(potionTimer.secondsLeft)}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+          <button
+            onClick={potionTimer.toggle}
+            style={{
+              padding: '10px 20px', fontSize: '1rem', fontWeight: 600, border: 'none',
+              borderRadius: '8px', cursor: 'pointer', backgroundColor: '#38bdf8', color: '#0f172a',
+            }}
+          >
+            {potionTimer.isRunning ? 'Pausar' : 'Iniciar'}
+          </button>
+          <button
+            onClick={potionTimer.reset}
+            style={{
+              padding: '10px 20px', fontSize: '1rem', fontWeight: 600, border: 'none',
+              borderRadius: '8px', cursor: 'pointer', backgroundColor: '#475569', color: '#f8fafc',
+            }}
+          >
+            Zerar
+          </button>
+        </div>
       </div>
 
     </div>

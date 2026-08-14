@@ -102,9 +102,17 @@
     "timers": {
       "path": "src/modules/timers/",
       "routes": ["/timers"],
-      "purpose": "Dois cronômetros simultâneos por boss: Timer Global (duração da sala) e Timer de Loop (mecânica que se repete), com beep sonoro (Web Audio API) e preset por boss.",
-      "keyFiles": { "TimersPage.tsx": "306 linhas — lógica de countdown com setInterval, AudioContext pra beep, presets vindos de useBosses." },
-      "dataSource": "BossMechanic via IBossRepository (100% mock — 5 bosses fixos, mecânica de sala/tempo, NÃO confundir com os 16 bosses de loot table do Log de Drops)."
+      "purpose": "Dois cronômetros simultâneos por boss: Timer Global (duração da sala) e Timer de Loop (mecânica que se repete), com beep sonoro (Web Audio API) e preset por boss. Mais um timer independente (2026-08-14) pras poções de skill.",
+      "keyFiles": {
+        "TimersPage.tsx": "Lógica de countdown do boss (setInterval próprio, não usa useLoopTimer — evitado refatorar código já funcionando) + card novo de Poções de Skill (usa useLoopTimer).",
+        "hooks/useLoopTimer.ts": "Hook reusável (2026-08-14) — countdown + beep duplo + blink + auto-reinício ao chegar em 0. Usado só pelo timer de poções por enquanto; o timer de boss (Global+Loop combinados) mantém a implementação própria original, não foi migrado pra não arriscar regressão num componente já testado."
+      },
+      "dataSource": "BossMechanic via IBossRepository (100% mock — 5 bosses fixos, mecânica de sala/tempo, NÃO confundir com os 16 bosses de loot table do Log de Drops).",
+      "skillPotionTimer": {
+        "status": "Novo em 2026-08-14, pedido do usuário — card fixo e independente do seletor de boss, sem seletor próprio (não é um preset trocável).",
+        "duration": "10 minutos fixos (SKILL_POTION_SECONDS = 600s) — Mastermind Potion, Berserk Potion e Bullseye Potion têm todas o mesmo tempo de efeito, confirmado pelo usuário.",
+        "icons": "3 ícones reais lado a lado (não é um seletor — mostra as 3 sempre, pra deixar claro que o timer vale pras 3 poções). Baixados via scripts/fetch-potion-icons.mjs (tibia.fandom.com, mesma técnica de resolução de fetch-item-icons.mjs) pra src/assets/potion-icons/, lookup via services/timers/potion-icons.ts (getPotionIconUrl) — pipeline própria, 3ª fonte de ícone do projeto (não confundir com item-icons/ nem charm-icons/, ver conventions.iconPipelines)."
+      }
     },
 
     "tier-calculator": {
@@ -477,7 +485,7 @@
     "goldFormat": "Sempre inteiro (nunca decimal) — formatTibiaGold formata com separador de milhar pt-BR e prefixo '+' (ver knownIssuesAndGotchas sobre o bug de sinal negativo).",
     "commitMessages": "Português, corpo explica o 'porquê', termina com 'Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>'.",
     "onlyCommitOnExplicitAsk": "Nunca commitar/dar push sem o usuário confirmar explicitamente ('sim', 'pode') — mesmo depois de terminar uma feature.",
-    "iconPipelines": "DUAS fontes de ícone diferentes, não confundir: itens de drop vêm de tibia.fandom.com via scripts/fetch-item-icons.mjs (resolução dinâmica de nome, com fallback de busca); runas de charm vêm de tibiawiki.com.br via scripts/fetch-charm-icons.mjs (lista fixa de URLs, sem resolução dinâmica). Cada pipeline salva num diretório próprio em src/assets/ com seu próprio helper de lookup (getItemIconUrl / getCharmIconUrl) — não misturar.",
+    "iconPipelines": "TRÊS fontes de ícone diferentes, não confundir: itens de drop vêm de tibia.fandom.com via scripts/fetch-item-icons.mjs (resolução dinâmica de nome, com fallback de busca, lista extraída de boss-items-data.ts); runas de charm vêm de tibiawiki.com.br via scripts/fetch-charm-icons.mjs (lista fixa de URLs, sem resolução dinâmica); poções de skill (Timers) vêm de tibia.fandom.com via scripts/fetch-potion-icons.mjs (2026-08-14, mesma técnica de resolução do item-icons mas lista própria fixa de 3 nomes, não lida boss-items-data.ts). Cada pipeline salva num diretório próprio em src/assets/ com seu próprio helper de lookup (getItemIconUrl / getCharmIconUrl / getPotionIconUrl) — não misturar.",
     "localCacheStrategy": "Pra reduzir requisição de API pública repetida (pedido do usuário em 2026-08-14), qualquer fetch que dá pra reaproveitar por um tempo passa por src/services/common/local-cache.ts, com 2 variantes: dailyCache.ts (dado que só muda numa janela fixa do relógio, ex: boosted creature/boss ~6h) ou ttlCache.ts (dado que muda a qualquer momento mas tolera ficar 'velho' por um tempo fixo, ex: level/skill/XP de personagem, 1h). Escolher a variante errada gera dado incorreto — nunca usar dailyCache pra algo que muda continuamente ao longo do dia. Ver businessLogic.dailyCache/ttlCache/localCacheCore."
   }
 }

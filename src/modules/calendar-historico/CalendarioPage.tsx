@@ -122,8 +122,8 @@ export function CalendarioPage() {
         </div>
 
         <div className="calendar-legend">
-          <span className="calendar-legend-item"><span className="calendar-dot boss" /> Boss (teve valor na planilha)</span>
-          <span className="calendar-legend-item"><span className="calendar-dot hunt" /> Hunt (teve valor na planilha)</span>
+          <span className="calendar-legend-item"><span className="calendar-dot boss" /> Boss</span>
+          <span className="calendar-legend-item"><span className="calendar-dot hunt" /> Hunt</span>
           <span className="calendar-legend-item"><span className="calendar-dot drop" /> Item — 1 bolinha por drop no dia</span>
         </div>
 
