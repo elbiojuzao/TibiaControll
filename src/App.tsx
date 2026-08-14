@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { RequireAuth } from '@/components/auth/RequireAuth';
 import { DashboardPage } from '@/modules/dashboard';
 import { LootLogPage } from '@/modules/dashboard/LootLogPage';
 import { SplitCalculatorPage } from '@/modules/split-calculator';
@@ -9,21 +10,28 @@ import { CharmPlannerPage } from '@/modules/charm-planner';
 import { CalendarioPage } from '@/modules/calendar-historico';
 import { ServiceirosPage } from '@/modules/serviceiros';
 import { XpHistoricoPage } from '@/modules/xp-historico';
+import { LoginPage } from '@/modules/login';
 
 export function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="login" element={<LoginPage />} />
+
+        {/* Módulos exclusivos de conta (login real via Supabase Auth) e módulos livres
+            (calculadoras/ferramentas, sem dado de party) convivem sob o mesmo AppLayout —
+            só os 5 primeiros exigem RequireAuth. */}
         <Route element={<AppLayout />}>
-          <Route index element={<DashboardPage />} />
-          <Route path="loot-log" element={<LootLogPage />} />
+          <Route index element={<RequireAuth><DashboardPage /></RequireAuth>} />
+          <Route path="loot-log" element={<RequireAuth><LootLogPage /></RequireAuth>} />
+          <Route path="calendario" element={<RequireAuth><CalendarioPage /></RequireAuth>} />
+          <Route path="historico-xp" element={<RequireAuth><XpHistoricoPage /></RequireAuth>} />
+          <Route path="serviceiros" element={<RequireAuth><ServiceirosPage /></RequireAuth>} />
+
           <Route path="split" element={<SplitCalculatorPage />} />
           <Route path="timers" element={<TimersPage />} />
           <Route path="tier-calculator" element={<TierCalculatorPage />} />
           <Route path="charm-planner" element={<CharmPlannerPage />} />
-          <Route path="calendario" element={<CalendarioPage />} />
-          <Route path="historico-xp" element={<XpHistoricoPage />} />
-          <Route path="serviceiros" element={<ServiceirosPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
