@@ -529,10 +529,11 @@
       <details class="module">
         <summary><span class="summary-left">⏱️ Timers <span class="summary-path">src/modules/timers/</span></span><span class="chip chip-mock">mock</span></summary>
         <div class="module-body">
-          <p>Dois cronômetros simultâneos por boss: Timer Global (duração da sala) e Timer de Loop (mecânica que se repete), com beep via Web Audio API.</p>
+          <p>Dois cronômetros simultâneos por boss: Timer Global (duração da sala) e Timer de Loop (mecânica que se repete), com beep via Web Audio API. Mais um card independente (2026-08-14) pras poções de skill.</p>
           <dl class="kv-list">
             <dt>Rota</dt><dd><code>/timers</code></dd>
             <dt>Dado</dt><dd><code>BossMechanic</code> — 5 bosses fixos, 100% mock. <b>Universo diferente</b> dos 16 bosses de loot table usados no Log de Drops — não unificar.</dd>
+            <dt>Timer de Poções de Skill</dt><dd>Card fixo, sem seletor — sempre 10 minutos (<code>SKILL_POTION_SECONDS</code>), tempo de efeito de Mastermind/Berserk/Bullseye Potion, mostradas as 3 juntas (ícones reais de <code>src/assets/potion-icons/</code>, baixados por <code>scripts/fetch-potion-icons.mjs</code>). Usa o hook novo e reusável <code>useLoopTimer</code> — o timer de boss (Global+Loop) mantém a implementação própria, não foi migrado pra não arriscar regressão.</dd>
           </dl>
         </div>
       </details>
@@ -1021,7 +1022,7 @@
             <li style="margin-bottom:8px">Gold sempre inteiro, formatado pt-BR com prefixo <code>+</code></li>
             <li style="margin-bottom:8px">Nunca commitar/dar push sem confirmação explícita do usuário</li>
             <li style="margin-bottom:8px"><b>Toda mudança no app atualiza este HTML e o <code>architecture.json</code> junto</b> — regra permanente do usuário (2026-08-10), não deixar os docs desatualizarem</li>
-            <li style="margin-bottom:8px">2 pipelines de ícone <b>diferentes</b>, não confundir: itens de drop vêm de <code>tibia.fandom.com</code> (<code>fetch-item-icons.mjs</code>, resolução dinâmica); runas de charm vêm de <code>tibiawiki.com.br</code> (<code>fetch-charm-icons.mjs</code>, lista fixa)</li>
+            <li style="margin-bottom:8px">3 pipelines de ícone <b>diferentes</b>, não confundir: itens de drop vêm de <code>tibia.fandom.com</code> (<code>fetch-item-icons.mjs</code>, resolução dinâmica, lista de <code>boss-items-data.ts</code>); runas de charm vêm de <code>tibiawiki.com.br</code> (<code>fetch-charm-icons.mjs</code>, lista fixa); poções de skill vêm de <code>tibia.fandom.com</code> (<code>fetch-potion-icons.mjs</code>, lista fixa própria de 3 nomes)</li>
             <li>Fetch de API pública que dá pra reaproveitar passa por <code>services/common/local-cache.ts</code>: <code>dailyCache</code> pra dado que muda numa janela fixa do relógio (boosted creature/boss), <code>ttlCache</code> pra dado que muda a qualquer momento mas tolera ficar velho um tempo fixo (level/skill/XP, 1h) — escolher a variante errada gera dado incorreto na tela</li>
           </ul>
         </div>
