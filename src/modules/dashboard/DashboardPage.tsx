@@ -197,7 +197,7 @@ export function DashboardPage() {
     return Array.from(byLooter.values())
       .sort((a, b) => b.totalValue - a.totalValue)
       .slice(0, 5);
-  }, [drops]);
+  }, [last365Drops]);
 
   if (accountLoading) return <div className="loading">Carregando...</div>;
 
