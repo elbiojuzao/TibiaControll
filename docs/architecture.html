@@ -337,7 +337,7 @@
 <div class="layout">
   <aside class="toc">
     <div class="toc-brand">Tibia PT Manager</div>
-    <div class="toc-sub">Mapa de arquitetura · gerado 2026-08-09 · atualizado 2026-08-10</div>
+    <div class="toc-sub">Mapa de arquitetura · gerado 2026-08-09 · atualizado 2026-08-14</div>
     <nav id="tocnav">
       <a href="#overview">Visão geral</a>
       <a href="#routes">Rotas &amp; navegação</a>
@@ -551,6 +551,8 @@
           <dl class="kv-list">
             <dt>Rota</dt><dd><code>/charm-planner</code></dd>
             <dt>Regra</dt><dd>Custo <b>acumulado</b> desde o zero, nunca incremental — ver Regras de negócio.</dd>
+            <dt>UI (2026-08-14)</dt><dd>Grade de runas clicáveis — 1 ícone real por charm (<code>getCharmIconUrl</code>), clique cicla Bloqueado→Bronze→Prata→Ouro→Bloqueado, anel colorido por nível. Substituiu a tabela de 3 checkboxes por charm. Badge "Nv1"/"Nv2"/"Nv3" no canto superior direito de cada runa ativa, redundante com a cor — acessibilidade pra quem tem dificuldade de distinguir bronze/prata/ouro só pela cor.</dd>
+            <dt>Ícones</dt><dd><code>src/services/charm/charm-icons.ts</code> + <code>src/assets/charm-icons/*.gif</code>, baixados de <code>tibiawiki.com.br</code> por <code>scripts/fetch-charm-icons.mjs</code> (lista fixa de 25 URLs — fonte <b>diferente</b> da usada pros ícones de item, que vem de <code>tibia.fandom.com</code>).</dd>
           </dl>
         </div>
       </details>
@@ -939,7 +941,8 @@
             <li style="margin-bottom:8px">Datas em <code>DD/MM/YYYY</code> na UI/domínio; ISO só na borda com Supabase</li>
             <li style="margin-bottom:8px">Gold sempre inteiro, formatado pt-BR com prefixo <code>+</code></li>
             <li style="margin-bottom:8px">Nunca commitar/dar push sem confirmação explícita do usuário</li>
-            <li><b>Toda mudança no app atualiza este HTML e o <code>architecture.json</code> junto</b> — regra permanente do usuário (2026-08-10), não deixar os docs desatualizarem</li>
+            <li style="margin-bottom:8px"><b>Toda mudança no app atualiza este HTML e o <code>architecture.json</code> junto</b> — regra permanente do usuário (2026-08-10), não deixar os docs desatualizarem</li>
+            <li>2 pipelines de ícone <b>diferentes</b>, não confundir: itens de drop vêm de <code>tibia.fandom.com</code> (<code>fetch-item-icons.mjs</code>, resolução dinâmica); runas de charm vêm de <code>tibiawiki.com.br</code> (<code>fetch-charm-icons.mjs</code>, lista fixa)</li>
           </ul>
         </div>
         <div class="card">
@@ -961,7 +964,7 @@
 </div>
 
 <footer>
-  <span>Gerado por Claude em 2026-08-09, atualizado 2026-08-10 · referência viva — regra permanente: toda mudança no app atualiza este arquivo e o architecture.json juntos</span>
+  <span>Gerado por Claude em 2026-08-09, atualizado 2026-08-14 · referência viva — regra permanente: toda mudança no app atualiza este arquivo e o architecture.json juntos</span>
   <span>JSON companion: <code>docs/architecture.json</code></span>
 </footer>
 
