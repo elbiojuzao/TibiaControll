@@ -13,6 +13,7 @@ const navItems = [
   { to: '/calendario', label: 'Histórico', icon: '📅', gated: true },
   { to: '/historico-xp', label: 'Histórico de XP', icon: '📈', gated: true },
   { to: '/serviceiros', label: 'Serviceiros', icon: '🤝', gated: true },
+  { to: '/configuracoes', label: 'Configurações', icon: '⚙️', gated: true },
 ];
 
 export function AppLayout() {

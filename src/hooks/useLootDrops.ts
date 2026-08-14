@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CreateLootDropDto, LootDrop, LootDropFilters } from '@/types';
 import { repositories } from '@/services/repositories';
 
@@ -10,17 +10,24 @@ export function useLootDrops(accountId: string, filters?: LootDropFilters) {
   const [drops, setDrops] = useState<LootDrop[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  /** useAccount() troca accountId de MOCK_ACCOUNT_ID pro UUID real assim que a sessão
+   * resolve — isso dispara 2 load() em sequência rápida (mount com mock + re-render com o
+   * real). Sem essa guarda, se a resposta do fetch com o ID mock (que sempre falha, erro de
+   * cast uuid no Postgres) chegar DEPOIS da resposta boa, ela sobrescreve o estado e a tela
+   * fica presa mostrando erro mesmo com os dados certos já tendo chegado. */
+  const requestIdRef = useRef(0);
 
   const load = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
     setLoading(true);
     setError(null);
     try {
       const data = await repositories.lootDrop.findByAccount(accountId, filters);
-      setDrops(data);
+      if (requestIdRef.current === requestId) setDrops(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao carregar drops');
+      if (requestIdRef.current === requestId) setError(err instanceof Error ? err.message : 'Erro ao carregar drops');
     } finally {
-      setLoading(false);
+      if (requestIdRef.current === requestId) setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accountId, filters?.bossName, filters?.sold, filters?.looter, filters?.dateFrom, filters?.dateTo]);
