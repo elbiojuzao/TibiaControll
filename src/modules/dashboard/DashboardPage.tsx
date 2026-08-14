@@ -6,8 +6,10 @@ import { useMemberLiveStats } from '@/hooks/useMemberLiveStats';
 import { useMemberXpStats } from '@/hooks/useMemberXpStats';
 import { useBossHuntSheet } from '@/hooks/useBossHuntSheet';
 import { useXpSheet } from '@/hooks/useXpSheet';
+import { useXpLevels } from '@/hooks/useXpLevels';
 import { formatTibiaGold } from '@/services/split';
 import { predictEndOfYearLevel } from '@/services/xp-sheet/level-prediction';
+import { computeMetaLevelRange, computeDailyGoals } from '@/services/xp-sheet/meta-xp-diaria';
 import { monthRangeAsBr } from '@/services/common/months';
 import { dateAsBr, todayAsBr } from '@/services/common/br-date';
 import { parseDateKey } from '@/services/calendar';
@@ -27,9 +29,7 @@ const MESES = [
  * de ano também é real agora (2026-08-10, ver previsaoPorMembro/level-prediction.ts) — só
  * "metas" (tabela de 16 níveis) dentro de MemberXpStats continua mock por enquanto, ver
  * memória do projeto "checkpoint-banco-mock"/"integracao-planilha-xp". */
-const EMPTY_XP_STATS: MemberXpStats = { xpOntem: '—', xp30Dias: '—', metas: {} };
-
-const NIVEIS_METAS = [1650, 1700, 1750, 1800, 1850, 1900, 1950, 2000, 2050, 2100, 2150, 2200, 2250, 2300, 2350, 2400];
+const EMPTY_XP_STATS: MemberXpStats = { xpOntem: '—', xp30Dias: '—' };
 
 function getMetaCellStyle(val: string) {
   if (val === 'Lvl Atingido') {
@@ -49,6 +49,7 @@ export function DashboardPage() {
   const { statsByName } = useMemberXpStats(accountId);
   const { series: bossHuntSeries } = useBossHuntSheet();
   const { data: xpSheetData } = useXpSheet();
+  const { levels: xpLevelsTable } = useXpLevels();
 
   // Previsão fim de ano — antes vinha de um script no Google Sheets do usuário, portado
   // pra cá em 2026-08-10 (ver services/xp-sheet/level-prediction.ts). XP atual vem ao vivo
@@ -67,6 +68,27 @@ export function DashboardPage() {
     }
     return result;
   }, [members, liveStats, xpSheetData]);
+
+  // Meta XP Diária — níveis exibidos são dinâmicos (pedido do usuário em 2026-08-14): do
+  // menor nível atual da party − 2 estágios (100 níveis) até o maior nível + 4 estágios
+  // (200 níveis), sempre múltiplos de 50. XP necessária por nível vem da tabela real
+  // xp_levels (ver useXpLevels/services/xp-sheet/meta-xp-diaria.ts), não é mais mock.
+  const niveisMetas = useMemo(() => {
+    const currentLevels = members
+      .map((m) => liveStats[m.characterName]?.level)
+      .filter((lvl): lvl is number => typeof lvl === 'number' && lvl > 0);
+    return computeMetaLevelRange(currentLevels);
+  }, [members, liveStats]);
+
+  const metaXpDiariaPorMembro = useMemo(() => {
+    const result: Record<string, Record<number, string>> = {};
+    for (const m of members) {
+      const live = liveStats[m.characterName];
+      if (!live?.experience) continue;
+      result[m.characterName] = computeDailyGoals(live.experience, niveisMetas, xpLevelsTable);
+    }
+    return result;
+  }, [members, liveStats, niveisMetas, xpLevelsTable]);
 
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState<string>(String(now.getMonth() + 1));
@@ -392,20 +414,19 @@ export function DashboardPage() {
 
                 {/* Cabeçalho Seção Metas */}
                 <tr>
-                  <td colSpan={5} style={{ background: '#475569', color: '#fff', padding: '6px', fontWeight: 'bold', fontSize: '11px', textAlign: 'center', border: '1px solid #334155' }}>
+                  <td colSpan={members.length + 1} style={{ background: '#475569', color: '#fff', padding: '6px', fontWeight: 'bold', fontSize: '11px', textAlign: 'center', border: '1px solid #334155' }}>
                     Meta XP Diaria para atingir ao final do ano o Lvl Indicado
                   </td>
                 </tr>
 
                 {/* Linhas de Metas por Nível */}
-                {NIVEIS_METAS.map((lvl) => (
+                {niveisMetas.map((lvl) => (
                   <tr key={lvl} style={{ background: '#1e293b' }}>
                     <td style={{ padding: '5px', border: '1px solid #334155', textAlign: 'left', paddingLeft: '10px', fontWeight: 'bold', color: '#cbd5e1', fontSize: '11px' }}>
                       Lvl {lvl}
                     </td>
                     {members.map((m) => {
-                      const extra = statsByName[m.characterName] ?? EMPTY_XP_STATS;
-                      const val = extra.metas[lvl] ?? '';
+                      const val = metaXpDiariaPorMembro[m.characterName]?.[lvl] ?? '';
                       const style = getMetaCellStyle(val);
                       return (
                         <td key={m.id} style={{ padding: '5px', border: '1px solid #334155', backgroundColor: style.background, color: style.color, fontSize: '11px' }}>

@@ -19,6 +19,14 @@ export function xpParaNivel(level: number): number {
   return Math.floor((50 / 3) * (level ** 3 - 6 * level ** 2 + 17 * level - 12));
 }
 
+/** Dias restantes no ano corrente a partir de referenceDate (inclusive), até 31/12.
+ * Compartilhado entre Previsão fim de ano e Meta XP Diária (services/xp-sheet/meta-xp-diaria.ts). */
+export function diasRestantesNoAno(referenceDate: Date = new Date()): number {
+  const fimAno = new Date(referenceDate.getFullYear(), 11, 31);
+  const msPorDia = 86_400_000;
+  return Math.max(0, Math.ceil((fimAno.getTime() - referenceDate.getTime()) / msPorDia));
+}
+
 /** Nível máximo pra evitar loop infinito num input absurdo — mesmo teto do script original. */
 const NIVEL_MAXIMO_SANIDADE = 3500;
 
@@ -43,10 +51,7 @@ export function predictEndOfYearLevel(input: PredictEndOfYearLevelInput): number
   const { currentLevel, currentXp, avgDailyXp, referenceDate = new Date() } = input;
   if (!currentXp || !avgDailyXp) return currentLevel || 0;
 
-  const fimAno = new Date(referenceDate.getFullYear(), 11, 31);
-  const msPorDia = 86_400_000;
-  const diasRestantes = Math.max(0, Math.ceil((fimAno.getTime() - referenceDate.getTime()) / msPorDia));
-
+  const diasRestantes = diasRestantesNoAno(referenceDate);
   const xpFinalPrevista = currentXp + avgDailyXp * diasRestantes;
 
   let nivelProvavel = Math.trunc(currentLevel) || 1;
