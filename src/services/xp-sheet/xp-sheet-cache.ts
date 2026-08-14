@@ -1,4 +1,5 @@
 import type { XpCharacterStats } from '@/types';
+import { fetchWithDailyCache } from '@/services/common/daily-cache';
 
 // v2 (2026-08-10): bump proposital — v1 não tinha xp90Dias no payload cacheado, e como o
 // cache só expira na próxima janela das 7h15, quem já tinha um cache v1 gravado ficaria com
@@ -13,41 +14,6 @@ const STORAGE_KEY = 'tibia-pts:xp-sheet-cache-v2';
 const REFRESH_HOUR = 7;
 const REFRESH_MINUTE = 15;
 
-interface CacheEnvelope {
-  fetchedAt: number;
-  data: Record<string, XpCharacterStats>;
-}
-
-function todaysRefreshBoundary(reference: Date): number {
-  const boundary = new Date(reference);
-  boundary.setHours(REFRESH_HOUR, REFRESH_MINUTE, 0, 0);
-  if (reference.getTime() < boundary.getTime()) {
-    boundary.setDate(boundary.getDate() - 1);
-  }
-  return boundary.getTime();
-}
-
-function readCache(): CacheEnvelope | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as CacheEnvelope;
-  } catch {
-    return null;
-  }
-}
-
-function writeCache(data: Record<string, XpCharacterStats>): void {
-  try {
-    const envelope: CacheEnvelope = { fetchedAt: Date.now(), data };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(envelope));
-  } catch {
-    // localStorage indisponível (aba anônima, quota cheia etc.) — segue sem cache.
-  }
-}
-
-let inFlight: Promise<Record<string, XpCharacterStats>> | null = null;
-
 /**
  * Busca a XP da planilha (via /api/xp-sheet), mas no máximo 1 vez por dia — reaproveita
  * o localStorage até a próxima janela das 7h15 (ver REFRESH_HOUR/REFRESH_MINUTE acima).
@@ -55,31 +21,14 @@ let inFlight: Promise<Record<string, XpCharacterStats>> | null = null;
  * duplicar a chamada nem a lógica de cache.
  */
 export function fetchXpSheetCached(): Promise<Record<string, XpCharacterStats>> {
-  const cached = readCache();
-  const boundary = todaysRefreshBoundary(new Date());
-  if (cached && cached.fetchedAt >= boundary) {
-    return Promise.resolve(cached.data);
-  }
-
-  if (inFlight) return inFlight;
-
-  inFlight = fetch('/api/xp-sheet', { cache: 'no-store' })
-    .then((res) => {
+  return fetchWithDailyCache(
+    STORAGE_KEY,
+    async () => {
+      const res = await fetch('/api/xp-sheet', { cache: 'no-store' });
       if (!res.ok) throw new Error(`status ${res.status}`);
       return res.json() as Promise<Record<string, XpCharacterStats>>;
-    })
-    .then((data) => {
-      writeCache(data);
-      return data;
-    })
-    .catch((err) => {
-      // Planilha indisponível agora — se tem cache velho, é melhor que nada.
-      if (cached) return cached.data;
-      throw err;
-    })
-    .finally(() => {
-      inFlight = null;
-    });
-
-  return inFlight;
+    },
+    REFRESH_HOUR,
+    REFRESH_MINUTE,
+  );
 }
