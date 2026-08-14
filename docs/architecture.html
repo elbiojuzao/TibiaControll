@@ -823,7 +823,7 @@
         <tr><td class="mono-cell">GET /character/{name}</td><td>fetchCharacterBasics()</td><td>level/vocation/world — retorna <code>null</code> se não achar. Não expõe XP total, só Level.</td></tr>
         <tr><td class="mono-cell">GET /highscores/{world}/{cat}/all/{page}</td><td>findSkillValue() · findExperienceValue()</td><td>varre até 10 páginas (top 500); fora disso = <code>null</code>. <code>findExperienceValue</code> (2026-08-10) usa a categoria fixa "experience" pra pegar o XP total exato — usado só na Previsão fim de ano.</td></tr>
       </table>
-      <p style="font-size:13px; color:var(--text-muted); margin-top:10px">Sem cache — busca ao vivo a cada mount de <code>useMemberLiveStats</code>/<code>useBoostedToday</code>.</p>
+      <p style="font-size:13px; color:var(--text-muted); margin-top:10px">Ambos cacheados no localStorage desde 2026-08-14, com estratégia diferente por natureza do dado (ver seção Convenções). <code>useBoostedToday</code>: cache <b>diário</b> (<code>fetchWithDailyCache</code>, janela ~6h) — boosted creature/boss só trocam 1x/dia e nunca repetem. <code>useMemberLiveStats</code>: cache por <b>TTL de 1h</b> (<code>fetchWithTtlCache</code>) — level/skill/XP mudam a qualquer momento, não numa janela fixa, então cache diário mostraria dado velho e quebraria Previsão fim de ano/Meta XP Diária; 1h foi o meio-termo pedido pelo usuário. Cada personagem tem sua própria chave de cache — adicionar/remover membro não afeta o cache dos outros.</p>
     </section>
 
     <section id="sheets">
@@ -918,7 +918,7 @@
       <p style="color:var(--text-muted); font-size:13.5px; max-width:68ch">O cache local só é considerado "de hoje" a partir das <b>7h15</b> — a rotina do usuário grava a XP entre 6h–7h, então um cache feito antes disso (mesmo que já seja "hoje") é tratado como do dia anterior e força nova busca.</p>
 
       <h3 style="margin-top:26px">Previsão fim de ano — real desde 2026-08-10</h3>
-      <p style="color:var(--text-muted); font-size:13.5px; max-width:68ch">Substituiu um script do usuário no Google Apps Script — mesma lógica, fontes diferentes. <code>xpParaNivel(L) = floor((50/3) · (L³ − 6L² + 17L − 12))</code> é a fórmula oficial de XP-por-nível do Tibia (ex: nível 2 = 100 XP, nível 3 = 200 XP). <code>predictEndOfYearLevel</code> soma <b>XP atual</b> (ao vivo, via Highscores categoria "experience" — o Tibia não expõe XP total na página do personagem) + <b>média diária</b> (<code>xp90Dias ÷ 90</code>, da planilha) × dias restantes até 31/12, e sobe de nível enquanto essa XP prevista bate o próximo patamar. Tudo calculado em <code>services/xp-sheet/level-prediction.ts</code>, sem nenhum fetch novo (reaproveita <code>useMemberLiveStats</code> + <code>useXpSheet</code>).</p>
+      <p style="color:var(--text-muted); font-size:13.5px; max-width:68ch">Substituiu um script do usuário no Google Apps Script — mesma lógica, fontes diferentes. <code>xpParaNivel(L) = floor((50/3) · (L³ − 6L² + 17L − 12))</code> é a fórmula oficial de XP-por-nível do Tibia (ex: nível 2 = 100 XP, nível 3 = 200 XP). <code>predictEndOfYearLevel</code> soma <b>XP atual</b> (via Highscores categoria "experience", cacheado 1h por personagem desde 2026-08-14 — o Tibia não expõe XP total na página do personagem) + <b>média diária</b> (<code>xp90Dias ÷ 90</code>, da planilha) × dias restantes até 31/12, e sobe de nível enquanto essa XP prevista bate o próximo patamar. Tudo calculado em <code>services/xp-sheet/level-prediction.ts</code>, sem nenhum fetch novo (reaproveita <code>useMemberLiveStats</code> + <code>useXpSheet</code>).</p>
     </section>
 
     <section id="issues">
@@ -1001,9 +1001,9 @@
         <div class="issue">
           <span class="chip chip-issue-medio">médio</span>
           <div>
-            <p class="issue-title">Cache local da planilha precisa de bump de versão quando o shape muda</p>
-            <p class="issue-area">src/services/xp-sheet/xp-sheet-cache.ts</p>
-            <p class="issue-desc">Mudar os campos de <code>XpCharacterStats</code> sem trocar o sufixo <code>-vN</code> do <code>STORAGE_KEY</code> deixa quem já tinha cache salvo preso no payload antigo até a próxima janela das 7h15 (até 1 dia). Aconteceu de verdade ao adicionar <code>xp90Dias</code> em 2026-08-10 — "Previsão fim de ano" ficou em branco até o bump de v1 pra v2.</p>
+            <p class="issue-title">Cache diário precisa de bump de versão quando o shape muda</p>
+            <p class="issue-area">src/services/common/daily-cache.ts</p>
+            <p class="issue-desc">Mudar o shape do payload cacheado (ex: campo novo em <code>XpCharacterStats</code>) sem trocar o sufixo <code>-vN</code> da <code>storageKey</code> deixa quem já tinha cache salvo preso no payload antigo até a próxima janela de refresh (até 1 dia). Aconteceu de verdade ao adicionar <code>xp90Dias</code> em 2026-08-10 — "Previsão fim de ano" ficou em branco até o bump de v1 pra v2. Vale pra qualquer uso do helper <code>fetchWithDailyCache</code>, não só a planilha de XP.</p>
           </div>
         </div>
       </div>
@@ -1021,7 +1021,8 @@
             <li style="margin-bottom:8px">Gold sempre inteiro, formatado pt-BR com prefixo <code>+</code></li>
             <li style="margin-bottom:8px">Nunca commitar/dar push sem confirmação explícita do usuário</li>
             <li style="margin-bottom:8px"><b>Toda mudança no app atualiza este HTML e o <code>architecture.json</code> junto</b> — regra permanente do usuário (2026-08-10), não deixar os docs desatualizarem</li>
-            <li>2 pipelines de ícone <b>diferentes</b>, não confundir: itens de drop vêm de <code>tibia.fandom.com</code> (<code>fetch-item-icons.mjs</code>, resolução dinâmica); runas de charm vêm de <code>tibiawiki.com.br</code> (<code>fetch-charm-icons.mjs</code>, lista fixa)</li>
+            <li style="margin-bottom:8px">2 pipelines de ícone <b>diferentes</b>, não confundir: itens de drop vêm de <code>tibia.fandom.com</code> (<code>fetch-item-icons.mjs</code>, resolução dinâmica); runas de charm vêm de <code>tibiawiki.com.br</code> (<code>fetch-charm-icons.mjs</code>, lista fixa)</li>
+            <li>Fetch de API pública que dá pra reaproveitar passa por <code>services/common/local-cache.ts</code>: <code>dailyCache</code> pra dado que muda numa janela fixa do relógio (boosted creature/boss), <code>ttlCache</code> pra dado que muda a qualquer momento mas tolera ficar velho um tempo fixo (level/skill/XP, 1h) — escolher a variante errada gera dado incorreto na tela</li>
           </ul>
         </div>
         <div class="card">

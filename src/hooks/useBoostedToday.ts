@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { fetchBoostedCreature, fetchBoostedBoss } from '@/services/tibiadata/tibiadata-client';
+import { fetchBoostedTodayCached } from '@/services/tibiadata/boosted-cache';
 import type { BoostedEntry } from '@/services/tibiadata/tibiadata-client';
 
 export function useBoostedToday() {
@@ -10,24 +10,23 @@ export function useBoostedToday() {
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
+    setError(null);
 
-    async function load() {
-      setLoading(true);
-      setError(null);
-      try {
-        const [creatureResult, bossResult] = await Promise.all([fetchBoostedCreature(), fetchBoostedBoss()]);
+    fetchBoostedTodayCached()
+      .then((data) => {
         if (!cancelled) {
-          setCreature(creatureResult);
-          setBoss(bossResult);
+          setCreature(data.creature);
+          setBoss(data.boss);
         }
-      } catch (err) {
+      })
+      .catch((err) => {
         if (!cancelled) setError(err instanceof Error ? err.message : 'Erro ao buscar dados do TibiaData');
-      } finally {
+      })
+      .finally(() => {
         if (!cancelled) setLoading(false);
-      }
-    }
+      });
 
-    load();
     return () => { cancelled = true; };
   }, []);
 

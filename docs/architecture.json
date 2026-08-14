@@ -66,7 +66,7 @@
         "status": "REAL desde 2026-08-10 — antes era um script no Google Apps Script do usuário, portado pro app (não fica mais em nenhum lugar mock).",
         "formula": "services/xp-sheet/level-prediction.ts: xpParaNivel(L) = floor((50/3) * (L^3 - 6L^2 + 17L - 12)) (fórmula oficial de XP-por-nível do Tibia). predictEndOfYearLevel soma XP atual + (média diária × dias restantes até 31/12) e sobe de nível enquanto a XP prevista bate o próximo patamar.",
         "inputs": {
-          "currentLevel/currentXp": "ao vivo via TibiaData Highscores categoria 'experience' — findExperienceValue() em services/tibiadata/tibiadata-client.ts. O Tibia não expõe XP total na página do personagem (só Level), mas os Highscores sim.",
+          "currentLevel/currentXp": "via TibiaData Highscores categoria 'experience' — findExperienceValue() em services/tibiadata/tibiadata-client.ts. O Tibia não expõe XP total na página do personagem (só Level), mas os Highscores sim. Cacheado 1h por personagem desde 2026-08-14 (ver businessLogic.ttlCache) — não é mais 'sempre ao vivo a cada mount'.",
           "avgDailyXp": "xp90Dias / 90, onde xp90Dias vem de XpCharacterStats (planilha 'Xp Realizada', mesma fonte de xpOntem/xp30Dias, só somando uma janela maior — pedido do usuário pra ficar mais preciso que os 30 dias usados no card 'Xp 30Dias')."
         },
         "computedIn": "DashboardPage.tsx (useMemo previsaoPorMembro) — combina useMemberLiveStats (level+experience) com useXpSheet (xp90Dias), não faz nenhum fetch novo.",
@@ -284,7 +284,7 @@
         "GET /highscores/{world}/{category}/all/{page}": "searchHighscoreValue() (helper compartilhado) — varre até 10 páginas dos Highscores (top 500) procurando o personagem; fora do top 500 = null. Duas categorias usadas: findSkillValue() (categoria de skill por vocação) e findExperienceValue() (categoria fixa 'experience', desde 2026-08-10 — dá o XP total/lifetime exato, usado só pra Previsão fim de ano)."
       },
       "usedBy": ["useMemberLiveStats (Lvl Atual/Skill/Experience do Dashboard)", "useBoostedToday (sidebar)"],
-      "caching": "Nenhum — sempre busca ao vivo a cada mount."
+      "caching": "Ambos cacheados no localStorage desde 2026-08-14 (pedido do usuário: 'tudo o que usa API do TibiaData... vamos usar o localstore'), mas com estratégias diferentes por natureza do dado — ver businessLogic.dailyCache/businessLogic.ttlCache. useBoostedToday: cache DIÁRIO (janela fixa ~6h, boosted creature/boss só trocam 1x/dia e nunca repetem). useMemberLiveStats: cache por TTL de 1h (level/skill/XP mudam a qualquer momento, não numa janela fixa — cache diário mostraria dado desatualizado e quebraria Previsão fim de ano/Meta XP Diária; 1h foi o meio-termo pedido pelo usuário depois de eu explicar por que cache diário não servia aqui). Cada personagem cacheado numa chave própria (tibia-pts:member-live-stats-v1:{nome}), não um blob único — adicionar/remover membro não invalida o cache dos outros."
     },
 
     "googleSheets": {
@@ -334,10 +334,20 @@
       "file": "src/services/charm/charm-planner.ts",
       "rule": "Custo é ACUMULADO desde o zero (cumulativeCost[level-1] já inclui todos os níveis anteriores), NÃO incremental — não somar cumulativeCost[0]+cumulativeCost[1]+cumulativeCost[2] pra chegar no nível 3, o valor de cumulativeCost[2] já é o total."
     },
-    "xpSheetCache": {
-      "file": "src/services/xp-sheet/xp-sheet-cache.ts",
-      "rule": "fetchXpSheetCached() — cache local (localStorage) válido até a PRÓXIMA janela das 7h15 (REFRESH_HOUR=7, REFRESH_MINUTE=15). Se agora < 7h15 de hoje, o boundary válido é 7h15 de ONTEM (protege contra achar que um cache feito às 6h30 de hoje, antes da rotina do usuário terminar, já é 'de hoje').",
-      "cacheKeyVersioning": "STORAGE_KEY tem sufixo de versão (ex 'tibia-pts:xp-sheet-cache-v2') — bumpar esse sufixo sempre que o SHAPE do payload cacheado mudar (campo novo, campo removido). Sem isso, quem já tinha um cache da versão anterior fica preso com o payload velho até a próxima janela das 7h15 (até 1 dia inteiro), mesmo que o código novo já espere o campo novo. Aconteceu de verdade em 2026-08-10: xp90Dias foi adicionado à API mas o cache v1 não tinha esse campo, 'Previsão fim de ano' ficou em branco até o bump pra v2."
+    "localCacheCore": {
+      "file": "src/services/common/local-cache.ts",
+      "rule": "fetchWithLocalCache(storageKey, fetcher, isValid) — núcleo comum (2026-08-14) por trás de dailyCache e ttlCache abaixo: lê/escreve envelope {fetchedAt, data} no localStorage, dedupe de requisições concorrentes por storageKey (Map<string, Promise>, 2 componentes montando ao mesmo tempo não disparam 2 fetches), e fallback pro cache velho se o fetch falhar (nunca quebra a tela por causa disso). `isValid(fetchedAt)` é o único ponto que varia entre os dois casos de uso — janela fixa do relógio (dailyCache) vs tempo fixo desde a última busca (ttlCache)."
+    },
+    "dailyCache": {
+      "file": "src/services/common/daily-cache.ts",
+      "rule": "fetchWithDailyCache(storageKey, fetcher, refreshHour, refreshMinute?) — pra dado que só muda numa janela fixa do dia. Válido até a PRÓXIMA janela de refreshHour:refreshMinute; se agora < boundary de hoje, o boundary válido é o de ONTEM (protege contra achar que um cache feito ANTES da rotina/reset do dia terminar já é 'de hoje'). Construído em cima de localCacheCore.",
+      "cacheKeyVersioning": "storageKey deve ter sufixo de versão (ex '...-v2') — bumpar sempre que o SHAPE do payload cacheado mudar (campo novo/removido). Sem isso, quem já tinha cache da versão anterior fica preso no payload velho até a próxima janela (até 1 dia inteiro). Aconteceu de verdade em 2026-08-10 com xp-sheet-cache (v1→v2, ver histórico) — mesma regra vale pra qualquer uso novo desse helper.",
+      "usedBy": ["xp-sheet-cache.ts (REFRESH_HOUR=7, REFRESH_MINUTE=15 — janela da rotina de XP do usuário)", "boosted-cache.ts (REFRESH_HOUR=6 — janela do reset diário do jogo, boosted creature/boss)"]
+    },
+    "ttlCache": {
+      "file": "src/services/common/ttl-cache.ts",
+      "rule": "fetchWithTtlCache(storageKey, fetcher, maxAgeMs) — pra dado que muda a qualquer momento (não numa janela fixa do relógio), válido por um tempo fixo rolante desde a última busca. Construído em cima de localCacheCore. Adicionado em 2026-08-14 a pedido do usuário, depois de eu explicar que useMemberLiveStats não cabia no dailyCache (level/XP mudam o tempo todo, cache de 1 dia mostraria dado velho e quebraria Previsão fim de ano/Meta XP Diária) — usuário pediu o meio-termo: 'usar o localstore de 1 em 1 hora'.",
+      "usedBy": ["useMemberLiveStats.ts (TTL_MS = 1h, uma storageKey POR personagem — tibia-pts:member-live-stats-v1:{nome} — não um blob único, então adicionar/remover membro não invalida o cache dos outros)."]
     },
     "previsaoFimAno": {
       "file": "src/services/xp-sheet/level-prediction.ts",
@@ -467,6 +477,7 @@
     "goldFormat": "Sempre inteiro (nunca decimal) — formatTibiaGold formata com separador de milhar pt-BR e prefixo '+' (ver knownIssuesAndGotchas sobre o bug de sinal negativo).",
     "commitMessages": "Português, corpo explica o 'porquê', termina com 'Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>'.",
     "onlyCommitOnExplicitAsk": "Nunca commitar/dar push sem o usuário confirmar explicitamente ('sim', 'pode') — mesmo depois de terminar uma feature.",
-    "iconPipelines": "DUAS fontes de ícone diferentes, não confundir: itens de drop vêm de tibia.fandom.com via scripts/fetch-item-icons.mjs (resolução dinâmica de nome, com fallback de busca); runas de charm vêm de tibiawiki.com.br via scripts/fetch-charm-icons.mjs (lista fixa de URLs, sem resolução dinâmica). Cada pipeline salva num diretório próprio em src/assets/ com seu próprio helper de lookup (getItemIconUrl / getCharmIconUrl) — não misturar."
+    "iconPipelines": "DUAS fontes de ícone diferentes, não confundir: itens de drop vêm de tibia.fandom.com via scripts/fetch-item-icons.mjs (resolução dinâmica de nome, com fallback de busca); runas de charm vêm de tibiawiki.com.br via scripts/fetch-charm-icons.mjs (lista fixa de URLs, sem resolução dinâmica). Cada pipeline salva num diretório próprio em src/assets/ com seu próprio helper de lookup (getItemIconUrl / getCharmIconUrl) — não misturar.",
+    "localCacheStrategy": "Pra reduzir requisição de API pública repetida (pedido do usuário em 2026-08-14), qualquer fetch que dá pra reaproveitar por um tempo passa por src/services/common/local-cache.ts, com 2 variantes: dailyCache.ts (dado que só muda numa janela fixa do relógio, ex: boosted creature/boss ~6h) ou ttlCache.ts (dado que muda a qualquer momento mas tolera ficar 'velho' por um tempo fixo, ex: level/skill/XP de personagem, 1h). Escolher a variante errada gera dado incorreto — nunca usar dailyCache pra algo que muda continuamente ao longo do dia. Ver businessLogic.dailyCache/ttlCache/localCacheCore."
   }
 }
