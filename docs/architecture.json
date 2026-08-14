@@ -36,15 +36,16 @@
   },
 
   "routes": [
-    { "path": "/", "module": "dashboard", "label": "Dashboard", "component": "DashboardPage" },
-    { "path": "/loot-log", "module": "dashboard", "label": "Log de Drops", "component": "LootLogPage" },
-    { "path": "/split", "module": "split-calculator", "label": "Split Loot", "component": "SplitCalculatorPage" },
-    { "path": "/timers", "module": "timers", "label": "Timers", "component": "TimersPage" },
-    { "path": "/tier-calculator", "module": "tier-calculator", "label": "Calculadora Tier", "component": "TierCalculatorPage" },
-    { "path": "/charm-planner", "module": "charm-planner", "label": "Charm Planner", "component": "CharmPlannerPage" },
-    { "path": "/calendario", "module": "calendar-historico", "label": "Histórico", "component": "CalendarioPage" },
-    { "path": "/historico-xp", "module": "xp-historico", "label": "Histórico de XP", "component": "XpHistoricoPage" },
-    { "path": "/serviceiros", "module": "serviceiros", "label": "Serviceiros", "component": "ServiceirosPage" }
+    { "path": "/", "module": "dashboard", "label": "Dashboard", "component": "DashboardPage", "requiresAuth": true },
+    { "path": "/loot-log", "module": "dashboard", "label": "Log de Drops", "component": "LootLogPage", "requiresAuth": true },
+    { "path": "/split", "module": "split-calculator", "label": "Split Loot", "component": "SplitCalculatorPage", "requiresAuth": false },
+    { "path": "/timers", "module": "timers", "label": "Timers", "component": "TimersPage", "requiresAuth": false },
+    { "path": "/tier-calculator", "module": "tier-calculator", "label": "Calculadora Tier", "component": "TierCalculatorPage", "requiresAuth": false },
+    { "path": "/charm-planner", "module": "charm-planner", "label": "Charm Planner", "component": "CharmPlannerPage", "requiresAuth": false },
+    { "path": "/calendario", "module": "calendar-historico", "label": "Histórico", "component": "CalendarioPage", "requiresAuth": true },
+    { "path": "/historico-xp", "module": "xp-historico", "label": "Histórico de XP", "component": "XpHistoricoPage", "requiresAuth": true },
+    { "path": "/serviceiros", "module": "serviceiros", "label": "Serviceiros", "component": "ServiceirosPage", "requiresAuth": true },
+    { "path": "/login", "module": "login", "label": "Login", "component": "LoginPage", "requiresAuth": false, "note": "Fora do <AppLayout> — página standalone, sem sidebar." }
   ],
 
   "modules": {
@@ -148,11 +149,23 @@
       "keyFiles": { "ServiceirosPage.tsx": "370 linhas — form + lista com confirmação antes de excluir (regra geral do projeto, nunca 1 clique só)." },
       "dataSource": "Serviceiro via IServiceiroRepository (Mock ou Http/Supabase conforme VITE_SERVICEIROS_USE_SUPABASE).",
       "note": "Número de telefone nunca é exibido na UI (só usado pra montar o link wa.me) — ver services/serviceiro/whatsapp.ts."
+    },
+
+    "login": {
+      "path": "src/modules/login/",
+      "routes": ["/login"],
+      "purpose": "Login real (2026-08-14) via Supabase Auth — 1 única credencial compartilhada pela PT inteira (não é cadastro por pessoa, ver [[regras-gestao-pts]]). Gate pros 5 módulos exclusivos de conta.",
+      "keyFiles": { "LoginPage.tsx": "Form email+senha standalone (fora do AppLayout, sem sidebar). Lê location.state.from (setado por RequireAuth) pra voltar pro lugar certo depois do login; se já autenticado, redireciona sozinho." },
+      "dataSource": "services/supabase/supabase-auth.ts (signInWithPassword/signOut/getSession/onAuthStateChange) via useAuth().",
+      "gatedRoutes": ["/", "/loot-log", "/calendario", "/historico-xp", "/serviceiros"],
+      "openRoutes": ["/split", "/timers", "/tier-calculator", "/charm-planner"],
+      "note": "RequireAuth (src/components/auth/RequireAuth.tsx) envolve só as 5 rotas gated em App.tsx. AppLayout mostra 🔒 nos itens de nav gated quando não autenticado, e um botão Sair/Entrar no rodapé da sidebar.",
+      "multiAccountDesign": "Preparado desde 2026-08-14 pra múltiplas contas/parties (pedido explícito do usuário: 'a intenção é futuramente ter mais de 1 conta'). 'Qual conta está conectada' NUNCA vem de URL/query string/token editável pelo cliente — vem de accounts.user_id (FK real pro auth.users do Supabase), resolvido via RLS no Postgres (auth.uid() do JWT da sessão). HttpAccountRepository.getCurrentAccount() faz um select * from accounts SEM filtro nenhum no código — o RLS já devolve só a linha certa (ou vazio, se ninguém logado). Ver externalIntegrations.supabase.authStatus e dataModels.Account."
     }
   },
 
   "dataModels": {
-    "Account": { "file": "src/types/account.ts", "fields": { "id": "string", "username": "string", "partyName": "string", "type": "'party' | 'solo'", "createdAt": "string" }, "note": "Login/senha ainda não usa Supabase Auth de verdade — accounts é um placeholder no schema real." },
+    "Account": { "file": "src/types/account.ts", "fields": { "id": "string", "partyName": "string", "type": "'party' | 'solo'", "createdAt": "string" }, "note": "Representa só o WORKSPACE/party (ainda mock — mockAccount/MOCK_ACCOUNT_ID), não tem mais username/senha (removidos em 2026-08-14). Quem pode ENTRAR no app é responsabilidade separada do Supabase Auth (ver módulo login) — Account e autenticação são conceitos desacoplados agora." },
     "Member": { "file": "src/types/member.ts", "fields": { "id": "string", "accountId": "string", "characterName": "string", "vocation": "Vocation", "isServiceiro": "boolean", "serviceiroSharePercent": "number?", "ownerCharacterName": "string?", "skillCategory": "HighscoreSkillCategory?" }, "note": "Membro da party (jogador de verdade, distinto de Serviceiro). 100% mock, nenhuma tabela Supabase ainda." },
     "Vocation": { "file": "src/types/account.ts", "values": ["EK", "ED", "MS", "RP", "EM", "OTHER"] },
     "LootDrop": {
@@ -188,12 +201,13 @@
       "globalFlag": "VITE_USE_MOCK (default true — se 'false', o app INTEIRO lança erro, HTTP genérico não foi implementado)",
       "perEntityFlags": {
         "VITE_SERVICEIROS_USE_SUPABASE": "true → HttpServiceiroRepository (Supabase); false/ausente → MockServiceiroRepository",
-        "VITE_LOOTDROPS_USE_SUPABASE": "true → HttpLootDropRepository (Supabase); false/ausente → MockLootDropRepository"
+        "VITE_LOOTDROPS_USE_SUPABASE": "true → HttpLootDropRepository (Supabase); false/ausente → MockLootDropRepository",
+        "VITE_ACCOUNT_USE_SUPABASE": "true → HttpAccountRepository (resolve a conta via Supabase Auth + RLS, accounts.user_id = auth.uid()); false/ausente → MockAccountRepository (sempre mockAccount fixo). Adicionada em 2026-08-14 junto com o login real — deixar false até rodar a migration 20260814000000_enable_rls_with_auth.sql E ligar um usuário de verdade a uma conta."
       },
-      "important": "Essas 2 flags funcionam INDEPENDENTE do VITE_USE_MOCK global — dá pra ter o app 'em modo mock' mas com Drops e Serviceiros batendo no Supabase real ao mesmo tempo. Nenhuma outra entidade (Member, Hunt, Boss, Split, Settings, Dashboard-KPIs-antigos) tem implementação Http ainda."
+      "important": "Essas 3 flags funcionam INDEPENDENTE do VITE_USE_MOCK global — dá pra ter o app 'em modo mock' mas com Drops/Serviceiros/Account batendo no Supabase real ao mesmo tempo. Nenhuma outra entidade (Member, Hunt, Boss, Split, Settings, Dashboard-KPIs-antigos) tem implementação Http ainda."
     },
     "entities": {
-      "account": { "interface": "IAccountRepository", "mock": "MockAccountRepository", "http": null },
+      "account": { "interface": "IAccountRepository", "mock": "MockAccountRepository", "http": "HttpAccountRepository (Supabase, gated por VITE_ACCOUNT_USE_SUPABASE)", "note": "Só getCurrentAccount() (resolve o workspace/party). Login()/logout()/createAccount() foram REMOVIDOS em 2026-08-14 — autenticação real não passa mais pelo padrão repository, é Supabase Auth direto via useAuth() (ver módulo login). HttpAccountRepository não filtra por usuário no código — RLS já resolve sozinho via accounts.user_id = auth.uid()." },
       "member": { "interface": "IMemberRepository", "mock": "MockMemberRepository", "http": null },
       "lootDrop": { "interface": "ILootDropRepository", "mock": "MockLootDropRepository", "http": "HttpLootDropRepository (Supabase, tabelas drops + drop_services)" },
       "hunt": { "interface": "IHuntRepository", "mock": "MockHuntRepository", "http": null },
@@ -210,16 +224,17 @@
     "supabase": {
       "projectPurpose": "Banco relacional real, só para Drops e Serviceiros (o resto do app é mock).",
       "clientPattern": "src/services/supabase/supabase-client.ts — getSupabaseClient() lazy singleton, ver repositoryPattern.criticalLesson.",
-      "authStatus": "Sem Supabase Auth integrado. RLS DESLIGADA em todas as tabelas (anon key tem acesso total) — aceitável só porque ainda é single-tenant/dev. accounts é um placeholder mínimo.",
+      "authStatus": "Supabase Auth LIGADO desde 2026-08-14 (login real). RLS LIGADA nas 4 tabelas, DESENHADA PRA MULTI-TENANT desde o início (pedido do usuário: 'a intenção é futuramente ter mais de 1 conta') — policies filtram por accounts.user_id = auth.uid() (accounts), account_id in (select id from accounts where user_id = auth.uid()) (drops/serviceiros), ou um exists com join até drops (drop_services, que não tem account_id direto). NÃO é mais um 'authenticated using (true)' genérico — cada login só enxerga a própria conta. Continua sendo 1 credencial POR PARTY (login compartilhado entre os membros da mesma party), mas agora N parties diferentes podem coexistir no mesmo banco sem se enxergarem.",
       "migrations": [
         "20260806000000_initial_drops_schema.sql — cria accounts, serviceiros, drops, drop_services",
         "20260806010000_import_adjustments.sql",
         "20260806020000_disable_rls_until_auth.sql",
         "20260806030000_add_character_name_to_serviceiros.sql — coluna character_name (boneco de pagamento)",
-        "20260806040000_add_served_character_to_drop_services.sql — coluna served_character_name"
+        "20260806040000_add_served_character_to_drop_services.sql — coluna served_character_name",
+        "20260814000000_enable_rls_with_auth.sql — RELIGA RLS (tinha sido desligado na migration de 2026-08-06) + policy 'authenticated_full_access' nas 4 tabelas, agora que existe Supabase Auth de verdade"
       ],
       "tables": {
-        "accounts": { "columns": ["id (uuid pk)", "party_name", "type ('party'|'solo')", "created_at"] },
+        "accounts": { "columns": ["id (uuid pk)", "party_name", "type ('party'|'solo')", "created_at", "user_id (uuid, unique, fk auth.users — desde 2026-08-14, liga a conta ao login que pode acessá-la)"] },
         "serviceiros": { "columns": ["id (uuid pk)", "account_id (fk)", "name", "character_name", "phone_number", "vocations (text[])", "created_at"] },
         "drops": {
           "columns": ["id (uuid pk)", "account_id (fk)", "data_drop (date)", "ek", "ed", "ms", "rp", "quinto_player", "fragador (not null)", "item (not null)", "boss (not null)", "valor_cada (bigint)", "valor_total (bigint)", "vendido (bool)", "data_venda (date, requer vendido=true)", "created_at"],
@@ -308,6 +323,13 @@
   },
 
   "knownIssuesAndGotchas": [
+    {
+      "id": "login-precisa-de-passos-manuais-do-usuario",
+      "severity": "alto (bloqueia o login funcionar)",
+      "area": "Supabase Auth",
+      "description": "O código do login (2026-08-14, desenhado pra multi-conta) está pronto e testado (redirecionamento, cadeados na sidebar, tratamento de erro de credencial inválida — tudo confirmado), mas NINGUÉM consegue logar E ENXERGAR A CONTA de verdade até o usuário fazer 3 coisas manualmente, nenhuma pode ser feita por uma sessão do Claude (sem credencial de admin do Supabase): (1) rodar a migration supabase/migrations/20260814000000_enable_rls_with_auth.sql no SQL Editor (cria accounts.user_id + as policies novas); (2) criar o usuário de login em Authentication → Users → Add user, com 'Auto Confirm User' marcado; (3) rodar o UPDATE que liga accounts.user_id ao auth.users.id desse usuário (SQL comentado no fim da própria migration, só trocar o e-mail). Faltar só o passo 3 é o mais traiçoeiro: o LOGIN funciona (credencial certa, sessão criada), mas a conta fica 'órfã' — RLS não deixa ninguém ver os dados dela, app parece travado/vazio mesmo autenticado.",
+      "howToVerify": "Tentar logar em produção — 'E-mail ou senha inválidos' = passo 1 ou 2 faltando. Login funciona mas Dashboard/Drops/Serviceiros ficam vazios/travados = passo 3 (o UPDATE) faltando."
+    },
     {
       "id": "esm-relative-imports-need-js-extension",
       "severity": "alto",

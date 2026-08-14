@@ -1,10 +1,9 @@
-import type { Account, AuthSession, CreateAccountDto, LoginDto } from '@/types';
+import type { Account } from '@/types';
 
+/** Login de verdade agora é Supabase Auth (ver useAuth/RequireAuth) — este repositório só
+ * resolve qual é o workspace/party atual, não autentica ninguém. */
 export interface IAccountRepository {
-  login(credentials: LoginDto): Promise<AuthSession>;
   getCurrentAccount(): Promise<Account | null>;
-  logout(): Promise<void>;
-  createAccount(dto: CreateAccountDto): Promise<Account>;
 }
 
 export interface IMemberRepository {

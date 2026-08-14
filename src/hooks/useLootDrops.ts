@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { CreateLootDropDto, LootDrop, LootDropFilters } from '@/types';
-import { repositories, LOOTDROPS_USE_SUPABASE } from '@/services/repositories';
-import { SUPABASE_ACCOUNT_ID } from '@/services/supabase/supabase-account';
+import { repositories } from '@/services/repositories';
 
+/** accountId já vem resolvido de verdade por useAccount() (Supabase Auth + RLS, ver
+ * migration 20260814000000_enable_rls_with_auth.sql) quando ACCOUNT_USE_SUPABASE está
+ * ligado — não precisa mais de um account_id fixo aqui (era uma gambiarra temporária até
+ * o Auth existir de verdade, ver memória "integracao-supabase"). */
 export function useLootDrops(accountId: string, filters?: LootDropFilters) {
-  // Mesmo shim de account_id do useServiceiros — o account_id mock nao existe
-  // no Supabase real (ver memoria "integracao-supabase").
-  const effectiveAccountId = LOOTDROPS_USE_SUPABASE ? SUPABASE_ACCOUNT_ID : accountId;
-
   const [drops, setDrops] = useState<LootDrop[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -16,7 +15,7 @@ export function useLootDrops(accountId: string, filters?: LootDropFilters) {
     setLoading(true);
     setError(null);
     try {
-      const data = await repositories.lootDrop.findByAccount(effectiveAccountId, filters);
+      const data = await repositories.lootDrop.findByAccount(accountId, filters);
       setDrops(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao carregar drops');
@@ -24,17 +23,17 @@ export function useLootDrops(accountId: string, filters?: LootDropFilters) {
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveAccountId, filters?.bossName, filters?.sold, filters?.looter, filters?.dateFrom, filters?.dateTo]);
+  }, [accountId, filters?.bossName, filters?.sold, filters?.looter, filters?.dateFrom, filters?.dateTo]);
 
   useEffect(() => {
     load();
   }, [load]);
 
   const createDrop = useCallback(async (dto: CreateLootDropDto) => {
-    const created = await repositories.lootDrop.create(effectiveAccountId, dto);
+    const created = await repositories.lootDrop.create(accountId, dto);
     setDrops((prev) => [created, ...prev]);
     return created;
-  }, [effectiveAccountId]);
+  }, [accountId]);
 
   const updateDrop = useCallback(async (id: string, dto: Partial<CreateLootDropDto>) => {
     const updated = await repositories.lootDrop.update(id, dto);

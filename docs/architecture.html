@@ -366,8 +366,8 @@
       <p>Substitui as planilhas manuais de uma party de Tibia: log de drops, split de loot, timers de boss, calculadoras de tier/charm, histórico de XP e agenda de serviceiros. React 19 + TypeScript + Vite, dado real parcial via Supabase, dois proxies de leitura (TibiaData e a planilha pessoal do usuário) via Vercel Functions.</p>
       <div class="hero-meta">
         <span class="meta-pill">stack: <b>React 19 · Vite 6 · TypeScript</b></span>
-        <span class="meta-pill">9 <b>rotas</b></span>
-        <span class="meta-pill">8 <b>módulos</b></span>
+        <span class="meta-pill">10 <b>rotas</b></span>
+        <span class="meta-pill">9 <b>módulos</b></span>
         <span class="meta-pill">deploy: <b>tibiacontroll.vercel.app</b></span>
         <span class="meta-pill">repo: <b>elbiojuzao/TibiaControll</b></span>
       </div>
@@ -379,17 +379,18 @@
 
     <section id="routes">
       <h2><span class="num">01</span> Rotas &amp; navegação</h2>
-      <p class="section-intro">Todas as rotas vivem sob um único <code>&lt;AppLayout&gt;</code> (sidebar fixa + <code>&lt;Outlet/&gt;</code>), definidas em <code>src/App.tsx</code>. Sem autenticação por rota — a conta é resolvida via <code>useAccount()</code> globalmente.</p>
+      <p class="section-intro">Todas as rotas (exceto <code>/login</code>) vivem sob um único <code>&lt;AppLayout&gt;</code> (sidebar fixa + <code>&lt;Outlet/&gt;</code>), definidas em <code>src/App.tsx</code>. <b>Login real desde 2026-08-14</b> (Supabase Auth) — 🔒 = exige sessão válida (<code>RequireAuth</code>), sem cadeado = aberto pra qualquer um.</p>
       <div class="route-grid">
-        <div class="route-card"><span class="route-path">/</span><div class="route-label">📊 Dashboard</div><span class="chip chip-mixed">misto</span></div>
-        <div class="route-card"><span class="route-path">/loot-log</span><div class="route-label">💎 Log de Drops</div><span class="chip chip-mixed">misto</span></div>
+        <div class="route-card"><span class="route-path">/ 🔒</span><div class="route-label">📊 Dashboard</div><span class="chip chip-mixed">misto</span></div>
+        <div class="route-card"><span class="route-path">/loot-log 🔒</span><div class="route-label">💎 Log de Drops</div><span class="chip chip-mixed">misto</span></div>
         <div class="route-card"><span class="route-path">/split</span><div class="route-label">💰 Split Loot</div><span class="chip chip-real">cálculo puro</span></div>
         <div class="route-card"><span class="route-path">/timers</span><div class="route-label">⏱️ Timers</div><span class="chip chip-mock">mock</span></div>
         <div class="route-card"><span class="route-path">/tier-calculator</span><div class="route-label">⚒️ Calculadora Tier</div><span class="chip chip-real">regra do jogo</span></div>
         <div class="route-card"><span class="route-path">/charm-planner</span><div class="route-label">🔮 Charm Planner</div><span class="chip chip-real">regra do jogo</span></div>
-        <div class="route-card"><span class="route-path">/calendario</span><div class="route-label">📅 Histórico</div><span class="chip chip-mixed">misto</span></div>
-        <div class="route-card"><span class="route-path">/historico-xp</span><div class="route-label">📈 Histórico de XP</div><span class="chip chip-real">planilha real</span></div>
-        <div class="route-card"><span class="route-path">/serviceiros</span><div class="route-label">🤝 Serviceiros</div><span class="chip chip-mixed">misto</span></div>
+        <div class="route-card"><span class="route-path">/calendario 🔒</span><div class="route-label">📅 Histórico</div><span class="chip chip-mixed">misto</span></div>
+        <div class="route-card"><span class="route-path">/historico-xp 🔒</span><div class="route-label">📈 Histórico de XP</div><span class="chip chip-real">planilha real</span></div>
+        <div class="route-card"><span class="route-path">/serviceiros 🔒</span><div class="route-label">🤝 Serviceiros</div><span class="chip chip-mixed">misto</span></div>
+        <div class="route-card"><span class="route-path">/login</span><div class="route-label">🔑 Login</div><span class="chip chip-real">supabase auth</span></div>
       </div>
       <p style="font-size:12.5px; color:var(--text-faint); margin-top:14px"><code>vercel.json</code> (2026-08-10) tem um rewrite <code>/(.*)  → /index.html</code> — sem ele, acessar qualquer rota acima direto pela URL (ou dar F5 fora da raiz) retornava 404 do Vercel, já que só o React Router (client-side) sabe resolver esses caminhos. As Functions em <code>api/*.ts</code> não são afetadas — o roteamento por sistema de arquivos do Vercel tem prioridade sobre o rewrite.</p>
     </section>
@@ -594,6 +595,21 @@
           </dl>
         </div>
       </details>
+
+      <details class="module">
+        <summary><span class="summary-left">🔑 Login <span class="summary-path">src/modules/login/</span></span><span class="chip chip-real">supabase auth</span></summary>
+        <div class="module-body">
+          <p>Login real (2026-08-14) via Supabase Auth — 1 única credencial compartilhada pela PT inteira (não é cadastro por pessoa). Gate pros 5 módulos exclusivos de conta.</p>
+          <dl class="kv-list">
+            <dt>Rota</dt><dd><code>/login</code> — standalone, fora do <code>&lt;AppLayout&gt;</code> (sem sidebar)</dd>
+            <dt>Dado</dt><dd><code>services/supabase/supabase-auth.ts</code> via <code>useAuth()</code> — <code>signInWithPassword</code>/<code>signOut</code>/<code>getSession</code>/<code>onAuthStateChange</code></dd>
+            <dt>Rotas protegidas</dt><dd><code>/</code>, <code>/loot-log</code>, <code>/calendario</code>, <code>/historico-xp</code>, <code>/serviceiros</code> — envolvidas por <code>RequireAuth</code> em <code>App.tsx</code></dd>
+            <dt>Rotas abertas</dt><dd><code>/split</code>, <code>/timers</code>, <code>/tier-calculator</code>, <code>/charm-planner</code> — calculadoras sem dado de conta, não pedem login</dd>
+            <dt>Atenção</dt><dd>Desacoplado de <code>useAccount()</code> de propósito: <code>useAuth</code> responde "pode entrar?", <code>useAccount</code> responde "qual workspace" (via <code>HttpAccountRepository</code> quando <code>VITE_ACCOUNT_USE_SUPABASE=true</code>). Pendência real: precisa rodar a migration de RLS, criar o usuário e ligar <code>accounts.user_id</code> manualmente no Supabase antes de funcionar em produção (ver Problemas conhecidos).</dd>
+            <dt>Multi-conta (2026-08-14)</dt><dd>Desenhado desde o início pra suportar N parties — "qual conta está conectada" nunca vem de URL/token do cliente, vem de <code>accounts.user_id</code> (FK real pro <code>auth.users</code>) resolvido via RLS. <code>HttpAccountRepository.getCurrentAccount()</code> nem filtra no código — só faz <code>select * from accounts</code>, o RLS já devolve a linha certa (ou vazio).</dd>
+          </dl>
+        </div>
+      </details>
     </section>
 
     <section id="models">
@@ -681,7 +697,7 @@
 
       <table class="flag-table">
         <tr><th>Entidade</th><th>Interface</th><th>Mock</th><th>Http (real)</th></tr>
-        <tr><td>account</td><td class="mono-cell">IAccountRepository</td><td>MockAccountRepository</td><td>—</td></tr>
+        <tr><td>account</td><td class="mono-cell">IAccountRepository</td><td>MockAccountRepository</td><td>HttpAccountRepository <span class="chip chip-real" style="margin-left:4px">supabase</span> (só <code>getCurrentAccount()</code>; login/logout foram removidos em 2026-08-14, autenticação agora é Supabase Auth direto via <code>useAuth()</code>. Flag <code>VITE_ACCOUNT_USE_SUPABASE</code>)</td></tr>
         <tr><td>member</td><td class="mono-cell">IMemberRepository</td><td>MockMemberRepository</td><td>—</td></tr>
         <tr><td>lootDrop</td><td class="mono-cell">ILootDropRepository</td><td>MockLootDropRepository</td><td>HttpLootDropRepository <span class="chip chip-real" style="margin-left:4px">supabase</span></td></tr>
         <tr><td>hunt</td><td class="mono-cell">IHuntRepository</td><td>MockHuntRepository</td><td>—</td></tr>
@@ -698,6 +714,7 @@
         <tr><td class="mono-cell">VITE_USE_MOCK</td><td>Global — <code>'false'</code> quebra o app (HTTP genérico ainda não implementado). Deixar sempre <code>true</code>.</td></tr>
         <tr><td class="mono-cell">VITE_LOOTDROPS_USE_SUPABASE</td><td><code>'true'</code> → HttpLootDropRepository; independe do VITE_USE_MOCK global.</td></tr>
         <tr><td class="mono-cell">VITE_SERVICEIROS_USE_SUPABASE</td><td><code>'true'</code> → HttpServiceiroRepository; independe do VITE_USE_MOCK global.</td></tr>
+        <tr><td class="mono-cell">VITE_ACCOUNT_USE_SUPABASE</td><td><code>'true'</code> → HttpAccountRepository (resolve a conta via Supabase Auth + RLS). Adicionada 2026-08-14 — deixar <code>false</code> até rodar a migration de RLS e ligar um usuário real.</td></tr>
       </table>
 
       <div class="card" style="margin-top:16px">
@@ -707,7 +724,7 @@
 
     <section id="supabase">
       <h2><span class="num">06</span> Integração — Supabase</h2>
-      <p class="section-intro">Banco relacional real, só para <b>Drops</b> e <b>Serviceiros</b> — o resto do app é mock. Sem Auth integrado; RLS desligada em todas as tabelas.</p>
+      <p class="section-intro">Banco relacional real, só para <b>Drops</b> e <b>Serviceiros</b> — o resto do app é mock. <b>Supabase Auth + RLS ligados desde 2026-08-14</b> (ver módulo Login).</p>
 
       <div class="grid-2">
         <div class="schema-card">
@@ -748,13 +765,14 @@
             <tr><td class="f-name">id</td><td class="f-type">uuid pk</td></tr>
             <tr><td class="f-name">party_name</td><td class="f-type">text</td></tr>
             <tr><td class="f-name">type</td><td class="f-type">'party' | 'solo'</td></tr>
+            <tr><td class="f-name">user_id</td><td class="f-type">uuid, unique, fk auth.users</td></tr>
           </table>
-          <div class="schema-note">Placeholder mínimo — sem Supabase Auth de verdade ainda.</div>
+          <div class="schema-note"><code>user_id</code> (2026-08-14) é a peça que decide "qual conta está conectada" — 1 conta = 1 login do Supabase Auth. Não vem de URL nem de nada editável pelo cliente, é resolvido pelo RLS a partir do JWT da sessão.</div>
         </div>
       </div>
-      <div class="callout" style="margin-top:6px">
-        <span class="dot">⚠</span>
-        <span>RLS desligada em todas as tabelas — a <b>anon key</b> (pública, no bundle do frontend) tem acesso de leitura <b>e escrita</b> total. Aceitável só porque não há Auth real ainda. Verificar se <code>VITE_SUPABASE_URL</code>/<code>VITE_SUPABASE_PUBLISHABLE_KEY</code>/as 2 flags de módulo já estão configuradas no dashboard do Vercel (não propagam do <code>.env.local</code> automaticamente).</span>
+      <div class="callout" style="margin-top:6px; border-color: var(--accent); background: var(--accent-soft);">
+        <span class="dot" style="color:var(--accent)">✓</span>
+        <span><b>RLS ligada desde 2026-08-14</b> nas 4 tabelas, <b>desenhada pra multi-conta desde o início</b> (pedido do usuário: "a intenção é futuramente ter mais de 1 conta") — não é mais um "qualquer autenticado vê tudo": <code>accounts</code> usa <code>user_id = auth.uid()</code>; <code>drops</code>/<code>serviceiros</code> usam <code>account_id in (select id from accounts where user_id = auth.uid())</code>; <code>drop_services</code> (sem <code>account_id</code> direto) sobe 1 nível com um <code>exists</code> até <code>drops</code>. Migration <code>20260814000000_enable_rls_with_auth.sql</code>. <b>Pendência real do usuário (3 passos manuais):</b> rodar a migration + criar o usuário de login (Authentication → Users) + rodar o <code>UPDATE</code> que liga <code>accounts.user_id</code> ao usuário criado (SQL pronto no fim da própria migration) — ver Problemas conhecidos.</span>
       </div>
     </section>
 
@@ -871,6 +889,14 @@
       <p class="section-intro">Coisas que já morderam nesta sessão — ler antes de reintroduzir o mesmo padrão.</p>
 
       <div class="card">
+        <div class="issue">
+          <span class="chip chip-issue-alto">alto</span>
+          <div>
+            <p class="issue-title">Login precisa de 3 passos manuais do usuário pra funcionar</p>
+            <p class="issue-area">Supabase Auth</p>
+            <p class="issue-desc">O código do login (2026-08-14, desenhado pra multi-conta) está pronto e testado (redirecionamento, cadeados na sidebar, erro de credencial inválida — tudo confirmado), mas ninguém consegue entrar E ENXERGAR A CONTA até: <b>(1)</b> rodar <code>supabase/migrations/20260814000000_enable_rls_with_auth.sql</code> no SQL Editor; <b>(2)</b> criar o usuário em Authentication → Users → Add user, com "Auto Confirm User" marcado; <b>(3)</b> rodar o <code>UPDATE</code> (SQL pronto no fim da migration) ligando <code>accounts.user_id</code> a esse usuário. Nenhum pode ser feito por uma sessão do Claude (sem credencial de admin do Supabase). <b>Passo 3 é o mais traiçoeiro</b>: faltando só ele, o login em si funciona, mas a conta fica "órfã" e o RLS não deixa ninguém ver os dados — parece bug, mas é só configuração pendente.</p>
+          </div>
+        </div>
         <div class="issue">
           <span class="chip chip-issue-alto">alto</span>
           <div>

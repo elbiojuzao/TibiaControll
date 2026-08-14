@@ -25,6 +25,7 @@ import { MockDashboardRepository } from './mock/mock-dashboard-repository';
 import { MockSettingsRepository } from './mock/mock-settings-repository';
 import { HttpServiceiroRepository } from './http/http-serviceiro-repository';
 import { HttpLootDropRepository } from './http/http-loot-drop-repository';
+import { HttpAccountRepository } from './http/http-account-repository';
 
 export interface RepositoryContainer {
   account: IAccountRepository;
@@ -50,10 +51,17 @@ export const SERVICEIROS_USE_SUPABASE = import.meta.env.VITE_SERVICEIROS_USE_SUP
 /** Mesma ideia da flag acima, mas para o repositorio de Loot Drops. */
 export const LOOTDROPS_USE_SUPABASE = import.meta.env.VITE_LOOTDROPS_USE_SUPABASE === 'true';
 
+/**
+ * Mesma ideia, mas para o repositorio de Account — liga a resolucao da conta ao usuario
+ * logado de verdade via Supabase Auth (RLS), em vez do mockAccount fixo. Ver useAuth /
+ * useAccount / migration 20260814000000_enable_rls_with_auth.sql.
+ */
+export const ACCOUNT_USE_SUPABASE = import.meta.env.VITE_ACCOUNT_USE_SUPABASE === 'true';
+
 function createRepositories(): RepositoryContainer {
   if (USE_MOCK) {
     return {
-      account: new MockAccountRepository(),
+      account: ACCOUNT_USE_SUPABASE ? new HttpAccountRepository() : new MockAccountRepository(),
       member: new MockMemberRepository(),
       lootDrop: LOOTDROPS_USE_SUPABASE ? new HttpLootDropRepository() : new MockLootDropRepository(),
       hunt: new MockHuntRepository(),
