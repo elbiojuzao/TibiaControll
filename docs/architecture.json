@@ -57,7 +57,7 @@
       "keyFiles": {
         "DashboardPage.tsx": "Painel principal (~480 linhas) — todos os KPIs (KKs Plunder/Bags/Hunt/Boss/Total) são derivados AO VIVO de `drops` (filtrado por mês/ano) + `bossHuntSeries` (planilha), nenhum vem mais de mock.",
         "LootLogPage.tsx": "Tabela completa de drops com filtros (boss, fragador, vendido, mês/ano) e botão Registrar Drop.",
-        "components/DropFormModal.tsx": "Modal único (create+edit) — EK/ED/MS/RP/5º, Serviceiros (N por drop, cada um com 'jogador servido'), Boss→Item em cascata, Valor Cada calculado (Valor Total ÷ jogadores preenchidos).",
+        "components/DropFormModal.tsx": "Modal único (create+edit) — EK/ED/MS/RP/5º, Serviceiros (N por drop, cada um com 'jogador servido'), Boss→Item em cascata, Valor Cada calculado (Valor Total ÷ jogadores preenchidos). Dropdown de Boss (2026-08-14) lista bosses INDIVIDUAIS (não mais quest) via useBossQuests(), filtrável por checkboxes de quest persistidos em localStorage (useQuestFilter) — ver businessLogic.bossQuestFilter.",
         "components/LootTable.tsx": "Renderização da tabela de drops, formata coluna Service como 'emoji_vocação nome, ...'.",
         "utils/loot-visuals.ts": "guessItemIcon (emoji fallback) e getBossBadgeStyle (cor determinística por hash do nome) — usados só onde não há ícone real."
       },
@@ -261,7 +261,8 @@
         "20260814000000_enable_rls_with_auth.sql — RELIGA RLS (tinha sido desligado na migration de 2026-08-06) + policy 'authenticated_full_access' nas 4 tabelas, agora que existe Supabase Auth de verdade",
         "20260814010000_create_members_table.sql — cria tabela members (cadastro dos jogadores base da party, módulo Configurações) + RLS scoped por account + seed dos 4 membros da PT Thanatos (migrados do mock)",
         "20260814020000_create_xp_levels_table.sql — cria tabela xp_levels (referência de XP total por nível, de 50 em 50 até o 4000, fórmula oficial do Tibia) + RLS de leitura pública, sem account_id (dado universal do jogo, não de conta). Plugada na Meta XP Diária do Dashboard no mesmo dia — ver modules.dashboard.metaXpDiaria.",
-        "20260814030000_soft_delete_serviceiros.sql — adiciona serviceiros.hidden (soft delete, default false) — ver knownIssuesAndGotchas.delete-serviceiro-vira-soft-delete."
+        "20260814030000_soft_delete_serviceiros.sql — adiciona serviceiros.hidden (soft delete, default false) — ver knownIssuesAndGotchas.delete-serviceiro-vira-soft-delete.",
+        "20260814040000_create_boss_quests_table.sql — cria tabela boss_quests (26 bosses individuais -> quest), RLS de leitura pública, sem account_id. Usada pro filtro de quest no DropFormModal — ver businessLogic.bossQuestFilter."
       ],
       "tables": {
         "accounts": { "columns": ["id (uuid pk)", "party_name", "type ('party'|'solo')", "created_at", "user_id (uuid, unique, fk auth.users — desde 2026-08-14, liga a conta ao login que pode acessá-la)"] },
@@ -275,6 +276,10 @@
         "xp_levels": {
           "columns": ["level (int pk)", "xp_total (bigint)"],
           "note": "Sem account_id — dado universal do jogo (fórmula oficial do Tibia), não de conta/party. RLS ligada só pra bloquear escrita via client; leitura é pública (policy 'to anon, authenticated using (true)'). 80 linhas (nível 50 até 4000, de 50 em 50), migration 20260814020000. Consumida via useXpLevels() (src/hooks/useXpLevels.ts) pra alimentar a Meta XP Diária real do Dashboard — ver modules.dashboard.metaXpDiaria."
+        },
+        "boss_quests": {
+          "columns": ["boss (text pk)", "quest (text not null)"],
+          "note": "Sem account_id — dado universal do jogo, mesmo padrão de xp_levels. RLS de leitura pública. 26 bosses individuais (Chagorz, Vemiath, Plunder, Malice, SoulCore, Crypt...) agrupados em 10 quests (Rotten Blood, Soul War, GnomProna, Grave Borne...), migration 20260814040000. 'Crypt' foi adicionado pela sessão do Claude mesmo sem estar na lista original do usuário (print de planilha) — representa o baú compartilhado da dungeon Grave Borne, mesmo conceito de Plunder/SoulCore, e já tinha entrada própria em BOSS_ITEMS; usuário pode remover se não fizer sentido. Consumida via useBossQuests() pro filtro de quest no DropFormModal — ver businessLogic.bossQuestFilter."
         }
       },
       "envVars": ["VITE_SUPABASE_URL", "VITE_SUPABASE_PUBLISHABLE_KEY"],
@@ -356,6 +361,12 @@
       "file": "src/services/common/ttl-cache.ts",
       "rule": "fetchWithTtlCache(storageKey, fetcher, maxAgeMs) — pra dado que muda a qualquer momento (não numa janela fixa do relógio), válido por um tempo fixo rolante desde a última busca. Construído em cima de localCacheCore. Adicionado em 2026-08-14 a pedido do usuário, depois de eu explicar que useMemberLiveStats não cabia no dailyCache (level/XP mudam o tempo todo, cache de 1 dia mostraria dado velho e quebraria Previsão fim de ano/Meta XP Diária) — usuário pediu o meio-termo: 'usar o localstore de 1 em 1 hora'.",
       "usedBy": ["useMemberLiveStats.ts (TTL_MS = 1h, uma storageKey POR personagem — tibia-pts:member-live-stats-v1:{nome} — não um blob único, então adicionar/remover membro não invalida o cache dos outros)."]
+    },
+    "bossQuestFilter": {
+      "file": "src/hooks/useQuestFilter.ts + src/hooks/useBossQuests.ts",
+      "rule": "Pedido do usuário em 2026-08-14: no DropFormModal, filtrar o dropdown de Boss por checkboxes de quest, persistidos em localStorage ('não aparece todos os boss a não ser que esteja com todas as box selecionadas'). useBossQuests() busca a tabela real boss_quests (Supabase, ver externalIntegrations.supabase.tables.boss_quests) — bosses individuais + a quest de cada um. useQuestFilter() guarda o conjunto de quests DESMARCADAS (não as marcadas) no localStorage — por padrão (chave vazia) todas aparecem marcadas, e uma quest nova adicionada à tabela no futuro nasce marcada/visível também, em vez de escondida até alguém lembrar de marcar.",
+      "itemCascadeFix": "services/lootdrop/boss-items-data.ts (BOSS_ITEMS) mistura granularidade: algumas chaves já são quest de verdade com vários bosses ('Rotten Blood', 'Soul War'), outras já são o boss individual usado direto ('Arbaziloth', 'SoulCore', 'Phosphorus'). resolveItemsForBoss() em DropFormModal.tsx resolve isso tentando BOSS_ITEMS[boss] primeiro (bosses que já são chave direta), senão cai pra BOSS_ITEMS[bossToQuest[boss]] — cobre 100% dos 26 bosses da tabela boss_quests sem precisar reestruturar BOSS_ITEMS.",
+      "danglingBossOption": "bossOptions sempre inclui o boss atualmente salvo mesmo que a quest dele esteja desmarcada no filtro ou ele não exista na tabela boss_quests (drops históricos podem citar boss fora da lista) — mesmo padrão defensivo que já existia antes (bossName injetado como opção extra), só adaptado pro filtro novo."
     },
     "previsaoFimAno": {
       "file": "src/services/xp-sheet/level-prediction.ts",

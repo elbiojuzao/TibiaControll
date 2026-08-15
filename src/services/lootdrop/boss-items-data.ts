@@ -1,7 +1,12 @@
 /**
- * Tabela de drops por boss — dado de regra do jogo (não varia por conta/party), extraída da
- * planilha "Itens.xlsx" fornecida pelo usuário em 2026-08-05. Usada pra popular o dropdown de
- * Item em cascata a partir do Boss escolhido no formulário de registro de drop.
+ * Tabela de drops por boss/quest — dado de regra do jogo (não varia por conta/party),
+ * extraída da planilha "Itens.xlsx" fornecida pelo usuário em 2026-08-05. Usada pra popular
+ * o dropdown de Item em cascata no formulário de registro de drop (ver
+ * DropFormModal.tsx#resolveItemsForBoss). As chaves misturam granularidade de propósito:
+ * algumas são quest de verdade com vários bosses (ex: 'Rotten Blood', 'Soul War' — ver
+ * migration 20260814040000_create_boss_quests_table.sql pro mapeamento boss->quest), outras
+ * já são o próprio nome do boss individual (ex: 'Arbaziloth', 'SoulCore', 'Phosphorus') —
+ * resolveItemsForBoss tenta o boss direto primeiro, senão cai pra quest dele.
  */
 export const BOSS_ITEMS: Record<string, string[]> = {
   'Rotten Blood': [
@@ -66,5 +71,3 @@ export const BOSS_ITEMS: Record<string, string[]> = {
     'Moonsilver Epee', 'Moonsilver Katar', 'Moonsilver Mace', 'Moonsilver Sceptre',
   ],
 };
-
-export const BOSS_NAMES: string[] = Object.keys(BOSS_ITEMS).sort((a, b) => a.localeCompare(b));
