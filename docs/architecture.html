@@ -535,6 +535,7 @@
             <dt>Rota</dt><dd><code>/timers</code></dd>
             <dt>Dado</dt><dd><code>BossMechanic</code> — 5 bosses fixos, 100% mock. <b>Universo diferente</b> dos 16 bosses de loot table usados no Log de Drops — não unificar.</dd>
             <dt>Timer de Poções de Skill</dt><dd>Card fixo, sem seletor — sempre 10 minutos (<code>SKILL_POTION_SECONDS</code>), tempo de efeito de Mastermind/Berserk/Bullseye Potion, mostradas as 3 juntas (ícones reais de <code>src/assets/potion-icons/</code>, baixados por <code>scripts/fetch-potion-icons.mjs</code>). Usa o hook novo e reusável <code>useLoopTimer</code> — o timer de boss (Global+Loop) mantém a implementação própria, não foi migrado pra não arriscar regressão.</dd>
+            <dt>Ancorado no relógio real (2026-08-15)</dt><dd>Bug reportado: os dois timers usavam <code>setInterval</code> decrementando um contador, e o navegador reduz a frequência desse tipo de timer em abas em segundo plano — parecia "parar". Corrigido guardando um timestamp de término (<code>endAtRef = Date.now() + segundosRestantes*1000</code>); cada tick recalcula <code>Math.ceil((endAt - Date.now())/1000)</code> em vez de decrementar, e um listener de <code>visibilitychange</code> recalcula na hora quando a aba volta a ficar visível. Timers de loop resincronizam corretamente mesmo se vários ciclos passaram em segundo plano (bipa só 1 vez ao voltar, não um por ciclo perdido).</dd>
           </dl>
         </div>
       </details>

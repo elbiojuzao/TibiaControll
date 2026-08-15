@@ -30,6 +30,12 @@ export function TimersPage() {
 
   const audioCtxRef = useRef<AudioContext | null>(null);
   const timerRef = useRef<number | null>(null);
+  // Timestamps (epoch ms) de quando cada timer termina — âncora no relógio real do
+  // usuário em vez de contar ticks de setInterval, que o navegador atrasa (throttle) em
+  // abas em segundo plano/inativas, fazendo o timer parecer "parado" (reportado pelo
+  // usuário em 2026-08-15). Mesma técnica do useLoopTimer.ts.
+  const globalEndAtRef = useRef<number>(0);
+  const loopEndAtRef = useRef<number>(0);
 
   const potionTimer = useLoopTimer(SKILL_POTION_SECONDS, volume);
 
@@ -110,30 +116,45 @@ export function TimersPage() {
   };
 
   useEffect(() => {
-    if (isRunning) {
-      timerRef.current = setInterval(() => {
-        setSeconds25((prev25) => {
-          if (prev25 > 0) return prev25 - 1;
-          return 0;
-        });
-
-        setSeconds90((prev90) => {
-          if (prev90 > 0) {
-            return prev90 - 1;
-          } else {
-            playDoubleBeep();
-            triggerBlink();
-            return initialLoop;
-          }
-        });
-      }, 1000);
-    } else {
+    if (!isRunning) {
       if (timerRef.current) clearInterval(timerRef.current);
+      return;
     }
+
+    // Ancora os dois timers no relógio real a partir do valor atual (não do inicial —
+    // pausar e retomar preserva o tempo restante).
+    globalEndAtRef.current = Date.now() + seconds25 * 1000;
+    loopEndAtRef.current = Date.now() + seconds90 * 1000;
+
+    const tick = () => {
+      const now = Date.now();
+
+      const globalRemainingMs = globalEndAtRef.current - now;
+      setSeconds25(Math.max(0, Math.ceil(globalRemainingMs / 1000)));
+
+      const loopRemainingMs = loopEndAtRef.current - now;
+      if (loopRemainingMs <= 0) {
+        const loopMs = initialLoop * 1000;
+        const cyclesPassed = Math.floor(-loopRemainingMs / loopMs) + 1;
+        loopEndAtRef.current += cyclesPassed * loopMs;
+        setSeconds90(Math.ceil((loopEndAtRef.current - now) / 1000));
+        playDoubleBeep();
+        triggerBlink();
+      } else {
+        setSeconds90(Math.ceil(loopRemainingMs / 1000));
+      }
+    };
+
+    timerRef.current = setInterval(tick, 1000);
+    // Recalcula na hora quando a aba volta a ficar visível, em vez de esperar o
+    // próximo tick (que pode estar atrasado por causa do throttle).
+    document.addEventListener('visibilitychange', tick);
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      document.removeEventListener('visibilitychange', tick);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRunning, volume, initialLoop]);
 
   useEffect(() => {
