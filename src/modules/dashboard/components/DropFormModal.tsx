@@ -173,10 +173,13 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
     if (!bossName) return setFormError('Selecione o boss.');
     if (!itemName) return setFormError('Selecione o item.');
     if (!looter) return setFormError('Selecione o fragador.');
-    // Item recém-registrado (ou sendo marcado como vendido agora) precisa de valor. Um
-    // drop já existente que ainda não foi vendido pode ficar com valor 0/em branco — é
-    // assim que a planilha original tratava itens pendentes de precificação.
-    const requireValue = mode === 'create' || sold;
+    // Valor só é obrigatório quando o item está marcado como vendido — no create ou no
+    // edit, tanto faz. Um drop recém-registrado normalmente ainda não foi vendido (não
+    // tem "Vendido" nem pra marcar no modo create), então fica com Valor Total 0/em
+    // branco até vender de verdade — reportado pelo usuário em 2026-08-15: exigir valor
+    // ao registrar um item ainda não vendido não faz sentido, ele não tem esse dado
+    // ainda. Mesma regra que já valia pra editar um drop existente não-vendido.
+    const requireValue = sold;
     if (requireValue) {
       if (!totalValue || Number.isNaN(total) || total <= 0) return setFormError('Informe o Valor Total.');
       if (playerCount === 0) return setFormError('Preencha ao menos um jogador (EK/ED/MS/RP/5º) pra calcular o Valor Cada.');
