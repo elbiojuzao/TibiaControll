@@ -20,6 +20,18 @@ export function SplitCalculatorPage() {
   const [tcRate, setTcRate] = useState<number>(45000);
   const [members, setMembers] = useState<PartyMember[]>([]);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [parseError, setParseError] = useState<string | null>(null);
+
+  // Cola sempre SUBSTITUI o conteúdo inteiro do campo, nunca insere no meio/fim do que
+  // já estava digitado — evita o caso real reportado pelo usuário: um caractere solto
+  // ficou no campo (digitado sem querer) antes de colar o log, e o parser leu a
+  // primeira linha ("aSession data: ...") como se fosse um jogador em vez do cabeçalho,
+  // inflando o Balance total em dobro e corrompendo todas as transferências calculadas.
+  const handlePasteLog = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    e.preventDefault();
+    setRawLog(e.clipboardData.getData('text'));
+    setParseError(null);
+  };
 
   // Preenche a cotação de TC com o valor salvo da party assim que carregar (usuário pode editar livremente depois)
   useEffect(() => {
@@ -55,6 +67,18 @@ Zo Tis
 	Supplies: 0
 	Balance: 5,723,548`;
 
+    // Segunda camada de proteção (além do onPaste que substitui o campo inteiro): se a
+    // primeira linha não-vazia não for o cabeçalho esperado, o parser trataria ela como
+    // nome de jogador e inflaria o Balance total silenciosamente — melhor avisar e não
+    // calcular nada do que devolver um split errado sem o usuário perceber.
+    const firstLine = text.split('\n').find((l) => l.trim())?.trim() ?? '';
+    if (!/^Session data:/i.test(firstLine)) {
+      setParseError(`Log não reconhecido — a primeira linha deveria começar com "Session data:", mas veio "${firstLine.slice(0, 40)}${firstLine.length > 40 ? '...' : ''}". Confira se colou o texto completo do Party Hunt Analyzer, sem caracteres extras no início.`);
+      setMembers([]);
+      return;
+    }
+    setParseError(null);
+
     const lines = text.split('\n');
     const parsedMembers: PartyMember[] = [];
     
@@ -65,12 +89,31 @@ Zo Tis
 
     const cleanNumber = (str: string) => parseInt(str.replace(/[,.]/g, ''), 10) || 0;
 
+    // Cabeçalho global (nunca é player, nem campo de player) e campos conhecidos de
+    // cada player (Damage/Healing existem no log real mas não entram no cálculo, só
+    // precisam ser reconhecidos pra não virarem "jogador fantasma" — ver abaixo).
+    const HEADER_PREFIXES = ['Session', 'Loot Type'];
+    const FIELD_PREFIXES = ['Loot:', 'Supplies:', 'Balance:', 'Damage:', 'Healing:'];
+
     lines.forEach((line) => {
       const trimmed = line.trim();
       if (!trimmed) return;
+      if (HEADER_PREFIXES.some((p) => trimmed.startsWith(p))) return;
 
-      // Detecta se a linha é um bloco de player (não começa com tab/espaços e não é cabeçalho global)
-      if (!line.startsWith('\t') && !trimmed.startsWith('Session') && !trimmed.startsWith('Loot Type') && !trimmed.startsWith('Loot:') && !trimmed.startsWith('Supplies:') && !trimmed.startsWith('Balance:')) {
+      const isFieldLine = FIELD_PREFIXES.some((p) => trimmed.startsWith(p));
+
+      // Detecta se a linha é o início de um bloco de player: qualquer linha que não seja
+      // cabeçalho nem um campo conhecido (Loot/Supplies/Balance/Damage/Healing). Antes
+      // essa decisão também exigia "não começar com tab" — mas o log real às vezes chega
+      // com a indentação virando espaços em vez de tab (dependendo de onde foi copiado),
+      // e "Damage:"/"Healing:" nem estavam na lista de campos reconhecidos. Nesse caso a
+      // linha "Damage: ..." não batia com tab nem com nenhum prefixo excluído e virava um
+      // jogador fantasma com Balance 0 — inflava o número de membros na divisão (Cota
+      // Justa = Balance total ÷ nº de membros) sem inflar o Balance, gerando transferências
+      // erradas mesmo sem nenhum caractere sobrando no início do log (bug reportado pelo
+      // usuário em 2026-08-15, além do caso do caractere solto). Detectar só pelo prefixo
+      // do campo (sem depender de tab) resolve os dois casos.
+      if (!isFieldLine) {
         // Se já tínhamos um player em andamento, salva antes
         if (currentName) {
           parsedMembers.push({
@@ -98,6 +141,8 @@ Zo Tis
           const match = trimmed.match(/[\d,.]+/);
           if (match) currentBalance = cleanNumber(match[0]);
         }
+        // Damage:/Healing: são reconhecidos só pra não virarem jogador fantasma —
+        // não entram no cálculo de split, então não precisam de captura própria.
       }
     });
 
@@ -216,6 +261,7 @@ Zo Tis
               rows={8}
               value={rawLog}
               onChange={(e) => setRawLog(e.target.value)}
+              onPaste={handlePasteLog}
               placeholder="Cole aqui o log completo do jogo..."
               style={{
                 width: '100%',
@@ -230,6 +276,11 @@ Zo Tis
                 boxSizing: 'border-box'
               }}
             />
+            {parseError && (
+              <p style={{ color: '#f59e0b', fontSize: '12px', margin: '8px 0 0 0' }}>
+                ⚠ {parseError}
+              </p>
+            )}
             <button
               onClick={handleParseLog}
               style={{

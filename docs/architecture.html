@@ -522,6 +522,7 @@
             <dt>Rota</dt><dd><code>/split</code></dd>
             <dt>Lógica</dt><dd><code>services/split/split-calculator.ts</code> — ver seção Regras de negócio</dd>
             <dt>Dado</dt><dd>Nenhuma persistência — cálculo client-side sobre texto colado; <code>PartySettings</code> (mock) só pra pré-preencher a cotação de TC.</dd>
+            <dt>Proteção contra log corrompido (2026-08-15)</dt><dd>Bug real reportado: um caractere digitado sem querer antes de colar fez o parser ler a linha de cabeçalho como jogador, dobrando o Balance total. Corrigido em três camadas: <code>onPaste</code> no textarea sempre <b>substitui</b> o conteúdo inteiro (nunca insere no meio); <code>handleParseLog</code> valida que a 1ª linha bate com <code>/^Session data:/i</code> antes de calcular; e a classificação de "início de novo player" foi reescrita pra depender só do prefixo do campo (<code>Loot:/Supplies:/Balance:/Damage:/Healing:</code>) em vez de exigir indentação por tab literal — antes, se o log chegasse indentado com espaços, "Damage:"/"Healing:" (que nem estavam na lista de campos reconhecidos) viravam jogadores fantasma de saldo 0, inflando o divisor da Cota Justa sem inflar o Balance.</dd>
           </dl>
         </div>
       </details>
