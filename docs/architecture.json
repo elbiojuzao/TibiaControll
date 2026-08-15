@@ -181,7 +181,7 @@
       "path": "src/modules/login/",
       "routes": ["/login"],
       "purpose": "Login real (2026-08-14) via Supabase Auth — 1 única credencial compartilhada pela PT inteira (não é cadastro por pessoa, ver [[regras-gestao-pts]]). Gate pros módulos exclusivos de conta.",
-      "keyFiles": { "LoginPage.tsx": "Form email+senha standalone (fora do AppLayout, sem sidebar). Lê location.state.from (setado por RequireAuth) pra voltar pro lugar certo depois do login; se já autenticado, redireciona sozinho." },
+      "keyFiles": { "LoginPage.tsx": "Form email+senha standalone (fora do AppLayout, sem sidebar). Lê location.state.from (setado por RequireAuth) pra voltar pro lugar certo depois do login; se já autenticado, redireciona sozinho. Campos com autoComplete='username'/'current-password' (2026-08-15) pra ativar o \"salvar senha?\" nativo do navegador — não guardamos senha em texto no app (ver knownIssuesAndGotchas)." },
       "dataSource": "services/supabase/supabase-auth.ts (signInWithPassword/signOut/getSession/onAuthStateChange) via useAuth().",
       "gatedRoutes": ["/", "/loot-log", "/calendario", "/historico-xp", "/serviceiros", "/configuracoes"],
       "openRoutes": ["/split", "/timers", "/tier-calculator", "/charm-planner"],

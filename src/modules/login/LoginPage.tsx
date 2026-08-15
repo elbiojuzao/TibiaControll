@@ -35,6 +35,7 @@ export function LoginPage() {
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a', padding: '20px' }}>
       <form
         onSubmit={handleSubmit}
+        autoComplete="on"
         style={{
           background: '#1e293b',
           border: '1px solid #334155',
@@ -58,6 +59,8 @@ export function LoginPage() {
           E-mail
           <input
             type="email"
+            name="email"
+            autoComplete="username"
             required
             autoFocus
             value={email}
@@ -70,6 +73,8 @@ export function LoginPage() {
           Senha
           <input
             type="password"
+            name="password"
+            autoComplete="current-password"
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
