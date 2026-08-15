@@ -1,9 +1,21 @@
 import { useMemo, useState } from 'react';
 import { Modal } from '@/components/common/Modal';
-import { BOSS_NAMES, BOSS_ITEMS } from '@/services/lootdrop/boss-items-data';
+import { BOSS_ITEMS } from '@/services/lootdrop/boss-items-data';
+import { useBossQuests } from '@/hooks/useBossQuests';
+import { useQuestFilter } from '@/hooks/useQuestFilter';
 import { isoToBr, brToIso, todayAsBr } from '@/services/common/br-date';
 import { formatTibiaGold } from '@/services/split';
 import type { CreateLootDropDto, LootDrop, Member, Serviceiro, Vocation } from '@/types';
+
+/** Itens de um boss individual (ex: Chagorz) — tenta a chave exata primeiro (bosses que já
+ * são chave direta em BOSS_ITEMS, ex: Arbaziloth, SoulCore, Phosphorus), senão cai pra
+ * quest do boss (ex: Chagorz -> "Rotten Blood"). Ver migration 20260814040000. */
+function resolveItemsForBoss(bossName: string, bossToQuest: Record<string, string>): string[] {
+  if (BOSS_ITEMS[bossName]) return BOSS_ITEMS[bossName];
+  const quest = bossToQuest[bossName];
+  if (quest && BOSS_ITEMS[quest]) return BOSS_ITEMS[quest];
+  return [];
+}
 
 const VAZIO = '';
 
@@ -93,17 +105,23 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  // Sempre inclui o boss/item atualmente salvos como opção, mesmo que não estejam na
-  // tabela curada (drops históricos podem citar boss/item fora da lista conhecida) —
-  // sem isso o select fica em branco e o valor original é perdido ao salvar.
-  const bossOptions = useMemo(
-    () => (bossName && !BOSS_NAMES.includes(bossName) ? [bossName, ...BOSS_NAMES] : BOSS_NAMES),
-    [bossName],
-  );
+  const { bosses: allBosses, bossToQuest, quests, error: bossQuestsError } = useBossQuests();
+  const { isQuestChecked, toggleQuest } = useQuestFilter();
+
+  // Só mostra bosses cuja quest está marcada no filtro (checkboxes, persistido em
+  // localStorage — pedido do usuário em 2026-08-14). Sempre inclui o boss atualmente
+  // salvo como opção, mesmo que a quest dele esteja desmarcada ou ele não esteja na
+  // tabela (drops históricos podem citar boss fora da lista conhecida) — sem isso o
+  // select fica em branco e o valor original é perdido ao salvar.
+  const bossOptions = useMemo(() => {
+    const filtered = allBosses.filter((b) => isQuestChecked(bossToQuest[b] ?? b));
+    return bossName && !filtered.includes(bossName) ? [bossName, ...filtered] : filtered;
+  }, [allBosses, bossToQuest, isQuestChecked, bossName]);
+
   const itemOptions = useMemo(() => {
-    const base = bossName ? BOSS_ITEMS[bossName] ?? [] : [];
+    const base = bossName ? resolveItemsForBoss(bossName, bossToQuest) : [];
     return itemName && !base.includes(itemName) ? [itemName, ...base] : base;
-  }, [bossName, itemName]);
+  }, [bossName, itemName, bossToQuest]);
 
   const addServiceRow = () => setServiceDrafts((prev) => [...prev, { serviceiroId: '', vocation: '', servedCharacterName: '' }]);
   const removeServiceRow = (index: number) => setServiceDrafts((prev) => prev.filter((_, i) => i !== index));
@@ -333,6 +351,28 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
             </div>
           </label>
         </div>
+
+        {bossQuestsError && (
+          <span style={{ color: '#ef4444', fontSize: '12px' }}>
+            Não foi possível carregar a lista de bosses ({bossQuestsError}).
+          </span>
+        )}
+
+        {quests.length > 0 && (
+          <div>
+            <span style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '6px' }}>
+              Filtrar bosses por quest
+            </span>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              {quests.map((quest) => (
+                <label key={quest} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', color: '#cbd5e1', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={isQuestChecked(quest)} onChange={() => toggleQuest(quest)} />
+                  {quest}
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
           <label style={labelStyle}>
