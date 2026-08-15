@@ -5,7 +5,7 @@ import { useQuestFilter } from '@/hooks/useQuestFilter';
 import { useBossItems } from '@/hooks/useBossItems';
 import { isoToBr, brToIso, todayAsBr } from '@/services/common/br-date';
 import { formatTibiaGold } from '@/services/split';
-import type { CreateLootDropDto, LootDrop, Member, Serviceiro, Vocation } from '@/types';
+import type { CreateLootDropDto, LootDrop, Member, Serviceiro, TransferInstruction, Vocation } from '@/types';
 
 const VAZIO = '';
 
@@ -78,6 +78,64 @@ function deriveVocation(party: { ek: string; ed: string; ms: string; rp: string 
   return '';
 }
 
+/** Uma cota devida a alguém sem "Boneco" (characterName) cadastrado em Serviceiros —
+ * não dá pra gerar `transfer X to Y` sem saber o nome do char, mas o valor ainda é
+ * devido, então mostra como um card à parte (nome da pessoa, não do char) com aviso,
+ * em vez de sumir com a cota silenciosamente (pedido do usuário: "aparecer aparte...
+ * com alerta de que não possui boneco assim o usuario lembra de buscar pagar ele"). */
+interface MissingCharacterShare {
+  serviceiroName: string;
+  amount: number;
+}
+
+/** Quebra o Valor Cada em comandos "transfer X to Y" por pessoa — mesmo formato de
+ * "Copiar Comandos de Transferência" do Split Loot Calculator. Vaga sem serviceiro: o
+ * dono da vaga recebe a cota cheia. Vaga com serviceiro: o serviceiro (Serviceiro
+ * contato, não Member — ver [[modulo-dashboard-historico]]) fica com 50% da cota, o
+ * dono da vaga com os outros 50% (regra de negócio confirmada pelo usuário; fixo em
+ * 50%, diferente do `serviceiroSharePercent` configurável de Member/Split Loot, que é
+ * um conceito separado). Quem já está com o dinheiro em mãos (o Fragador, que vendeu o
+ * item) nunca recebe um comando pra si mesmo. */
+function computeTransferInstructions(
+  party: { ek: string; ed: string; ms: string; rp: string; fifthPlayer: string },
+  services: ServiceDraft[],
+  serviceiros: Serviceiro[],
+  unitValue: number,
+  looter: string,
+): { instructions: TransferInstruction[]; missingCharacterShares: MissingCharacterShare[] } {
+  if (!looter || unitValue <= 0) return { instructions: [], missingCharacterShares: [] };
+
+  const slots = [party.ek, party.ed, party.ms, party.rp, party.fifthPlayer].filter(Boolean);
+  const instructions: TransferInstruction[] = [];
+  const missingCharacterShares: MissingCharacterShare[] = [];
+  const push = (to: string, amount: number) => {
+    if (!to || to === looter || amount <= 0) return;
+    instructions.push({ from: looter, to, amount, tibiaCommand: `transfer ${amount} to ${to}` });
+  };
+
+  for (const slotName of slots) {
+    const servants = services.filter((s) => s.serviceiroId && s.servedCharacterName === slotName);
+    if (servants.length === 0) {
+      push(slotName, unitValue);
+      continue;
+    }
+    const servantPool = Math.round(unitValue * 0.5);
+    const perServant = Math.round(servantPool / servants.length);
+    push(slotName, unitValue - servantPool);
+    for (const servant of servants) {
+      const serviceiro = serviceiros.find((s) => s.id === servant.serviceiroId);
+      if (!serviceiro || perServant <= 0) continue;
+      if (serviceiro.characterName) {
+        push(serviceiro.characterName, perServant);
+      } else {
+        missingCharacterShares.push({ serviceiroName: serviceiro.name, amount: perServant });
+      }
+    }
+  }
+
+  return { instructions, missingCharacterShares };
+}
+
 export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSubmit }: DropFormModalProps) {
   const byVocation = (v: Vocation) => members.find((m) => m.vocation === v)?.characterName ?? '';
   const wasSold = mode === 'edit' ? drop!.sold : false;
@@ -104,6 +162,7 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
   const [sold, setSold] = useState(wasSold);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
   const { bosses: allBosses, bossToQuest, quests, error: bossQuestsError } = useBossQuests();
   const { isQuestChecked, toggleQuest } = useQuestFilter();
@@ -158,6 +217,22 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
   const totalNumber = Number(totalValue) || 0;
   // Gold do Tibia é sempre inteiro (ver schema em supabase/migrations) — arredonda a cota.
   const unitValue = playerCount > 0 ? Math.round(totalNumber / playerCount) : 0;
+
+  // Comandos de transferência só fazem sentido quando o item já foi vendido e tem
+  // Valor Cada pra distribuir — recalcula ao vivo conforme o form muda, mesmo antes
+  // de salvar.
+  const { instructions: transferInstructions, missingCharacterShares } = useMemo(
+    () => (sold
+      ? computeTransferInstructions({ ek, ed, ms, rp, fifthPlayer }, serviceDrafts, serviceiros, unitValue, looter)
+      : { instructions: [], missingCharacterShares: [] }),
+    [sold, ek, ed, ms, rp, fifthPlayer, serviceDrafts, serviceiros, unitValue, looter],
+  );
+
+  const handleCopyCommand = (commandText: string, index: number) => {
+    navigator.clipboard.writeText(commandText);
+    setCopiedIndex(index);
+    setTimeout(() => setCopiedIndex(null), 2000);
+  };
 
   const handleBossChange = (value: string) => {
     setBossName(value);
@@ -432,6 +507,96 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
                   : 'A data de hoje será registrada ao salvar'
                 : 'Marque quando o item for vendido'}
             </span>
+          </div>
+        )}
+
+        {mode === 'edit' && sold && (transferInstructions.length > 0 || missingCharacterShares.length > 0) && (
+          <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '14px' }}>
+            <h4 style={{ fontSize: '13px', margin: '0 0 10px 0', color: '#f8fafc' }}>Copiar Comandos de Transferência:</h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {transferInstructions.map((t, idx) => (
+                <div
+                  key={`cmd-${idx}`}
+                  style={{
+                    background: '#1e293b',
+                    padding: '10px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid #334155',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '10px',
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+                      <span style={{ color: '#ef4444', fontWeight: 'bold' }}>{t.from}</span> paga para{' '}
+                      <span style={{ color: '#10b981', fontWeight: 'bold' }}>{t.to}</span>
+                    </div>
+                    <div style={{ fontSize: '13px', fontFamily: 'monospace', color: '#f8fafc', marginTop: '2px' }}>
+                      {t.tibiaCommand}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyCommand(t.tibiaCommand, idx)}
+                    style={{
+                      background: copiedIndex === idx ? '#10b981' : '#334155',
+                      color: '#fff',
+                      border: 'none',
+                      padding: '6px 12px',
+                      borderRadius: '4px',
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      transition: 'background 0.2s',
+                      minWidth: '65px',
+                    }}
+                  >
+                    {copiedIndex === idx ? 'Copiado!' : 'Copiar'}
+                  </button>
+                </div>
+              ))}
+              {missingCharacterShares.map((m, idx) => (
+                <div
+                  key={`missing-${idx}`}
+                  style={{
+                    background: '#1e293b',
+                    padding: '10px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid #f59e0b',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '10px',
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+                      <span style={{ color: '#ef4444', fontWeight: 'bold' }}>{looter}</span> deve pagar{' '}
+                      <span style={{ color: '#f59e0b', fontWeight: 'bold' }}>{m.serviceiroName}</span>
+                    </div>
+                    <div style={{ fontSize: '13px', fontFamily: 'monospace', color: '#f8fafc', marginTop: '2px' }}>
+                      {formatTibiaGold(m.amount)}
+                    </div>
+                  </div>
+                  <span
+                    title="Sem 'Boneco' cadastrado em Serviceiros — não dá pra gerar o comando transfer. Combine o pagamento por fora."
+                    style={{
+                      color: '#f59e0b',
+                      border: '1px solid #f59e0b',
+                      borderRadius: '4px',
+                      padding: '6px 10px',
+                      fontSize: '11px',
+                      fontWeight: 'bold',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    ⚠ Sem Boneco
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
