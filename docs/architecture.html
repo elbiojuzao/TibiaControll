@@ -500,7 +500,7 @@
           <dl class="kv-list">
             <dt>Rotas</dt><dd><code>/</code>, <code>/loot-log</code></dd>
             <dt>DashboardPage.tsx</dt><dd>~480 linhas — todos os KPIs (Plunder/Bags/Hunt/Boss/Total) derivados <b>ao vivo</b> de <code>drops</code> (filtrado por mês) + <code>bossHuntSeries</code>; nenhum vem de mock.</dd>
-            <dt>DropFormModal.tsx</dt><dd>Modal único create+edit — EK/ED/MS/RP/5º, N serviceiros por drop (cada um com "jogador servido"), Boss→Item em cascata, Valor Cada calculado. Dropdown de Boss (2026-08-14) lista os 26 bosses individuais da tabela real <code>boss_quests</code>, filtrável por checkboxes de quest persistidos em localStorage — ver seção Regras de negócio.</dd>
+            <dt>DropFormModal.tsx</dt><dd>Modal único create+edit — EK/ED/MS/RP/5º, N serviceiros por drop (cada um com "jogador servido"), Boss→Item em cascata, Valor Cada calculado. Dropdown de Boss (2026-08-14) lista os 26 bosses individuais da tabela real <code>boss_quests</code>, filtrável por checkboxes de quest persistidos em localStorage. Dropdown de Item vem da tabela real <code>boss_items</code> (mesmo dia) — inclui a correção de que "Grand Sanguine *" só cai do Bakra, não de qualquer boss de Rotten Blood. "5º Player" (2026-08-15) virou select de serviceiros (boneco de pagamento) em vez de texto livre. Ver seção Regras de negócio.</dd>
             <dt>Fórmulas KPI</dt><dd>
               <code>kksPlunderInd</code> = Σ totalValue onde boss=<code>'Plunder'</code> · <code>kksBagsInd</code> = Σ onde boss ∉ {Plunder, SoulCore} · <code>kksHunt/kksBoss</code> = soma da planilha no mês · <code>totalInd</code> = soma dos 4 acima
             </dd>
@@ -814,6 +814,14 @@
             <tr><td class="f-name">quest</td><td class="f-type">text not null</td></tr>
           </table>
           <div class="schema-note">Migration <code>20260814040000_create_boss_quests_table.sql</code> (2026-08-14) — <b>sem</b> <code>account_id</code>, dado universal do jogo, mesmo padrão de <code>xp_levels</code>. 26 bosses individuais (Chagorz, Vemiath, Plunder, Malice, SoulCore, Crypt...) agrupados em 10 quests (Rotten Blood, Soul War, GnomProna, Grave Borne...). <code>Crypt</code> foi adicionado pela sessão do Claude mesmo fora da lista original do usuário — baú compartilhado da dungeon Grave Borne, mesmo conceito de Plunder/SoulCore. Consumida via <code>useBossQuests()</code> pro filtro de quest no <code>DropFormModal</code> — ver seção Regras de negócio.</div>
+        </div>
+        <div class="schema-card">
+          <div class="schema-head"><span class="name">boss_items</span><span class="chip chip-real" style="margin-left:6px">real</span></div>
+          <table class="fields">
+            <tr><td class="f-name">boss</td><td class="f-type">text, fk boss_quests.boss</td></tr>
+            <tr><td class="f-name">item</td><td class="f-type">text not null</td></tr>
+          </table>
+          <div class="schema-note">Migration <code>20260814050000_create_boss_items_table.sql</code> (2026-08-14) — 404 linhas, <code>primary key (boss, item)</code>, <b>sem</b> <code>account_id</code>. Substitui <code>BOSS_ITEMS</code> (services/lootdrop/boss-items-data.ts, mantido no repo só como fonte pro script de ícones) pro dropdown de Item no <code>DropFormModal</code>. Inclui correção de dado pedida pelo usuário: "Grand Sanguine *" (11 itens) só aparecem pro <b>Bakra</b>, não pros outros 4 bosses de Rotten Blood — testado no browser (Bakra = 35 itens, Chagorz = 24). Consumida via <code>useBossItems()</code>.</div>
         </div>
       </div>
       <div class="callout" style="margin-top:6px; border-color: var(--accent); background: var(--accent-soft);">

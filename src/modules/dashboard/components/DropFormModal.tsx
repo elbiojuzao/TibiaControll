@@ -1,21 +1,11 @@
 import { useMemo, useState } from 'react';
 import { Modal } from '@/components/common/Modal';
-import { BOSS_ITEMS } from '@/services/lootdrop/boss-items-data';
 import { useBossQuests } from '@/hooks/useBossQuests';
 import { useQuestFilter } from '@/hooks/useQuestFilter';
+import { useBossItems } from '@/hooks/useBossItems';
 import { isoToBr, brToIso, todayAsBr } from '@/services/common/br-date';
 import { formatTibiaGold } from '@/services/split';
 import type { CreateLootDropDto, LootDrop, Member, Serviceiro, Vocation } from '@/types';
-
-/** Itens de um boss individual (ex: Chagorz) — tenta a chave exata primeiro (bosses que já
- * são chave direta em BOSS_ITEMS, ex: Arbaziloth, SoulCore, Phosphorus), senão cai pra
- * quest do boss (ex: Chagorz -> "Rotten Blood"). Ver migration 20260814040000. */
-function resolveItemsForBoss(bossName: string, bossToQuest: Record<string, string>): string[] {
-  if (BOSS_ITEMS[bossName]) return BOSS_ITEMS[bossName];
-  const quest = bossToQuest[bossName];
-  if (quest && BOSS_ITEMS[quest]) return BOSS_ITEMS[quest];
-  return [];
-}
 
 const VAZIO = '';
 
@@ -42,6 +32,16 @@ function vocationOptions(members: Member[], vocation: Vocation, current: string)
   const names = new Set(members.filter((m) => m.vocation === vocation).map((m) => m.characterName));
   if (current) names.add(current);
   return Array.from(names);
+}
+
+/** 5º Player é sempre um serviceiro (boneco de terceiro completando a vaga, não um Member
+ * fixo da PT) — pedido do usuário em 2026-08-14. Lista os characterName (boneco de
+ * pagamento) dos serviceiros cadastrados, sempre incluindo o valor atual mesmo que não
+ * bata com nenhum serviceiro hoje (drop histórico). */
+function fifthPlayerOptions(serviceiros: Serviceiro[], current: string): string[] {
+  const names = new Set(serviceiros.map((s) => s.characterName).filter(Boolean));
+  if (current) names.add(current);
+  return Array.from(names).sort((a, b) => a.localeCompare(b));
 }
 
 interface PlayerOption {
@@ -107,6 +107,7 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
 
   const { bosses: allBosses, bossToQuest, quests, error: bossQuestsError } = useBossQuests();
   const { isQuestChecked, toggleQuest } = useQuestFilter();
+  const { itemsByBoss, error: bossItemsError } = useBossItems();
 
   // Só mostra bosses cuja quest está marcada no filtro (checkboxes, persistido em
   // localStorage — pedido do usuário em 2026-08-14). Sempre inclui o boss atualmente
@@ -119,9 +120,9 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
   }, [allBosses, bossToQuest, isQuestChecked, bossName]);
 
   const itemOptions = useMemo(() => {
-    const base = bossName ? resolveItemsForBoss(bossName, bossToQuest) : [];
+    const base = bossName ? itemsByBoss[bossName] ?? [] : [];
     return itemName && !base.includes(itemName) ? [itemName, ...base] : base;
-  }, [bossName, itemName, bossToQuest]);
+  }, [bossName, itemName, itemsByBoss]);
 
   const addServiceRow = () => setServiceDrafts((prev) => [...prev, { serviceiroId: '', vocation: '', servedCharacterName: '' }]);
   const removeServiceRow = (index: number) => setServiceDrafts((prev) => prev.filter((_, i) => i !== index));
@@ -275,7 +276,12 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
 
         <label style={labelStyle}>
           5º Player:
-          <input type="text" value={fifthPlayer} onChange={(e) => setFifthPlayer(e.target.value)} placeholder="Nome do char" style={fieldStyle} />
+          <select value={fifthPlayer} onChange={(e) => setFifthPlayer(e.target.value)} style={fieldStyle}>
+            <option value={VAZIO}>-- Vazio --</option>
+            {fifthPlayerOptions(serviceiros, fifthPlayer).map((name) => (
+              <option key={name} value={name}>{name}</option>
+            ))}
+          </select>
         </label>
 
         <div>
@@ -355,6 +361,11 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
         {bossQuestsError && (
           <span style={{ color: '#ef4444', fontSize: '12px' }}>
             Não foi possível carregar a lista de bosses ({bossQuestsError}).
+          </span>
+        )}
+        {bossItemsError && (
+          <span style={{ color: '#ef4444', fontSize: '12px' }}>
+            Não foi possível carregar a lista de itens ({bossItemsError}).
           </span>
         )}
 

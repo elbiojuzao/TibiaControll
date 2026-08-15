@@ -57,7 +57,7 @@
       "keyFiles": {
         "DashboardPage.tsx": "Painel principal (~480 linhas) — todos os KPIs (KKs Plunder/Bags/Hunt/Boss/Total) são derivados AO VIVO de `drops` (filtrado por mês/ano) + `bossHuntSeries` (planilha), nenhum vem mais de mock.",
         "LootLogPage.tsx": "Tabela completa de drops com filtros (boss, fragador, vendido, mês/ano) e botão Registrar Drop.",
-        "components/DropFormModal.tsx": "Modal único (create+edit) — EK/ED/MS/RP/5º, Serviceiros (N por drop, cada um com 'jogador servido'), Boss→Item em cascata, Valor Cada calculado (Valor Total ÷ jogadores preenchidos). Dropdown de Boss (2026-08-14) lista bosses INDIVIDUAIS (não mais quest) via useBossQuests(), filtrável por checkboxes de quest persistidos em localStorage (useQuestFilter) — ver businessLogic.bossQuestFilter.",
+        "components/DropFormModal.tsx": "Modal único (create+edit) — EK/ED/MS/RP/5º, Serviceiros (N por drop, cada um com 'jogador servido'), Boss→Item em cascata, Valor Cada calculado (Valor Total ÷ jogadores preenchidos). Dropdown de Boss (2026-08-14) lista bosses INDIVIDUAIS (não mais quest) via useBossQuests(), filtrável por checkboxes de quest persistidos em localStorage (useQuestFilter) — ver businessLogic.bossQuestFilter. Dropdown de Item vem da tabela real boss_items via useBossItems() (mesmo dia) — ver businessLogic.bossItemsMigration. '5º Player' (2026-08-15) virou select de serviceiros (characterName/boneco) em vez de texto livre — fifthPlayerOptions(), mesmo padrão defensivo de vocationOptions (sempre inclui o valor atual salvo, mesmo que não bata com nenhum serviceiro cadastrado hoje).",
         "components/LootTable.tsx": "Renderização da tabela de drops, formata coluna Service como 'emoji_vocação nome, ...'.",
         "utils/loot-visuals.ts": "guessItemIcon (emoji fallback) e getBossBadgeStyle (cor determinística por hash do nome) — usados só onde não há ícone real."
       },
@@ -262,7 +262,8 @@
         "20260814010000_create_members_table.sql — cria tabela members (cadastro dos jogadores base da party, módulo Configurações) + RLS scoped por account + seed dos 4 membros da PT Thanatos (migrados do mock)",
         "20260814020000_create_xp_levels_table.sql — cria tabela xp_levels (referência de XP total por nível, de 50 em 50 até o 4000, fórmula oficial do Tibia) + RLS de leitura pública, sem account_id (dado universal do jogo, não de conta). Plugada na Meta XP Diária do Dashboard no mesmo dia — ver modules.dashboard.metaXpDiaria.",
         "20260814030000_soft_delete_serviceiros.sql — adiciona serviceiros.hidden (soft delete, default false) — ver knownIssuesAndGotchas.delete-serviceiro-vira-soft-delete.",
-        "20260814040000_create_boss_quests_table.sql — cria tabela boss_quests (26 bosses individuais -> quest), RLS de leitura pública, sem account_id. Usada pro filtro de quest no DropFormModal — ver businessLogic.bossQuestFilter."
+        "20260814040000_create_boss_quests_table.sql — cria tabela boss_quests (26 bosses individuais -> quest), RLS de leitura pública, sem account_id. Usada pro filtro de quest no DropFormModal — ver businessLogic.bossQuestFilter.",
+        "20260814050000_create_boss_items_table.sql — cria tabela boss_items (404 linhas boss->item, FK pra boss_quests), RLS de leitura pública. Substitui BOSS_ITEMS pro dropdown de Item; inclui a correção de que 'Grand Sanguine *' só cai do Bakra — ver businessLogic.bossItemsMigration."
       ],
       "tables": {
         "accounts": { "columns": ["id (uuid pk)", "party_name", "type ('party'|'solo')", "created_at", "user_id (uuid, unique, fk auth.users — desde 2026-08-14, liga a conta ao login que pode acessá-la)"] },
@@ -280,6 +281,11 @@
         "boss_quests": {
           "columns": ["boss (text pk)", "quest (text not null)"],
           "note": "Sem account_id — dado universal do jogo, mesmo padrão de xp_levels. RLS de leitura pública. 26 bosses individuais (Chagorz, Vemiath, Plunder, Malice, SoulCore, Crypt...) agrupados em 10 quests (Rotten Blood, Soul War, GnomProna, Grave Borne...), migration 20260814040000. 'Crypt' foi adicionado pela sessão do Claude mesmo sem estar na lista original do usuário (print de planilha) — representa o baú compartilhado da dungeon Grave Borne, mesmo conceito de Plunder/SoulCore, e já tinha entrada própria em BOSS_ITEMS; usuário pode remover se não fizer sentido. Consumida via useBossQuests() pro filtro de quest no DropFormModal — ver businessLogic.bossQuestFilter."
+        },
+        "boss_items": {
+          "columns": ["boss (text, fk boss_quests.boss, on delete cascade)", "item (text not null)"],
+          "constraint": "primary key (boss, item)",
+          "note": "Sem account_id — dado universal do jogo. RLS de leitura pública. 404 linhas, migration 20260814050000 (2026-08-14) — substitui BOSS_ITEMS (services/lootdrop/boss-items-data.ts) pro dropdown de Item no DropFormModal. Inclui correção de dado pedida pelo usuário: 'Grand Sanguine *' (11 itens) só pro Bakra, não pros outros 4 bosses de Rotten Blood — ver businessLogic.bossItemsMigration. Consumida via useBossItems()."
         }
       },
       "envVars": ["VITE_SUPABASE_URL", "VITE_SUPABASE_PUBLISHABLE_KEY"],
@@ -365,8 +371,14 @@
     "bossQuestFilter": {
       "file": "src/hooks/useQuestFilter.ts + src/hooks/useBossQuests.ts",
       "rule": "Pedido do usuário em 2026-08-14: no DropFormModal, filtrar o dropdown de Boss por checkboxes de quest, persistidos em localStorage ('não aparece todos os boss a não ser que esteja com todas as box selecionadas'). useBossQuests() busca a tabela real boss_quests (Supabase, ver externalIntegrations.supabase.tables.boss_quests) — bosses individuais + a quest de cada um. useQuestFilter() guarda o conjunto de quests DESMARCADAS (não as marcadas) no localStorage — por padrão (chave vazia) todas aparecem marcadas, e uma quest nova adicionada à tabela no futuro nasce marcada/visível também, em vez de escondida até alguém lembrar de marcar.",
-      "itemCascadeFix": "services/lootdrop/boss-items-data.ts (BOSS_ITEMS) mistura granularidade: algumas chaves já são quest de verdade com vários bosses ('Rotten Blood', 'Soul War'), outras já são o boss individual usado direto ('Arbaziloth', 'SoulCore', 'Phosphorus'). resolveItemsForBoss() em DropFormModal.tsx resolve isso tentando BOSS_ITEMS[boss] primeiro (bosses que já são chave direta), senão cai pra BOSS_ITEMS[bossToQuest[boss]] — cobre 100% dos 26 bosses da tabela boss_quests sem precisar reestruturar BOSS_ITEMS.",
       "danglingBossOption": "bossOptions sempre inclui o boss atualmente salvo mesmo que a quest dele esteja desmarcada no filtro ou ele não exista na tabela boss_quests (drops históricos podem citar boss fora da lista) — mesmo padrão defensivo que já existia antes (bossName injetado como opção extra), só adaptado pro filtro novo."
+    },
+    "bossItemsMigration": {
+      "file": "src/hooks/useBossItems.ts + src/services/supabase/boss-items-client.ts",
+      "status": "Migrado pro banco em 2026-08-14 (mesmo dia do bossQuestFilter) — o dropdown de Item no DropFormModal usava BOSS_ITEMS (services/lootdrop/boss-items-data.ts) com um resolver de fallback (boss direto, senão quest); agora usa a tabela real boss_items (boss, item) direto, sem heurística no client. resolveItemsForBoss() foi REMOVIDO — não recriar.",
+      "grandSanguineFix": "Correção de dado pedida pelo usuário: os itens 'Grand Sanguine *' (11 itens) apareciam pra qualquer um dos 5 bosses de Rotten Blood (Chagorz, Vemiath, Ichgahal, Murcion, Bakra) porque vinham do pool inteiro da quest — na prática só caem do Bakra. Os outros 24 itens de Rotten Blood (8 diversos + 16 'Sanguine *' sem 'Grand') continuam nos 5 bosses. Migration 20260814050000_create_boss_items_table.sql já nasce com essa distinção (insert separado pro Bakra com os Grand Sanguine, insert comum pros 5 com o resto) — testado no browser: Bakra mostra 35 itens (24 + 11 Grand Sanguine), Chagorz mostra só os 24 comuns.",
+      "migrationApproach": "Resto dos 404 (boss, item) migrado 1:1 com o comportamento anterior de resolveItemsForBoss, sem inventar nenhuma restrição que o usuário não pediu: bosses que já eram chave direta em BOSS_ITEMS (SoulCore, Warzone, Vladrukh, Arbaziloth, The Rootkraken, Phosphorus, os 5 de Grave Borne, Crypt) mantiveram exatamente os mesmos itens; bosses que só existiam via fallback de quest (Rotten Blood exceto Grand Sanguine, os 6 de Soul War, Plunder, Maior Domus, Mima Haffar) receberam o pool inteiro da quest. Gerado por script Node ad-hoc (não versionado) que leu boss-items-data.ts e aplicou essa transformação.",
+      "bossItemsDataTsFate": "services/lootdrop/boss-items-data.ts (BOSS_ITEMS) NÃO foi deletado — continua no repo só como fonte de nomes de item pro script scripts/fetch-item-icons.mjs (lê o arquivo via regex de texto, não importa o módulo). Não é mais importado por nenhum componente/hook do app."
     },
     "previsaoFimAno": {
       "file": "src/services/xp-sheet/level-prediction.ts",

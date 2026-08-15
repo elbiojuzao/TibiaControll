@@ -1,12 +1,12 @@
 /**
- * Tabela de drops por boss/quest — dado de regra do jogo (não varia por conta/party),
- * extraída da planilha "Itens.xlsx" fornecida pelo usuário em 2026-08-05. Usada pra popular
- * o dropdown de Item em cascata no formulário de registro de drop (ver
- * DropFormModal.tsx#resolveItemsForBoss). As chaves misturam granularidade de propósito:
- * algumas são quest de verdade com vários bosses (ex: 'Rotten Blood', 'Soul War' — ver
- * migration 20260814040000_create_boss_quests_table.sql pro mapeamento boss->quest), outras
- * já são o próprio nome do boss individual (ex: 'Arbaziloth', 'SoulCore', 'Phosphorus') —
- * resolveItemsForBoss tenta o boss direto primeiro, senão cai pra quest dele.
+ * Tabela de drops por boss/quest, extraída da planilha "Itens.xlsx" fornecida pelo usuário
+ * em 2026-08-05. Migrada pro banco em 2026-08-14 (tabela real `boss_items`, ver migration
+ * 20260814050000_create_boss_items_table.sql, com a correção de que "Grand Sanguine *" só
+ * cai do Bakra, não de qualquer boss de Rotten Blood) — o dropdown de Item no
+ * DropFormModal.tsx usa useBossItems()/a tabela real agora, NÃO mais este arquivo.
+ * Mantido só como fonte de nomes de item pro script scripts/fetch-item-icons.mjs (lê o
+ * texto deste arquivo via regex, não importa o módulo) — se editar itens aqui, só afeta
+ * quais ícones são baixados, não o que aparece no formulário de drop.
  */
 export const BOSS_ITEMS: Record<string, string[]> = {
   'Rotten Blood': [
