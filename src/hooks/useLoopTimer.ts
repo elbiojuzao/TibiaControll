@@ -59,23 +59,46 @@ export function useLoopTimer(durationSeconds: number, volume: number) {
     setTimeout(() => setIsBlinking(false), 200);
   };
 
+  // Timestamp (epoch ms) em que o loop atual termina — âncora no relógio real do
+  // usuário em vez de contar ticks de setInterval. Necessário porque o navegador reduz
+  // (throttle) a frequência de setInterval em abas em segundo plano/inativas (pode cair
+  // pra 1x por minuto ou menos), fazendo o contador parecer "parado" — reportado pelo
+  // usuário em 2026-08-15. Recalculando sempre a partir de `endAtRef - Date.now()`, o
+  // valor mostrado bate com o tempo real decorrido mesmo que os ticks tenham atrasado,
+  // inclusive re-sincronizando corretamente se o loop passou várias vezes enquanto a
+  // aba estava em segundo plano (`cyclesPassed`).
+  const endAtRef = useRef<number>(Date.now() + durationSeconds * 1000);
+
   useEffect(() => {
     if (!isRunning) {
       if (timerRef.current) clearInterval(timerRef.current);
       return;
     }
 
-    timerRef.current = window.setInterval(() => {
-      setSecondsLeft((prev) => {
-        if (prev > 0) return prev - 1;
+    endAtRef.current = Date.now() + secondsLeft * 1000;
+
+    const tick = () => {
+      const remainingMs = endAtRef.current - Date.now();
+      if (remainingMs <= 0) {
+        const loopMs = durationSeconds * 1000;
+        const cyclesPassed = Math.floor(-remainingMs / loopMs) + 1;
+        endAtRef.current += cyclesPassed * loopMs;
+        setSecondsLeft(Math.ceil((endAtRef.current - Date.now()) / 1000));
         playDoubleBeep();
         triggerBlink();
-        return durationSeconds;
-      });
-    }, 1000);
+      } else {
+        setSecondsLeft(Math.ceil(remainingMs / 1000));
+      }
+    };
+
+    timerRef.current = window.setInterval(tick, 1000);
+    // Recalcula na hora quando a aba volta a ficar visível, em vez de esperar o
+    // próximo tick (que pode estar atrasado por causa do throttle).
+    document.addEventListener('visibilitychange', tick);
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      document.removeEventListener('visibilitychange', tick);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRunning, volume, durationSeconds]);
