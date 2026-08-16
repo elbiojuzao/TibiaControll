@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAccount } from '@/hooks/useAccount';
 import { useMembers } from '@/hooks/useMembers';
 import { VOCATION_ICON, VOCATION_LABEL } from '@/services/vocation/vocation-display';
@@ -11,8 +11,39 @@ const VOCATIONS: Vocation[] = ['EK', 'ED', 'MS', 'RP', 'EM', 'OTHER'];
 const EK_SKILL_OPTIONS: HighscoreSkillCategory[] = ['axefighting', 'swordfighting', 'clubfighting'];
 
 export function SettingsPage() {
-  const { accountId } = useAccount();
+  const { accountId, account, updatePartyName } = useAccount();
   const { members, loading, error, createMember, updateMember, removeMember } = useMembers(accountId);
+
+  // Nome da party (2026-08-16, pedido do usuário): editável aqui, salvo no banco
+  // (accounts.party_name) — vale pra qualquer um que logar com a credencial
+  // compartilhada da PT, não só pra quem editou. useAccount() cuida de propagar a
+  // mudança pro resto do app (ex: topbar) via cache em localStorage, ver
+  // services/account/account-cache.ts.
+  const [formPartyName, setFormPartyName] = useState('');
+  const [savingPartyName, setSavingPartyName] = useState(false);
+  const [partyNameError, setPartyNameError] = useState<string | null>(null);
+  const [partyNameSaved, setPartyNameSaved] = useState(false);
+
+  useEffect(() => {
+    if (account) setFormPartyName(account.partyName);
+  }, [account]);
+
+  const handleSavePartyName = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = formPartyName.trim();
+    if (!trimmed) return setPartyNameError('Informe um nome pra party.');
+    setPartyNameError(null);
+    setSavingPartyName(true);
+    try {
+      await updatePartyName(trimmed);
+      setPartyNameSaved(true);
+      setTimeout(() => setPartyNameSaved(false), 2000);
+    } catch (err) {
+      setPartyNameError(err instanceof Error ? err.message : 'Erro ao salvar nome da party.');
+    } finally {
+      setSavingPartyName(false);
+    }
+  };
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -117,6 +148,33 @@ export function SettingsPage() {
 
   return (
     <div className="dashboard-container" style={{ padding: '20px', maxWidth: '900px', margin: '0 auto', color: 'var(--color-text)' }}>
+      <div className="card" style={{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: 'var(--space-card)', marginBottom: '20px' }}>
+        <h3 style={{ margin: '0 0 4px 0', fontSize: '13px', color: 'var(--color-accent)' }}>Nome da Party</h3>
+        <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: 'var(--color-text-muted)' }}>
+          Aparece na topbar de qualquer um que logar com a credencial compartilhada da PT.
+        </p>
+        <form onSubmit={handleSavePartyName} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+          <input
+            type="text"
+            value={formPartyName}
+            onChange={(e) => setFormPartyName(e.target.value)}
+            placeholder="Ex: Thanatos PT"
+            style={{ flex: '1 1 240px', minWidth: '200px', background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '8px', boxSizing: 'border-box' }}
+          />
+          <button
+            type="submit"
+            disabled={savingPartyName || !account}
+            style={{
+              background: partyNameSaved ? 'var(--color-success)' : 'var(--color-accent)', color: 'var(--color-text)', border: 'none', padding: '8px 16px',
+              borderRadius: 'var(--radius-sm)', fontWeight: 'bold', cursor: savingPartyName ? 'default' : 'pointer', fontSize: '13px', opacity: savingPartyName ? 0.7 : 1, whiteSpace: 'nowrap',
+            }}
+          >
+            {savingPartyName ? 'Salvando...' : partyNameSaved ? 'Salvo!' : 'Salvar Nome'}
+          </button>
+        </form>
+        {partyNameError && <span style={{ display: 'block', marginTop: '8px', color: 'var(--color-danger)', fontSize: '12px' }}>{partyNameError}</span>}
+      </div>
+
       <header className="page-header" style={{ marginBottom: '25px', borderBottom: '1px solid var(--color-border)', paddingBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <h2 style={{ margin: 0, fontSize: '20px', color: 'var(--color-accent)' }}>Configurações — Membros da Party</h2>

@@ -4,6 +4,7 @@ import type { Account } from '@/types';
  * resolve qual é o workspace/party atual, não autentica ninguém. */
 export interface IAccountRepository {
   getCurrentAccount(): Promise<Account | null>;
+  updatePartyName(accountId: string, partyName: string): Promise<Account>;
 }
 
 export interface IMemberRepository {
