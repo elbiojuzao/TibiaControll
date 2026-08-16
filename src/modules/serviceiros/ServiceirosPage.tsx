@@ -3,7 +3,8 @@ import { useAccount } from '@/hooks/useAccount';
 import { useServiceiros } from '@/hooks/useServiceiros';
 import { buildWhatsAppLink } from '@/services/serviceiro/whatsapp';
 import { SERVICEIRO_VOCATIONS, VOCATION_ICON, VOCATION_LABEL } from '@/services/vocation/vocation-display';
-import type { Vocation } from '@/types';
+import { ServiceiroFormModal } from './components/ServiceiroFormModal';
+import type { Serviceiro, Vocation } from '@/types';
 
 function WhatsAppIcon() {
   return (
@@ -22,106 +23,34 @@ export function ServiceirosPage() {
   const { serviceiros, loading, createServiceiro, updateServiceiro, removeServiceiro } = useServiceiros(accountId);
 
   const [message, setMessage] = useState('');
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [formName, setFormName] = useState('');
-  const [formCharacterName, setFormCharacterName] = useState('');
-  const [formPhone, setFormPhone] = useState('');
-  const [formVocations, setFormVocations] = useState<Vocation[]>([]);
-  const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [filterVocations, setFilterVocations] = useState<Vocation[]>([]);
+
+  // Modal de criar/editar serviceiro (2026-08-16) — antes era um form inline na página;
+  // virou padrão do sistema qualquer edição de item abrir em modal, mesmo padrão do
+  // DropFormModal.tsx/MemberFormModal.tsx.
+  const [modalMode, setModalMode] = useState<'create' | 'edit' | null>(null);
+  const [editingServiceiro, setEditingServiceiro] = useState<Serviceiro | null>(null);
+
+  const openCreate = () => {
+    setEditingServiceiro(null);
+    setModalMode('create');
+  };
+
+  const openEdit = (serviceiro: Serviceiro) => {
+    setEditingServiceiro(serviceiro);
+    setModalMode('edit');
+  };
+
+  const closeModal = () => {
+    setModalMode(null);
+    setEditingServiceiro(null);
+  };
 
   const filteredServiceiros = useMemo(() => {
     if (filterVocations.length === 0) return serviceiros;
     return serviceiros.filter((s) => s.vocations.some((v) => filterVocations.includes(v)));
   }, [serviceiros, filterVocations]);
-
-  const resetForm = () => {
-    setShowForm(false);
-    setEditingId(null);
-    setFormName('');
-    setFormCharacterName('');
-    setFormPhone('');
-    setFormVocations([]);
-    setFormError(null);
-  };
-
-  const startCreate = () => {
-    if (showForm && !editingId) {
-      resetForm();
-      return;
-    }
-    resetForm();
-    setShowForm(true);
-  };
-
-  const startEdit = (id: string) => {
-    const target = serviceiros.find((s) => s.id === id);
-    if (!target) return;
-    setEditingId(id);
-    setFormName(target.name);
-    setFormCharacterName(target.characterName);
-    setFormPhone('');
-    setFormVocations(target.vocations);
-    setFormError(null);
-    setShowForm(true);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormError(null);
-
-    const trimmedName = formName.trim();
-    const trimmedCharacterName = formCharacterName.trim();
-    const digitsOnly = formPhone.replace(/\D/g, '');
-
-    if (!trimmedName) {
-      setFormError('Informe o nome do serviceiro.');
-      return;
-    }
-    if (!trimmedCharacterName) {
-      setFormError('Informe o nome do boneco usado para pagamento.');
-      return;
-    }
-    if (!editingId && digitsOnly.length < 10) {
-      setFormError('Informe um telefone válido, com DDI e DDD (ex: 5511999998888).');
-      return;
-    }
-    if (digitsOnly && digitsOnly.length < 10) {
-      setFormError('Telefone inválido — precisa ter DDI e DDD (ex: 5511999998888).');
-      return;
-    }
-    if (formVocations.length === 0) {
-      setFormError('Selecione ao menos uma vocação.');
-      return;
-    }
-
-    setSaving(true);
-    try {
-      if (editingId) {
-        await updateServiceiro(editingId, {
-          name: trimmedName,
-          characterName: trimmedCharacterName,
-          vocations: formVocations,
-          ...(digitsOnly ? { phoneNumber: digitsOnly } : {}),
-        });
-      } else {
-        await createServiceiro({
-          name: trimmedName,
-          characterName: trimmedCharacterName,
-          phoneNumber: digitsOnly,
-          vocations: formVocations,
-        });
-      }
-      resetForm();
-    } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'Erro ao salvar serviceiro.');
-    } finally {
-      setSaving(false);
-    }
-  };
 
   return (
     <div className="dashboard-container" style={{ padding: '20px', maxWidth: '900px', margin: '0 auto', color: 'var(--color-text)' }}>
@@ -134,112 +63,23 @@ export function ServiceirosPage() {
           </p>
         </div>
         <button
-          onClick={startCreate}
+          onClick={openCreate}
           style={{
             background: 'var(--color-accent)', color: 'var(--color-text)', border: 'none', padding: '10px 16px',
             borderRadius: 'var(--radius-sm)', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap',
           }}
         >
-          {showForm && !editingId ? 'Cancelar' : '+ Cadastrar Serviceiro'}
+          + Cadastrar Serviceiro
         </button>
       </header>
 
-      {showForm && (
-        <form
-          onSubmit={handleSubmit}
-          style={{ background: 'var(--color-bg-elevated)', padding: '15px', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)', marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}
-        >
-          <h3 style={{ margin: 0, fontSize: '13px', color: 'var(--color-accent)' }}>
-            {editingId ? 'Editar Serviceiro' : 'Novo Serviceiro'}
-          </h3>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
-            <label style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-              Nome
-              <input
-                type="text"
-                value={formName}
-                onChange={(e) => setFormName(e.target.value)}
-                placeholder="Ex: Dedinho"
-                style={{ width: '100%', marginTop: '4px', background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '8px', boxSizing: 'border-box' }}
-              />
-            </label>
-            <label style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-              Nome do Boneco (pagamento)
-              <input
-                type="text"
-                value={formCharacterName}
-                onChange={(e) => setFormCharacterName(e.target.value)}
-                placeholder="Ex: Dedinho Knight"
-                style={{ width: '100%', marginTop: '4px', background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '8px', boxSizing: 'border-box' }}
-              />
-            </label>
-            <label style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-              Telefone (WhatsApp, com DDI+DDD)
-              <input
-                type="text"
-                value={formPhone}
-                onChange={(e) => setFormPhone(e.target.value)}
-                placeholder={editingId ? 'Deixe em branco pra manter o atual' : 'Ex: 5511999998888'}
-                style={{ width: '100%', marginTop: '4px', background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '8px', boxSizing: 'border-box' }}
-              />
-            </label>
-          </div>
-
-          <div>
-            <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', display: 'block', marginBottom: '6px' }}>
-              Faz serviço em quais vocações?
-            </span>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              {SERVICEIRO_VOCATIONS.map((vocation) => {
-                const active = formVocations.includes(vocation);
-                return (
-                  <button
-                    key={vocation}
-                    type="button"
-                    onClick={() => setFormVocations((prev) => toggleVocation(prev, vocation))}
-                    title={VOCATION_LABEL[vocation]}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '6px',
-                      padding: '6px 12px', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '13px',
-                      border: active ? '1px solid var(--color-success)' : '1px solid var(--color-border)',
-                      background: active ? 'var(--color-success-soft)' : 'var(--color-bg-input)',
-                      color: active ? 'var(--color-success)' : 'var(--color-text-muted)',
-                    }}
-                  >
-                    <span>{VOCATION_ICON[vocation]}</span>
-                    <span>{vocation}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {formError && <span style={{ color: 'var(--color-danger)', fontSize: '12px' }}>{formError}</span>}
-
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button
-              type="submit"
-              disabled={saving}
-              style={{
-                background: 'var(--color-accent)', color: 'var(--color-bg)', border: 'none', padding: '8px 16px',
-                borderRadius: 'var(--radius-sm)', fontWeight: 'bold', cursor: saving ? 'default' : 'pointer', fontSize: '13px',
-                opacity: saving ? 0.7 : 1, alignSelf: 'flex-start',
-              }}
-            >
-              {saving ? 'Salvando...' : editingId ? 'Salvar Alterações' : 'Salvar Serviceiro'}
-            </button>
-            {editingId && (
-              <button
-                type="button"
-                onClick={resetForm}
-                style={{ background: 'transparent', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)', padding: '8px 16px', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '13px' }}
-              >
-                Cancelar
-              </button>
-            )}
-          </div>
-        </form>
+      {modalMode && (
+        <ServiceiroFormModal
+          mode={modalMode}
+          serviceiro={editingServiceiro ?? undefined}
+          onClose={closeModal}
+          onSubmit={(dto) => (modalMode === 'edit' && editingServiceiro ? updateServiceiro(editingServiceiro.id, dto) : createServiceiro(dto as Parameters<typeof createServiceiro>[0]))}
+        />
       )}
 
       <div style={{ background: 'var(--color-bg-elevated)', padding: '15px', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)', marginBottom: '20px' }}>
@@ -313,29 +153,31 @@ export function ServiceirosPage() {
       )}
 
       {!loading && filteredServiceiros.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        // Cards menores e quadrados (2026-08-16, pedido do usuário: "como se fossem
+        // cartas") em vez de linhas horizontais cheias — grid responsivo, cada card
+        // se ajusta a partir de ~150px de largura.
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '12px' }}>
           {filteredServiceiros.map((s) => (
             <div
               key={s.id}
               style={{
                 background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)',
-                padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '14px 10px', display: 'flex', flexDirection: 'column', alignItems: 'center',
+                textAlign: 'center', gap: '6px',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div>
-                  <div style={{ fontWeight: 'bold', fontSize: '14px' }}>{s.name}</div>
-                  <div style={{ fontSize: '11px', color: 'var(--color-text-faint)' }}>Boneco: {s.characterName || '—'}</div>
-                </div>
-                <div style={{ display: 'flex', gap: '4px' }}>
-                  {s.vocations.map((vocation) => (
-                    <span key={vocation} title={VOCATION_LABEL[vocation]} style={{ fontSize: '14px' }}>
-                      {VOCATION_ICON[vocation]}
-                    </span>
-                  ))}
-                </div>
+              <div style={{ fontWeight: 'bold', fontSize: '14px' }}>{s.name}</div>
+              <div style={{ fontSize: '11px', color: 'var(--color-text-faint)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
+                Boneco: {s.characterName || '—'}
               </div>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                {s.vocations.map((vocation) => (
+                  <span key={vocation} title={VOCATION_LABEL[vocation]} style={{ fontSize: '14px' }}>
+                    {VOCATION_ICON[vocation]}
+                  </span>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '6px' }}>
                 <a
                   href={buildWhatsAppLink(s.phoneNumber, message)}
                   target="_blank"
@@ -343,14 +185,14 @@ export function ServiceirosPage() {
                   title={`Chamar ${s.name} no WhatsApp`}
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    width: '34px', height: '34px', borderRadius: 'var(--radius-pill)',
+                    width: '30px', height: '30px', borderRadius: 'var(--radius-pill)',
                     background: '#25D366', color: 'var(--color-bg)', textDecoration: 'none',
                   }}
                 >
                   <WhatsAppIcon />
                 </a>
                 <button
-                  onClick={() => startEdit(s.id)}
+                  onClick={() => openEdit(s)}
                   title="Editar serviceiro"
                   style={{ background: 'transparent', color: 'var(--color-text-muted)', border: 'none', cursor: 'pointer', fontSize: '15px', opacity: 0.8 }}
                 >

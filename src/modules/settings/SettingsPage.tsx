@@ -3,12 +3,8 @@ import { useAccount } from '@/hooks/useAccount';
 import { useMembers } from '@/hooks/useMembers';
 import { VOCATION_ICON, VOCATION_LABEL } from '@/services/vocation/vocation-display';
 import { SKILL_CATEGORY_LABEL } from '@/services/tibiadata/tibiadata-client';
-import type { HighscoreSkillCategory, Vocation } from '@/types';
-
-const VOCATIONS: Vocation[] = ['EK', 'ED', 'MS', 'RP', 'EM', 'OTHER'];
-/** Só EK é ambíguo (pode treinar Axe/Sword/Club) — outras vocações inferem a categoria
- * certa sozinhas, ver resolveSkillCategory() em tibiadata-client.ts. */
-const EK_SKILL_OPTIONS: HighscoreSkillCategory[] = ['axefighting', 'swordfighting', 'clubfighting'];
+import { MemberFormModal } from './components/MemberFormModal';
+import type { Member } from '@/types';
 
 export function SettingsPage() {
   const { accountId, account, updatePartyName } = useAccount();
@@ -45,105 +41,38 @@ export function SettingsPage() {
     }
   };
 
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [formCharacterName, setFormCharacterName] = useState('');
-  const [formVocation, setFormVocation] = useState<Vocation>('EK');
-  const [formSkillCategory, setFormSkillCategory] = useState<HighscoreSkillCategory>('axefighting');
-  const [formIsServiceiro, setFormIsServiceiro] = useState(false);
-  const [formSharePercent, setFormSharePercent] = useState('');
-  const [formOwnerCharacterName, setFormOwnerCharacterName] = useState('');
-  const [formIsDefaultSeller, setFormIsDefaultSeller] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
+  // Modal de criar/editar membro (2026-08-16) — antes era um form inline na página;
+  // virou padrão do sistema qualquer edição de item abrir em modal, mesmo padrão do
+  // DropFormModal.tsx.
+  const [modalMode, setModalMode] = useState<'create' | 'edit' | null>(null);
+  const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const resetForm = () => {
-    setShowForm(false);
-    setEditingId(null);
-    setFormCharacterName('');
-    setFormVocation('EK');
-    setFormSkillCategory('axefighting');
-    setFormIsServiceiro(false);
-    setFormSharePercent('');
-    setFormOwnerCharacterName('');
-    setFormIsDefaultSeller(false);
-    setFormError(null);
+  const openCreate = () => {
+    setEditingMember(null);
+    setModalMode('create');
   };
 
-  const startCreate = () => {
-    if (showForm && !editingId) {
-      resetForm();
-      return;
-    }
-    resetForm();
-    setShowForm(true);
+  const openEdit = (member: Member) => {
+    setEditingMember(member);
+    setModalMode('edit');
   };
 
-  const startEdit = (id: string) => {
-    const target = members.find((m) => m.id === id);
-    if (!target) return;
-    setEditingId(id);
-    setFormCharacterName(target.characterName);
-    setFormVocation(target.vocation);
-    setFormSkillCategory(target.skillCategory ?? 'axefighting');
-    setFormIsServiceiro(target.isServiceiro);
-    setFormSharePercent(target.serviceiroSharePercent !== undefined ? String(target.serviceiroSharePercent) : '');
-    setFormOwnerCharacterName(target.ownerCharacterName ?? '');
-    setFormIsDefaultSeller(target.isDefaultSeller ?? false);
-    setFormError(null);
-    setShowForm(true);
+  const closeModal = () => {
+    setModalMode(null);
+    setEditingMember(null);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormError(null);
-
-    const trimmedName = formCharacterName.trim();
-    if (!trimmedName) {
-      setFormError('Informe o nome do personagem — precisa bater exatamente com o nome no Tibia e na planilha de XP.');
-      return;
+  // Vendedor Padrão é único por conta (índice único parcial no banco) — se o form marcar
+  // um novo, desmarca o antigo primeiro, senão o banco rejeita a gravação. Ficava dentro
+  // do handleSubmit antes do form virar modal; precisa continuar aqui porque só a página
+  // tem a lista completa de members pra achar quem estava marcado.
+  const handleModalSubmit = async (dto: Parameters<typeof createMember>[0]) => {
+    if (dto.isDefaultSeller) {
+      const currentDefault = members.find((m) => m.isDefaultSeller && m.id !== editingMember?.id);
+      if (currentDefault) await updateMember(currentDefault.id, { isDefaultSeller: false });
     }
-
-    let sharePercent: number | undefined;
-    if (formIsServiceiro && formSharePercent.trim()) {
-      const parsed = Number(formSharePercent);
-      if (Number.isNaN(parsed) || parsed < 0 || parsed > 100) {
-        setFormError('Percentual do serviceiro precisa ser um número entre 0 e 100.');
-        return;
-      }
-      sharePercent = parsed;
-    }
-
-    setSaving(true);
-    try {
-      // Vendedor Padrão é único por conta (índice único parcial no banco) — se marcar
-      // um novo, desmarca o antigo primeiro, senão o banco rejeita a gravação.
-      if (formIsDefaultSeller) {
-        const currentDefault = members.find((m) => m.isDefaultSeller && m.id !== editingId);
-        if (currentDefault) await updateMember(currentDefault.id, { isDefaultSeller: false });
-      }
-
-      const dto = {
-        characterName: trimmedName,
-        vocation: formVocation,
-        skillCategory: formVocation === 'EK' ? formSkillCategory : undefined,
-        isServiceiro: formIsServiceiro,
-        serviceiroSharePercent: formIsServiceiro ? sharePercent : undefined,
-        ownerCharacterName: formIsServiceiro ? formOwnerCharacterName.trim() || undefined : undefined,
-        isDefaultSeller: formIsDefaultSeller,
-      };
-      if (editingId) {
-        await updateMember(editingId, dto);
-      } else {
-        await createMember(dto);
-      }
-      resetForm();
-    } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'Erro ao salvar membro.');
-    } finally {
-      setSaving(false);
-    }
+    return modalMode === 'edit' && editingMember ? updateMember(editingMember.id, dto) : createMember(dto);
   };
 
   return (
@@ -184,135 +113,23 @@ export function SettingsPage() {
           </p>
         </div>
         <button
-          onClick={startCreate}
+          onClick={openCreate}
           style={{
             background: 'var(--color-accent)', color: 'var(--color-text)', border: 'none', padding: '10px 16px',
             borderRadius: 'var(--radius-sm)', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap',
           }}
         >
-          {showForm && !editingId ? 'Cancelar' : '+ Cadastrar Membro'}
+          + Cadastrar Membro
         </button>
       </header>
 
-      {showForm && (
-        <form
-          onSubmit={handleSubmit}
-          style={{ background: 'var(--color-bg-elevated)', padding: '15px', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)', marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}
-        >
-          <h3 style={{ margin: 0, fontSize: '13px', color: 'var(--color-accent)' }}>
-            {editingId ? 'Editar Membro' : 'Novo Membro'}
-          </h3>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            <label style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-              Nome do Personagem
-              <input
-                type="text"
-                value={formCharacterName}
-                onChange={(e) => setFormCharacterName(e.target.value)}
-                placeholder="Ex: Thanatos Celestial"
-                style={{ width: '100%', marginTop: '4px', background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '8px', boxSizing: 'border-box' }}
-              />
-            </label>
-            <label style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-              Vocação
-              <select
-                value={formVocation}
-                onChange={(e) => setFormVocation(e.target.value as Vocation)}
-                style={{ width: '100%', marginTop: '4px', background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '8px', boxSizing: 'border-box' }}
-              >
-                {VOCATIONS.map((v) => (
-                  <option key={v} value={v}>{VOCATION_ICON[v]} {VOCATION_LABEL[v]}</option>
-                ))}
-              </select>
-            </label>
-          </div>
-
-          {formVocation === 'EK' && (
-            <label style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-              Skill treinada (pra buscar o valor certo nos Highscores)
-              <select
-                value={formSkillCategory}
-                onChange={(e) => setFormSkillCategory(e.target.value as HighscoreSkillCategory)}
-                style={{ width: '220px', marginTop: '4px', background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '8px', boxSizing: 'border-box' }}
-              >
-                {EK_SKILL_OPTIONS.map((cat) => (
-                  <option key={cat} value={cat}>{SKILL_CATEGORY_LABEL[cat]}</option>
-                ))}
-              </select>
-            </label>
-          )}
-
-          <label style={{ fontSize: '12px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-            <input
-              type="checkbox"
-              checked={formIsServiceiro}
-              onChange={(e) => setFormIsServiceiro(e.target.checked)}
-            />
-            Esse personagem é jogado por um serviceiro (conta de terceiro)
-          </label>
-
-          <label style={{ fontSize: '12px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-            <input
-              type="checkbox"
-              checked={formIsDefaultSeller}
-              onChange={(e) => setFormIsDefaultSeller(e.target.checked)}
-            />
-            Vendedor Padrão — quem efetivamente vende os itens (aparece como "quem paga" nos comandos de transferência do drop vendido). Só 1 por vez.
-          </label>
-
-          {formIsServiceiro && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <label style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                Dono da conta
-                <input
-                  type="text"
-                  value={formOwnerCharacterName}
-                  onChange={(e) => setFormOwnerCharacterName(e.target.value)}
-                  placeholder="Nome do dono da conta"
-                  style={{ width: '100%', marginTop: '4px', background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '8px', boxSizing: 'border-box' }}
-                />
-              </label>
-              <label style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                % que fica com o serviceiro
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  value={formSharePercent}
-                  onChange={(e) => setFormSharePercent(e.target.value)}
-                  placeholder="Ex: 50"
-                  style={{ width: '100%', marginTop: '4px', background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '8px', boxSizing: 'border-box' }}
-                />
-              </label>
-            </div>
-          )}
-
-          {formError && <span style={{ color: 'var(--color-danger)', fontSize: '12px' }}>{formError}</span>}
-
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button
-              type="submit"
-              disabled={saving}
-              style={{
-                background: 'var(--color-accent)', color: 'var(--color-bg)', border: 'none', padding: '8px 16px',
-                borderRadius: 'var(--radius-sm)', fontWeight: 'bold', cursor: saving ? 'default' : 'pointer', fontSize: '13px',
-                opacity: saving ? 0.7 : 1, alignSelf: 'flex-start',
-              }}
-            >
-              {saving ? 'Salvando...' : editingId ? 'Salvar Alterações' : 'Salvar Membro'}
-            </button>
-            {editingId && (
-              <button
-                type="button"
-                onClick={resetForm}
-                style={{ background: 'transparent', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)', padding: '8px 16px', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '13px' }}
-              >
-                Cancelar
-              </button>
-            )}
-          </div>
-        </form>
+      {modalMode && (
+        <MemberFormModal
+          mode={modalMode}
+          member={editingMember ?? undefined}
+          onClose={closeModal}
+          onSubmit={handleModalSubmit}
+        />
       )}
 
       {deleteError && (
@@ -354,7 +171,7 @@ export function SettingsPage() {
               </div>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <button
-                  onClick={() => startEdit(m.id)}
+                  onClick={() => openEdit(m)}
                   title="Editar membro"
                   style={{ background: 'transparent', color: 'var(--color-text-muted)', border: 'none', cursor: 'pointer', fontSize: '15px', opacity: 0.8 }}
                 >

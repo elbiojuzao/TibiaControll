@@ -145,6 +145,7 @@ table {
 .topbar-nav {
   display: flex;
   align-items: center;
+  justify-content: safe center;
   gap: 4px;
   overflow-x: auto;
   flex: 1;
