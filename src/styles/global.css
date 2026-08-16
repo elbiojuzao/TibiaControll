@@ -685,6 +685,30 @@ table {
   padding: 6px;
 }
 
+/* Linhas de tabela tipo "planilha" (ex: grid de membros/skills/xp do Dashboard) —
+   2026-08-16: substitui o antigo padrão de usar --color-text-muted/--color-warning
+   sólido como fundo de linha inteira (ficava pesado e destoava do resto do app,
+   que usa fundos "-soft" + texto colorido pra indicar estado). */
+.linha-cabecalho-tabela {
+  background: var(--color-bg-input);
+  color: var(--color-text);
+}
+
+.linha-tabela-dado {
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
+}
+
+.linha-tabela-dado-alt {
+  background: transparent;
+  color: var(--color-text);
+}
+
+.linha-tabela-aviso {
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+}
+
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));

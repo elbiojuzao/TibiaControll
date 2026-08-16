@@ -33,12 +33,12 @@ const EMPTY_XP_STATS: MemberXpStats = { xpOntem: '—', xp30Dias: '—' };
 
 function getMetaCellStyle(val: string) {
   if (val === 'Lvl Atingido') {
-    return { background: 'var(--color-danger)', color: 'var(--color-text)' }; // Vermelho
+    return { background: 'var(--color-danger-soft)', color: 'var(--color-danger)' };
   }
   if (val.startsWith('+')) {
-    return { background: 'var(--color-accent)', color: 'var(--color-text)' };
+    return { background: 'var(--color-accent-soft)', color: 'var(--color-accent)' };
   }
-  return { background: 'var(--color-bg-elevated)', color: 'var(--color-text)' };
+  return { background: 'transparent', color: 'var(--color-text-muted)' };
 }
 
 export function DashboardPage() {
@@ -342,14 +342,14 @@ export function DashboardPage() {
           </div>
 
           {/* PLANILHA CENTRAL DE MEMBROS, SKILLS E METAS DE XP */}
-          <div className="card-compacto" style={{ overflowX: 'auto' }}>
+          <div className="card-compacto" style={{ overflowX: 'auto', padding: 0 }}>
             <table className="tabela-simples texto-mono" style={{ textAlign: 'center' }}>
               <thead>
                 {/* Linha de Nomes dos Membros */}
-                <tr style={{ background: 'var(--color-border)', color: 'var(--color-text)' }}>
-                  <th className="borda-padrao" style={{ padding: '8px', width: '110px' }}></th>
+                <tr className="linha-cabecalho-tabela">
+                  <th className="borda-padrao" style={{ padding: '10px', width: '110px' }}></th>
                   {members.map((m) => (
-                    <th key={m.id} className="borda-padrao" style={{ padding: '8px', fontWeight: 'bold', fontSize: '13px' }}>
+                    <th key={m.id} className="borda-padrao" style={{ padding: '10px', fontWeight: 'bold', fontSize: '13px' }}>
                       {m.characterName}
                     </th>
                   ))}
@@ -357,55 +357,55 @@ export function DashboardPage() {
               </thead>
               <tbody>
                 {/* Lvl Atual — ao vivo via TibiaData (character) */}
-                <tr style={{ background: 'var(--color-text-muted)', color: 'var(--color-bg)', fontWeight: 'bold' }}>
-                  <td className="borda-padrao" style={{ padding: '6px', textAlign: 'left', paddingLeft: '10px' }}>Lvl Atual</td>
+                <tr className="linha-tabela-dado">
+                  <td className="borda-padrao texto-mudo" style={{ padding: '8px', textAlign: 'left', paddingLeft: '10px', fontWeight: 'bold' }}>Lvl Atual</td>
                   {members.map((m) => {
                     const live = liveStats[m.characterName];
                     return (
-                      <td key={m.id} className="borda-padrao" style={{ padding: '6px' }}>
+                      <td key={m.id} className="borda-padrao" style={{ padding: '8px', fontWeight: 'bold' }}>
                         {live?.loading ? '…' : live?.level ?? '—'}
                       </td>
                     );
                   })}
                 </tr>
                 {/* Skill — ao vivo via TibiaData (highscores, top 500 do mundo) */}
-                <tr style={{ background: 'var(--color-text-muted)', color: 'var(--color-bg)', fontWeight: 'bold' }}>
-                  <td className="borda-padrao" style={{ padding: '6px', textAlign: 'left', paddingLeft: '10px' }}>Skill</td>
+                <tr className="linha-tabela-dado-alt">
+                  <td className="borda-padrao texto-mudo" style={{ padding: '8px', textAlign: 'left', paddingLeft: '10px', fontWeight: 'bold' }}>Skill</td>
                   {members.map((m) => {
                     const live = liveStats[m.characterName];
                     return (
-                      <td key={m.id} className="borda-padrao" style={{ padding: '6px' }}>
+                      <td key={m.id} className="borda-padrao" style={{ padding: '8px' }}>
                         {live?.loading ? '…' : live?.skillLabel ?? '—'}
                       </td>
                     );
                   })}
                 </tr>
                 {/* Xp Ontem */}
-                <tr style={{ background: 'var(--color-text-muted)', color: 'var(--color-bg)' }}>
-                  <td className="borda-padrao" style={{ padding: '6px', textAlign: 'left', paddingLeft: '10px', fontWeight: 'bold' }}>Xp Ontem</td>
+                <tr className="linha-tabela-dado">
+                  <td className="borda-padrao texto-mudo" style={{ padding: '8px', textAlign: 'left', paddingLeft: '10px', fontWeight: 'bold' }}>Xp Ontem</td>
                   {members.map((m) => {
                     const extra = statsByName[m.characterName] ?? EMPTY_XP_STATS;
                     return (
-                      <td key={m.id} className={`borda-padrao ${extra.xpOntem.startsWith('-') ? 'texto-perigo' : 'texto-sucesso'}`} style={{ padding: '6px' }}>
+                      <td key={m.id} className={`borda-padrao ${extra.xpOntem.startsWith('-') ? 'texto-perigo' : 'texto-sucesso'}`} style={{ padding: '8px', fontWeight: 'bold' }}>
                         {extra.xpOntem}
                       </td>
                     );
                   })}
                 </tr>
                 {/* Xp 30Dias */}
-                <tr style={{ background: 'var(--color-text-muted)', color: 'var(--color-bg)' }}>
-                  <td className="borda-padrao" style={{ padding: '6px', textAlign: 'left', paddingLeft: '10px', fontWeight: 'bold' }}>Xp 30Dias</td>
+                <tr className="linha-tabela-dado-alt">
+                  <td className="borda-padrao texto-mudo" style={{ padding: '8px', textAlign: 'left', paddingLeft: '10px', fontWeight: 'bold' }}>Xp 30Dias</td>
                   {members.map((m) => (
-                    <td key={m.id} className="borda-padrao texto-sucesso" style={{ padding: '6px' }}>
+                    <td key={m.id} className="borda-padrao texto-sucesso" style={{ padding: '8px', fontWeight: 'bold' }}>
                       {(statsByName[m.characterName] ?? EMPTY_XP_STATS).xp30Dias}
                     </td>
                   ))}
                 </tr>
                 {/* Previsão fim de ano */}
-                <tr style={{ background: 'var(--color-warning)', color: 'var(--color-bg)', fontWeight: 'bold' }}>
-                  <td className="borda-padrao" style={{ padding: '6px', textAlign: 'left', paddingLeft: '10px' }}>Previsão fim de ano</td>
+                <tr className="linha-tabela-aviso" style={{ fontWeight: 'bold' }}>
+                  <td className="borda-padrao" style={{ padding: '8px', textAlign: 'left', paddingLeft: '10px' }}>Previsão fim de ano</td>
                   {members.map((m) => (
-                    <td key={m.id} className="borda-padrao" style={{ padding: '6px' }}>
+                    <td key={m.id} className="borda-padrao" style={{ padding: '8px' }}>
                       {previsaoPorMembro[m.characterName] ?? '—'}
                     </td>
                   ))}
