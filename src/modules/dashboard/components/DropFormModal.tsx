@@ -34,14 +34,26 @@ function vocationOptions(members: Member[], vocation: Vocation, current: string)
   return Array.from(names);
 }
 
-/** 5º Player é sempre um serviceiro (boneco de terceiro completando a vaga, não um Member
- * fixo da PT) — pedido do usuário em 2026-08-14. Lista os characterName (boneco de
- * pagamento) dos serviceiros cadastrados, sempre incluindo o valor atual mesmo que não
- * bata com nenhum serviceiro hoje (drop histórico). */
+/** 5º Player é sempre um serviceiro (terceiro completando a vaga, não um Member fixo da
+ * PT) — pedido do usuário em 2026-08-14. Lista o NOME do serviceiro (não o boneco/
+ * characterName) — pedido do usuário em 2026-08-16: "o nome do boneco é usado apenas
+ * para pagamentos... o nome do boneco nunca é usado para identificação". Sempre inclui
+ * o valor atual mesmo que não bata com nenhum serviceiro hoje (drop histórico). */
 function fifthPlayerOptions(serviceiros: Serviceiro[], current: string): string[] {
-  const names = new Set(serviceiros.map((s) => s.characterName).filter(Boolean));
+  const names = new Set(serviceiros.map((s) => s.name).filter(Boolean));
   if (current) names.add(current);
   return Array.from(names).sort((a, b) => a.localeCompare(b));
+}
+
+/** O boneco (Serviceiro.characterName) só existe pra gerar comando `transfer` in-game
+ * — em qualquer lugar de identificação (5º Player, Fragador, etc.) usa-se o nome real
+ * do serviceiro. Como `party.fifthPlayer` agora guarda o nome real (não mais o boneco,
+ * ver fifthPlayerOptions), resolve de volta pro boneco só na hora de montar o comando de
+ * pagamento; slots de Member (EK/ED/MS/RP) não batem com nenhum serviceiro e passam
+ * direto. */
+function resolvePaymentTarget(slotValue: string, serviceiros: Serviceiro[]): string {
+  const serviceiro = serviceiros.find((s) => s.name === slotValue);
+  return serviceiro?.characterName || slotValue;
 }
 
 interface PlayerOption {
@@ -118,14 +130,15 @@ function computeTransferInstructions(
   };
 
   for (const slotName of slots) {
+    const paymentTarget = resolvePaymentTarget(slotName, serviceiros);
     const servants = services.filter((s) => s.serviceiroId && s.servedCharacterName === slotName);
     if (servants.length === 0) {
-      push(slotName, unitValue);
+      push(paymentTarget, unitValue);
       continue;
     }
     const servantPool = Math.round(unitValue * 0.5);
     const perServant = Math.round(servantPool / servants.length);
-    push(slotName, unitValue - servantPool);
+    push(paymentTarget, unitValue - servantPool);
     for (const servant of servants) {
       const serviceiro = serviceiros.find((s) => s.id === servant.serviceiroId);
       if (!serviceiro || perServant <= 0) continue;
