@@ -27,4 +27,17 @@ export class HttpAccountRepository implements IAccountRepository {
     if (error) throw new Error(error.message);
     return data ? toDomain(data as AccountRow) : null;
   }
+
+  /** RLS ("own_account", ver migration 20260814000000) já cobre UPDATE, não só SELECT —
+   * qualquer membro logado com a credencial compartilhada da party pode renomeá-la. */
+  async updatePartyName(accountId: string, partyName: string): Promise<Account> {
+    const { data, error } = await getSupabaseClient()
+      .from('accounts')
+      .update({ party_name: partyName })
+      .eq('id', accountId)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return toDomain(data as AccountRow);
+  }
 }

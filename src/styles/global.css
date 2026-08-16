@@ -1,21 +1,48 @@
 :root {
-  --color-bg: #0f1117;
-  --color-bg-elevated: #1a1d27;
-  --color-bg-hover: #242836;
-  --color-border: #2e3345;
-  --color-text: #e8eaef;
-  --color-text-muted: #8b92a8;
-  --color-accent: #6c5ce7;
-  --color-accent-hover: #7d6ff0;
-  --color-success: #00b894;
-  --color-warning: #fdcb6e;
-  --color-danger: #e17055;
+  /* Design system "Chronom-SaaS" (ver docs/design-system.md, 2026-08-16) */
+  --color-bg: #12131c;
+  --color-bg-elevated: #1a1b26;
+  --color-bg-hover: #22232f;
+  --color-bg-input: #0f1019;
+  --color-border: #262838;
+  --color-border-strong: #333650;
+  --color-text: #eceef4;
+  --color-text-muted: #8b8fa3;
+  --color-text-faint: #5c6079;
+
+  --color-accent: #5b7fff;
+  --color-accent-hover: #6f8fff;
+  --color-accent-soft: rgba(91, 127, 255, 0.15);
+  --color-success: #22c55e;
+  --color-success-soft: rgba(34, 197, 94, 0.15);
+  --color-warning: #f5a623;
+  --color-warning-soft: rgba(245, 166, 35, 0.15);
+  --color-danger: #ef4444;
+  --color-danger-soft: rgba(239, 68, 68, 0.15);
+
+  /* Paleta categórica — badges de ícone/avatar, atribuída em ordem, não fixa por nome */
+  --cat-1: #8b5cf6;
+  --cat-2: #ef4444;
+  --cat-3: #f59e0b;
+  --cat-4: #3b82f6;
+  --cat-5: #14b8a6;
+  --cat-6: #ec4899;
+
   --color-ek: #3498db;
   --color-ed: #2ecc71;
   --color-ms: #e74c3c;
   --color-rp: #f39c12;
+
   --font-sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  --radius: 8px;
+  --radius-sm: 6px;
+  --radius: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+  --space-card: 20px;
+  --gap-grid: 20px;
+  --topbar-height: 68px;
+
+  /* Compat: código legado que ainda referencia --radius/--sidebar-width diretamente */
   --sidebar-width: 240px;
 }
 
@@ -58,58 +85,111 @@ table {
   width: 100%;
 }
 
-/* Layout */
+/* Layout — topbar (2026-08-16, ver docs/design-system.md) */
 .app-layout {
   display: flex;
+  flex-direction: column;
   min-height: 100vh;
 }
 
-.sidebar {
-  width: var(--sidebar-width);
-  height: 100vh;
+.topbar {
+  height: var(--topbar-height);
   position: sticky;
   top: 0;
+  z-index: 30;
   background: var(--color-bg-elevated);
-  border-right: 1px solid var(--color-border);
-  display: flex;
-  flex-direction: column;
-  padding: 1.5rem 0;
-  flex-shrink: 0;
-  overflow-y: auto;
-}
-
-.sidebar-brand {
-  padding: 0 1.25rem 1.5rem;
   border-bottom: 1px solid var(--color-border);
-  margin-bottom: 1rem;
-}
-
-.sidebar-brand h1 {
-  font-size: 1.1rem;
-  font-weight: 700;
-}
-
-.sidebar-brand span {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-}
-
-.sidebar-nav {
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  padding: 0 0.75rem;
+  align-items: center;
+  gap: 24px;
+  padding: 0 20px;
+  flex-shrink: 0;
+}
+
+.topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding-right: 20px;
+  border-right: 1px solid var(--color-border);
+}
+
+.topbar-brand-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.topbar-brand h1 {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.topbar-brand span {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.topbar-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+  flex: 1;
+  min-width: 0;
+  scrollbar-width: thin;
+}
+
+.topbar-nav::-webkit-scrollbar {
+  height: 4px;
 }
 
 .nav-link {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.65rem 0.75rem;
-  border-radius: var(--radius);
+  justify-content: center;
+  gap: 3px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
   color: var(--color-text-muted);
-  font-size: 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+  position: relative;
   transition: background 0.15s, color 0.15s;
+}
+
+.nav-link-icon {
+  position: relative;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.nav-link-lock {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  font-size: 9px;
+  opacity: 0.7;
+}
+
+.nav-link-label {
+  font-size: 0.68rem;
+  line-height: 1;
 }
 
 .nav-link:hover {
@@ -118,60 +198,142 @@ table {
 }
 
 .nav-link.active {
+  color: var(--color-text);
+}
+
+.nav-link.active::after {
+  content: '';
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 1px;
+  height: 2px;
+  border-radius: var(--radius-pill);
   background: var(--color-accent);
-  color: white;
 }
 
-.boosted-today {
-  margin-top: auto;
-  padding: 0.85rem 1.25rem;
-  border-top: 1px solid var(--color-border);
+.topbar-actions {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
-.boosted-today-title {
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+.topbar-icon-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: transparent;
   color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.topbar-icon-btn:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text);
+}
+
+.avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-pill);
+  border: none;
+  background: var(--color-accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.avatar:hover {
+  background: var(--color-accent-hover);
+}
+
+/* Menu do avatar (Configurações/Sair) — dropdown ao clicar/focar no avatar,
+   mesmo padrão do dropdown "Bostados hoje". */
+.avatar-trigger {
+  position: relative;
+}
+
+.avatar-panel {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 170px;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 6px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+  z-index: 40;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.avatar-trigger:hover .avatar-panel,
+.avatar-trigger:focus-within .avatar-panel {
+  display: flex;
+}
+
+.avatar-panel-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  background: transparent;
+  white-space: nowrap;
+}
+
+.avatar-panel-item:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text);
+}
+
+/* Widget "Bostados hoje" — sempre visível na topbar, criatura e boss LADO A
+   LADO (voltou de empilhado pra lado a lado pra caber um ícone maior — pedido
+   do usuário: "ficar um ao lado do outro que ai ele pode ficar maior"), sem
+   hover pra revelar QUE existem. O nome de cada um só aparece no tooltip
+   nativo (title=) ao passar o mouse. */
+.boosted-today-inline {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-hover);
+}
+
+.boosted-today-chip {
+  display: flex;
+  align-items: center;
+  cursor: default;
+}
+
+.boosted-today-chip img {
+  flex-shrink: 0;
+  image-rendering: pixelated;
 }
 
 .boosted-today-status {
   font-size: 0.75rem;
   color: var(--color-text-muted);
-}
-
-.boosted-today-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.boosted-today-item img {
-  flex-shrink: 0;
-  image-rendering: pixelated;
-}
-
-.boosted-today-item div {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.boosted-today-label {
-  font-size: 0.65rem;
-  color: var(--color-text-muted);
-}
-
-.boosted-today-name {
-  font-size: 0.8rem;
-  color: var(--color-text);
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -194,6 +356,97 @@ table {
   color: var(--color-text-muted);
   font-size: 0.9rem;
   margin-top: 0.25rem;
+}
+
+/* Grid de cards do dashboard (2026-08-16) */
+.dash-grid {
+  display: grid;
+  gap: var(--gap-grid);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.card-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.card-title .info-icon {
+  color: var(--color-text-faint);
+  font-size: 0.75rem;
+  cursor: help;
+}
+
+/* Badge de ícone quadrado (listas com avatar colorido) */
+.badge-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+/* Badge de tendência (percentual com seta) */
+.badge-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  border-radius: var(--radius-sm);
+  padding: 3px 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge-trend.up {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.badge-trend.down {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.badge-trend.neutral {
+  background: var(--color-bg-hover);
+  color: var(--color-text-faint);
+}
+
+/* Barra de progresso fina (compliance highlights, etc.) */
+.progress-track {
+  height: 5px;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-hover);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+}
+
+/* Gauge circular (SVG, ver componente Gauge) */
+.gauge-value {
+  font-size: 2.1rem;
+  font-weight: 700;
+  color: var(--color-text);
 }
 
 /* Cards */
@@ -300,10 +553,10 @@ table {
 .boss-badge {
   display: inline-block;
   padding: 0.2rem 0.5rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 0.75rem;
-  background: rgba(108, 92, 231, 0.2);
-  color: #a29bfe;
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
   max-width: 140px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -319,12 +572,12 @@ table {
 }
 
 .sold-badge.yes {
-  background: rgba(0, 184, 148, 0.15);
+  background: var(--color-success-soft);
   color: var(--color-success);
 }
 
 .sold-badge.no {
-  background: rgba(253, 203, 110, 0.15);
+  background: var(--color-warning-soft);
   color: var(--color-warning);
 }
 
@@ -371,9 +624,9 @@ table {
   display: inline-block;
   margin-top: 1rem;
   padding: 0.35rem 0.75rem;
-  background: rgba(108, 92, 231, 0.15);
+  background: var(--color-accent-soft);
   color: var(--color-accent);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 0.8rem;
 }
 
@@ -528,9 +781,9 @@ table {
   border-radius: 50%;
 }
 
-.calendar-dot.hunt { background: #f59e0b; }
-.calendar-dot.boss { background: #38bdf8; }
-.calendar-dot.drop { background: #a29bfe; }
+.calendar-dot.hunt { background: var(--color-warning); }
+.calendar-dot.boss { background: var(--color-accent); }
+.calendar-dot.drop { background: var(--color-accent); }
 
 .calendar-legend {
   display: flex;

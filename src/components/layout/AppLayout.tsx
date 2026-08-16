@@ -13,8 +13,14 @@ const navItems = [
   { to: '/calendario', label: 'Histórico', icon: '📅', gated: true },
   { to: '/historico-xp', label: 'Histórico de XP', icon: '📈', gated: true },
   { to: '/serviceiros', label: 'Serviceiros', icon: '🤝', gated: true },
-  { to: '/configuracoes', label: 'Configurações', icon: '⚙️', gated: true },
+  // Configurações (2026-08-16) mora só no menu do avatar, não duplica aqui no nav.
 ];
+
+/** Iniciais pro avatar circular da topbar — nome da party, não do usuário
+ * individual (login é compartilhado pela PT inteira, ver [[regras_gestao_pts]]). */
+function partyInitial(partyName: string | undefined): string {
+  return partyName?.trim()?.[0]?.toUpperCase() ?? 'P';
+}
 
 export function AppLayout() {
   const { account, loading } = useAccount();
@@ -26,12 +32,16 @@ export function AppLayout() {
 
   return (
     <div className="app-layout">
-      <aside className="sidebar">
-        <div className="sidebar-brand">
-          <h1>Tibia PT Manager</h1>
-          <span>{account?.partyName ?? 'Party'}</span>
+      <header className="topbar">
+        <div className="topbar-brand">
+          <span className="topbar-brand-icon">🐉</span>
+          <div>
+            <h1>Tibia PT Manager</h1>
+            <span>{account?.partyName ?? 'Party'}</span>
+          </div>
         </div>
-        <nav className="sidebar-nav">
+
+        <nav className="topbar-nav">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
@@ -39,56 +49,42 @@ export function AppLayout() {
               end={item.to === '/'}
               className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
             >
-              <span>{item.icon}</span>
-              {item.label}
-              {/* Cadeado indica módulo exclusivo de conta pra quem não logou ainda —
-                  clicar leva pro /login normalmente (RequireAuth cuida disso). */}
-              {item.gated && !isAuthenticated && (
-                <span title="Exige login" style={{ marginLeft: 'auto', fontSize: '11px', opacity: 0.6 }}>🔒</span>
-              )}
+              <span className="nav-link-icon">
+                {item.icon}
+                {/* Cadeado indica módulo exclusivo de conta pra quem não logou ainda —
+                    clicar leva pro /login normalmente (RequireAuth cuida disso). */}
+                {item.gated && !isAuthenticated && (
+                  <span title="Exige login" className="nav-link-lock">🔒</span>
+                )}
+              </span>
+              <span className="nav-link-label">{item.label}</span>
             </NavLink>
           ))}
         </nav>
 
-        <div style={{ padding: '12px 16px', borderTop: '1px solid #334155' }}>
-          {isAuthenticated ? (
-            <button
-              onClick={() => logout()}
-              style={{
-                width: '100%',
-                background: 'transparent',
-                border: '1px solid #334155',
-                borderRadius: '6px',
-                padding: '8px',
-                color: '#94a3b8',
-                fontSize: '13px',
-                cursor: 'pointer',
-              }}
-            >
-              🚪 Sair
+        <div className="topbar-actions">
+          <BoostedToday />
+          <div className="avatar-trigger">
+            <button type="button" className="avatar" title={account?.partyName ?? 'Party'} aria-label="Menu da conta">
+              {partyInitial(account?.partyName)}
             </button>
-          ) : (
-            <NavLink
-              to="/login"
-              style={{
-                display: 'block',
-                textAlign: 'center',
-                background: 'transparent',
-                border: '1px solid #334155',
-                borderRadius: '6px',
-                padding: '8px',
-                color: '#10b981',
-                fontSize: '13px',
-                textDecoration: 'none',
-              }}
-            >
-              🔑 Entrar
-            </NavLink>
-          )}
+            <div className="avatar-panel">
+              <NavLink to="/configuracoes" className="avatar-panel-item">
+                ⚙️ Configurações
+              </NavLink>
+              {isAuthenticated ? (
+                <button type="button" className="avatar-panel-item" onClick={() => logout()}>
+                  🚪 Sair
+                </button>
+              ) : (
+                <NavLink to="/login" className="avatar-panel-item">
+                  🔑 Entrar
+                </NavLink>
+              )}
+            </div>
+          </div>
         </div>
-
-        <BoostedToday />
-      </aside>
+      </header>
       <main className="main-content">
         <Outlet />
       </main>

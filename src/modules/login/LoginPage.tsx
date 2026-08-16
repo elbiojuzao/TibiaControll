@@ -32,14 +32,14 @@ export function LoginPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a', padding: '20px' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-bg)', padding: '20px' }}>
       <form
         onSubmit={handleSubmit}
         autoComplete="on"
         style={{
-          background: '#1e293b',
-          border: '1px solid #334155',
-          borderRadius: '10px',
+          background: 'var(--color-bg-elevated)',
+          border: '1px solid var(--color-border)',
+          borderRadius: 'var(--radius)',
           padding: '32px',
           width: '100%',
           maxWidth: '360px',
@@ -49,13 +49,13 @@ export function LoginPage() {
         }}
       >
         <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-          <h1 style={{ margin: 0, fontSize: '20px', color: '#10b981' }}>Tibia PT Manager</h1>
-          <p style={{ margin: '6px 0 0 0', color: '#94a3b8', fontSize: '13px' }}>
+          <h1 style={{ margin: 0, fontSize: '20px', color: 'var(--color-success)' }}>Tibia PT Manager</h1>
+          <p style={{ margin: '6px 0 0 0', color: 'var(--color-text-muted)', fontSize: '13px' }}>
             Entre com a credencial da party pra acessar Dashboard, Drops, Histórico e Serviceiros.
           </p>
         </div>
 
-        <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px', color: '#cbd5e1' }}>
+        <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px', color: 'var(--color-text-muted)' }}>
           E-mail
           <input
             type="email"
@@ -65,11 +65,11 @@ export function LoginPage() {
             autoFocus
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            style={{ background: '#0f172a', color: '#fff', border: '1px solid #334155', borderRadius: '6px', padding: '8px 10px', fontSize: '14px' }}
+            style={{ background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '8px 10px', fontSize: '14px' }}
           />
         </label>
 
-        <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px', color: '#cbd5e1' }}>
+        <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px', color: 'var(--color-text-muted)' }}>
           Senha
           <input
             type="password"
@@ -78,12 +78,12 @@ export function LoginPage() {
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            style={{ background: '#0f172a', color: '#fff', border: '1px solid #334155', borderRadius: '6px', padding: '8px 10px', fontSize: '14px' }}
+            style={{ background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '8px 10px', fontSize: '14px' }}
           />
         </label>
 
         {(localError || error) && (
-          <div style={{ background: 'rgba(239, 68, 68, 0.12)', border: '1px solid #ef4444', borderRadius: '6px', padding: '8px 10px', color: '#f87171', fontSize: '13px' }}>
+          <div style={{ background: 'var(--color-danger-soft)', border: '1px solid var(--color-danger)', borderRadius: 'var(--radius-sm)', padding: '8px 10px', color: 'var(--color-danger)', fontSize: '13px' }}>
             {localError ?? error}
           </div>
         )}
@@ -92,11 +92,11 @@ export function LoginPage() {
           type="submit"
           disabled={submitting}
           style={{
-            background: submitting ? '#334155' : '#10b981',
-            color: '#0f172a',
+            background: submitting ? 'var(--color-border)' : 'var(--color-accent)',
+            color: 'var(--color-bg)',
             fontWeight: 'bold',
             border: 'none',
-            borderRadius: '6px',
+            borderRadius: 'var(--radius-sm)',
             padding: '10px',
             fontSize: '14px',
             cursor: submitting ? 'default' : 'pointer',

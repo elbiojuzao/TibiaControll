@@ -178,23 +178,23 @@ export function TimersPage() {
   };
 
   return (
-    <div className="dashboard-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start', minHeight: 'calc(100vh - 100px)', padding: '20px', gap: '20px', flexWrap: 'wrap', color: '#f8fafc' }}>
+    <div className="dashboard-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start', minHeight: 'calc(100vh - 100px)', padding: '20px', gap: '20px', flexWrap: 'wrap', color: 'var(--color-text)' }}>
 
       {/* SELETOR DE BOSS */}
       <div style={{
-        backgroundColor: '#1e293b',
+        backgroundColor: 'var(--color-bg-elevated)',
         padding: '20px',
-        borderRadius: '16px',
-        border: '1px solid #334155',
+        borderRadius: 'var(--radius-lg)',
+        border: '1px solid var(--color-border)',
         width: '100%',
         maxWidth: '280px',
       }}>
-        <h3 style={{ fontSize: '13px', color: '#38bdf8', margin: '0 0 12px 0' }}>Boss</h3>
+        <h3 style={{ fontSize: '13px', color: 'var(--color-accent)', margin: '0 0 12px 0' }}>Boss</h3>
         <select
           value={selectedBossId}
           onChange={(e) => handleBossChange(e.target.value)}
           disabled={bossesLoading}
-          style={{ width: '100%', background: '#0f172a', color: '#fff', border: '1px solid #334155', borderRadius: '6px', padding: '8px', fontSize: '13px', boxSizing: 'border-box' }}
+          style={{ width: '100%', background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '8px', fontSize: '13px', boxSizing: 'border-box' }}
         >
           <option value={CUSTOM_OPTION}>Personalizado</option>
           {bosses.map((boss) => (
@@ -204,29 +204,29 @@ export function TimersPage() {
 
         {selectedBossId === CUSTOM_OPTION && (
           <div style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <label style={{ fontSize: '11px', color: '#94a3b8' }}>
+            <label style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
               Timer Global (minutos)
               <input
                 type="number"
                 min={1}
                 value={customGlobalMinutes}
                 onChange={(e) => setCustomGlobalMinutes(Number(e.target.value) || 1)}
-                style={{ width: '100%', marginTop: '4px', background: '#0f172a', color: '#fff', border: '1px solid #334155', borderRadius: '6px', padding: '6px', boxSizing: 'border-box' }}
+                style={{ width: '100%', marginTop: '4px', background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '6px', boxSizing: 'border-box' }}
               />
             </label>
-            <label style={{ fontSize: '11px', color: '#94a3b8' }}>
+            <label style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
               Timer de Loop (segundos)
               <input
                 type="number"
                 min={1}
                 value={customLoopSeconds}
                 onChange={(e) => setCustomLoopSeconds(Number(e.target.value) || 1)}
-                style={{ width: '100%', marginTop: '4px', background: '#0f172a', color: '#fff', border: '1px solid #334155', borderRadius: '6px', padding: '6px', boxSizing: 'border-box' }}
+                style={{ width: '100%', marginTop: '4px', background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '6px', boxSizing: 'border-box' }}
               />
             </label>
             <button
               onClick={handleApplyCustom}
-              style={{ background: '#38bdf8', color: '#0f172a', border: 'none', padding: '8px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}
+              style={{ background: 'var(--color-accent)', color: 'var(--color-bg)', border: 'none', padding: '8px', borderRadius: 'var(--radius-sm)', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}
             >
               Aplicar
             </button>
@@ -235,14 +235,14 @@ export function TimersPage() {
       </div>
 
       <div style={{
-        backgroundColor: '#1e293b',
+        backgroundColor: 'var(--color-bg-elevated)',
         padding: '40px',
-        borderRadius: '16px',
+        borderRadius: 'var(--radius-lg)',
         boxShadow: '0 10px 25px rgba(0, 0, 0, 0.3)',
         textAlign: 'center',
         width: '100%',
         maxWidth: '360px',
-        border: '1px solid #334155'
+        border: '1px solid var(--color-border)'
       }}>
 
         {/* TIMERS CONTAINER */}
@@ -250,24 +250,24 @@ export function TimersPage() {
 
           {/* TIMER GLOBAL */}
           <div style={{
-            backgroundColor: '#0f172a',
+            backgroundColor: 'var(--color-bg-input)',
             padding: '18px',
-            borderRadius: '12px',
-            border: '1px solid #334155',
+            borderRadius: 'var(--radius)',
+            border: '1px solid var(--color-border)',
             transition: 'background-color 0.2s ease'
           }}>
-            <div style={{ fontSize: '2.8rem', fontWeight: 'bold', letterSpacing: '1px', color: '#f8fafc' }}>
+            <div style={{ fontSize: '2.8rem', fontWeight: 'bold', letterSpacing: '1px', color: 'var(--color-text)' }}>
               {formatTime(seconds25)}
             </div>
           </div>
 
           {/* TIMER DE LOOP (COM PISCAR) */}
           <div style={{
-            backgroundColor: isBlinking ? '#38bdf8' : '#0f172a',
-            color: isBlinking ? '#0f172a' : '#f8fafc',
+            backgroundColor: isBlinking ? 'var(--color-accent)' : 'var(--color-bg-input)',
+            color: isBlinking ? 'var(--color-bg)' : 'var(--color-text)',
             padding: '18px',
-            borderRadius: '12px',
-            border: '1px solid #334155',
+            borderRadius: 'var(--radius)',
+            border: '1px solid var(--color-border)',
             transition: 'background-color 0.2s ease, color 0.2s ease'
           }}>
             <div style={{ fontSize: '2.8rem', fontWeight: 'bold', letterSpacing: '1px' }}>
@@ -286,10 +286,10 @@ export function TimersPage() {
               fontSize: '1rem',
               fontWeight: 600,
               border: 'none',
-              borderRadius: '8px',
+              borderRadius: 'var(--radius)',
               cursor: 'pointer',
-              backgroundColor: '#38bdf8',
-              color: '#0f172a',
+              backgroundColor: 'var(--color-accent)',
+              color: 'var(--color-bg)',
               transition: 'background 0.2s'
             }}
           >
@@ -303,10 +303,10 @@ export function TimersPage() {
               fontSize: '1rem',
               fontWeight: 600,
               border: 'none',
-              borderRadius: '8px',
+              borderRadius: 'var(--radius)',
               cursor: 'pointer',
-              backgroundColor: '#475569',
-              color: '#f8fafc',
+              backgroundColor: 'var(--color-bg-hover)',
+              color: 'var(--color-text)',
               transition: 'background 0.2s'
             }}
           >
@@ -315,7 +315,7 @@ export function TimersPage() {
         </div>
 
         {/* CONTROLE DE VOLUME */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center', fontSize: '0.9rem', color: '#94a3b8' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
           <label htmlFor="volume">Volume do Bipe</label>
           <input
             type="range"
@@ -325,7 +325,7 @@ export function TimersPage() {
             step="0.1"
             value={volume}
             onChange={(e) => setVolume(Number(e.target.value))}
-            style={{ width: '100%', accentColor: '#38bdf8', cursor: 'pointer' }}
+            style={{ width: '100%', accentColor: 'var(--color-accent)', cursor: 'pointer' }}
           />
         </div>
 
@@ -334,16 +334,16 @@ export function TimersPage() {
       {/* TIMER DE POÇÕES DE SKILL — independente do timer de boss acima, loop fixo de 10min
           (Mastermind/Berserk/Bullseye Potion têm o mesmo tempo de efeito) */}
       <div style={{
-        backgroundColor: '#1e293b',
+        backgroundColor: 'var(--color-bg-elevated)',
         padding: '30px',
-        borderRadius: '16px',
+        borderRadius: 'var(--radius-lg)',
         boxShadow: '0 10px 25px rgba(0, 0, 0, 0.3)',
         textAlign: 'center',
         width: '100%',
         maxWidth: '280px',
-        border: '1px solid #334155',
+        border: '1px solid var(--color-border)',
       }}>
-        <h3 style={{ fontSize: '13px', color: '#38bdf8', margin: '0 0 12px 0' }}>Poções de Skill</h3>
+        <h3 style={{ fontSize: '13px', color: 'var(--color-accent)', margin: '0 0 12px 0' }}>Poções de Skill</h3>
 
         <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '16px' }}>
           {SKILL_POTIONS.map((name) => {
@@ -363,11 +363,11 @@ export function TimersPage() {
         </div>
 
         <div style={{
-          backgroundColor: potionTimer.isBlinking ? '#38bdf8' : '#0f172a',
-          color: potionTimer.isBlinking ? '#0f172a' : '#f8fafc',
+          backgroundColor: potionTimer.isBlinking ? 'var(--color-accent)' : 'var(--color-bg-input)',
+          color: potionTimer.isBlinking ? 'var(--color-bg)' : 'var(--color-text)',
           padding: '18px',
-          borderRadius: '12px',
-          border: '1px solid #334155',
+          borderRadius: 'var(--radius)',
+          border: '1px solid var(--color-border)',
           marginBottom: '18px',
           transition: 'background-color 0.2s ease, color 0.2s ease',
         }}>
@@ -381,7 +381,7 @@ export function TimersPage() {
             onClick={potionTimer.toggle}
             style={{
               padding: '10px 20px', fontSize: '1rem', fontWeight: 600, border: 'none',
-              borderRadius: '8px', cursor: 'pointer', backgroundColor: '#38bdf8', color: '#0f172a',
+              borderRadius: 'var(--radius)', cursor: 'pointer', backgroundColor: 'var(--color-accent)', color: 'var(--color-bg)',
             }}
           >
             {potionTimer.isRunning ? 'Pausar' : 'Iniciar'}
@@ -390,7 +390,7 @@ export function TimersPage() {
             onClick={potionTimer.reset}
             style={{
               padding: '10px 20px', fontSize: '1rem', fontWeight: 600, border: 'none',
-              borderRadius: '8px', cursor: 'pointer', backgroundColor: '#475569', color: '#f8fafc',
+              borderRadius: 'var(--radius)', cursor: 'pointer', backgroundColor: 'var(--color-bg-hover)', color: 'var(--color-text)',
             }}
           >
             Zerar

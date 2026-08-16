@@ -240,23 +240,23 @@ Zo Tis
   };
 
   return (
-    <div className="dashboard-container" style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto', color: '#f8fafc' }}>
-      
+    <div className="dashboard-container" style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto', color: 'var(--color-text)' }}>
+
       {/* CABEÇALHO */}
-      <header className="page-header" style={{ marginBottom: '25px', borderBottom: '1px solid #334155', paddingBottom: '15px' }}>
-        <h2 style={{ margin: 0, fontSize: '20px', color: '#10b981' }}>Calculadora de Split Loot</h2>
-        <p style={{ margin: '5px 0 0 0', color: '#94a3b8', fontSize: '14px' }}>
+      <header className="page-header" style={{ marginBottom: '25px', borderBottom: '1px solid var(--color-border)', paddingBottom: '15px' }}>
+        <h2 style={{ margin: 0, fontSize: '20px', color: 'var(--color-accent)' }}>Calculadora de Split Loot</h2>
+        <p style={{ margin: '5px 0 0 0', color: 'var(--color-text-muted)', fontSize: '14px' }}>
           Cole o log do Party Hunt Analyzer para calcular perfeitamente as transferências bancárias in-game.
         </p>
       </header>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '20px' }}>
-        
+
         {/* COLUNA ESQUERDA: LOG E TABELA DE JOGADORES */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          
-          <div style={{ background: '#1e293b', padding: '15px', borderRadius: '8px', border: '1px solid #334155' }}>
-            <h3 style={{ fontSize: '14px', margin: '0 0 10px 0', color: '#38bdf8' }}>1. Cole o Party Hunt Analyzer</h3>
+
+          <div style={{ background: 'var(--color-bg-elevated)', padding: '15px', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)' }}>
+            <h3 style={{ fontSize: '14px', margin: '0 0 10px 0', color: 'var(--color-accent)' }}>1. Cole o Party Hunt Analyzer</h3>
             <textarea
               rows={8}
               value={rawLog}
@@ -265,10 +265,10 @@ Zo Tis
               placeholder="Cole aqui o log completo do jogo..."
               style={{
                 width: '100%',
-                background: '#0f172a',
-                color: '#f8fafc',
-                border: '1px solid #334155',
-                borderRadius: '6px',
+                background: 'var(--color-bg-input)',
+                color: 'var(--color-text)',
+                border: '1px solid var(--color-border)',
+                borderRadius: 'var(--radius-sm)',
                 padding: '10px',
                 fontSize: '12px',
                 fontFamily: 'monospace',
@@ -277,7 +277,7 @@ Zo Tis
               }}
             />
             {parseError && (
-              <p style={{ color: '#f59e0b', fontSize: '12px', margin: '8px 0 0 0' }}>
+              <p style={{ color: 'var(--color-warning)', fontSize: '12px', margin: '8px 0 0 0' }}>
                 ⚠ {parseError}
               </p>
             )}
@@ -285,11 +285,11 @@ Zo Tis
               onClick={handleParseLog}
               style={{
                 marginTop: '10px',
-                background: '#10b981',
-                color: '#fff',
+                background: 'var(--color-accent)',
+                color: 'var(--color-text)',
                 border: 'none',
                 padding: '8px 16px',
-                borderRadius: '6px',
+                borderRadius: 'var(--radius-sm)',
                 fontWeight: 'bold',
                 cursor: 'pointer',
                 fontSize: '13px',
@@ -301,23 +301,23 @@ Zo Tis
           </div>
 
           {/* TABELA DE GASTOS EXTRAS OPCIONAIS */}
-          <div style={{ background: '#1e293b', padding: '15px', borderRadius: '8px', border: '1px solid #334155' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1px solid #334155', paddingBottom: '8px' }}>
-              <h3 style={{ fontSize: '14px', margin: 0, color: '#f59e0b' }}>Gastos Extras (Opcional)</h3>
-              <div style={{ fontSize: '12px', color: '#94a3b8' }}>
-                Cotação TC: <input type="number" value={tcRate} onChange={(e) => setTcRate(Number(e.target.value))} style={{ width: '65px', background: '#0f172a', color: '#fff', border: '1px solid #334155', padding: '2px 4px', borderRadius: '4px', textAlign: 'center' }} />
+          <div style={{ background: 'var(--color-bg-elevated)', padding: '15px', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1px solid var(--color-border)', paddingBottom: '8px' }}>
+              <h3 style={{ fontSize: '14px', margin: 0, color: 'var(--color-warning)' }}>Gastos Extras (Opcional)</h3>
+              <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                Cotação TC: <input type="number" value={tcRate} onChange={(e) => setTcRate(Number(e.target.value))} style={{ width: '65px', background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', padding: '2px 4px', borderRadius: 'var(--radius-sm)', textAlign: 'center' }} />
               </div>
             </div>
 
             {members.length === 0 ? (
-              <p style={{ fontSize: '13px', color: '#64748b', textAlign: 'center', margin: '20px 0' }}>
+              <p style={{ fontSize: '13px', color: 'var(--color-text-faint)', textAlign: 'center', margin: '20px 0' }}>
                 Nenhum membro carregado. Cole o log acima e clique em processar.
               </p>
             ) : (
               <div style={{ maxHeight: '350px', overflowY: 'auto' }}>
                 <table style={{ width: '100%', fontSize: '12px', borderCollapse: 'collapse' }}>
                   <thead>
-                    <tr style={{ color: '#94a3b8', borderBottom: '1px solid #334155' }}>
+                    <tr style={{ color: 'var(--color-text-muted)', borderBottom: '1px solid var(--color-border)' }}>
                       <th style={{ textAlign: 'left', padding: '6px' }}>Player</th>
                       <th style={{ textAlign: 'center', padding: '6px', width: '110px' }}>Extra TC expense</th>
                       <th style={{ textAlign: 'center', padding: '6px', width: '130px' }}>Extra gold (in k)</th>
@@ -326,15 +326,15 @@ Zo Tis
                   </thead>
                   <tbody>
                     {members.map((m, idx) => (
-                      <tr key={idx} style={{ borderBottom: '1px solid #1e293b' }}>
-                        <td style={{ padding: '8px 6px', color: '#f8fafc', fontWeight: 'bold' }}>{m.name}</td>
+                      <tr key={idx} style={{ borderBottom: '1px solid var(--color-bg-elevated)' }}>
+                        <td style={{ padding: '8px 6px', color: 'var(--color-text)', fontWeight: 'bold' }}>{m.name}</td>
                         <td style={{ padding: '6px', textAlign: 'center' }}>
                           <input
                             type="number"
                             value={m.extraTc}
                             onChange={(e) => handleExtraChange(idx, 'extraTc', e.target.value)}
                             placeholder="0"
-                            style={{ width: '90px', background: '#0f172a', color: '#fff', border: '1px solid #334155', padding: '4px 6px', borderRadius: '4px', textAlign: 'center', fontSize: '12px' }}
+                            style={{ width: '90px', background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', padding: '4px 6px', borderRadius: 'var(--radius-sm)', textAlign: 'center', fontSize: '12px' }}
                           />
                         </td>
                         <td style={{ padding: '6px', textAlign: 'center' }}>
@@ -343,14 +343,14 @@ Zo Tis
                             value={m.extraGold}
                             onChange={(e) => handleExtraChange(idx, 'extraGold', e.target.value)}
                             placeholder="0"
-                            style={{ width: '90px', background: '#0f172a', color: '#fff', border: '1px solid #334155', padding: '4px 6px', borderRadius: '4px', textAlign: 'center', fontSize: '12px' }}
+                            style={{ width: '90px', background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', padding: '4px 6px', borderRadius: 'var(--radius-sm)', textAlign: 'center', fontSize: '12px' }}
                           />
                         </td>
                         <td style={{ padding: '6px', textAlign: 'center' }}>
                           <button
                             onClick={() => handleRemoveMember(idx)}
                             title="Remover player"
-                            style={{ background: 'transparent', color: '#ef4444', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold', opacity: 0.8 }}
+                            style={{ background: 'transparent', color: 'var(--color-danger)', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold', opacity: 0.8 }}
                           >
                             🗑️
                           </button>
@@ -367,61 +367,61 @@ Zo Tis
 
         {/* COLUNA DIREITA: RESULTADOS E COMANDOS DE CÓPIA */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          
-          <div style={{ background: '#1e293b', padding: '20px', borderRadius: '8px', border: '1px solid #334155' }}>
-            <h3 style={{ fontSize: '14px', margin: '0 0 15px 0', color: '#f59e0b', borderBottom: '1px solid #334155', paddingBottom: '8px' }}>
+
+          <div style={{ background: 'var(--color-bg-elevated)', padding: '20px', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)' }}>
+            <h3 style={{ fontSize: '14px', margin: '0 0 15px 0', color: 'var(--color-warning)', borderBottom: '1px solid var(--color-border)', paddingBottom: '8px' }}>
               Resumo do Split & Transferências
             </h3>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
-              <div style={{ background: '#0f172a', padding: '12px', borderRadius: '6px', border: '1px solid #334155' }}>
-                <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block' }}>Lucro Total (Balance)</span>
-                <strong style={{ fontSize: '15px', color: '#10b981' }}>{formatTibiaGold(calculation.totalBalance)}</strong>
+              <div style={{ background: 'var(--color-bg-input)', padding: '12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
+                <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'block' }}>Lucro Total (Balance)</span>
+                <strong style={{ fontSize: '15px', color: 'var(--color-success)' }}>{formatTibiaGold(calculation.totalBalance)}</strong>
               </div>
-              <div style={{ background: '#0f172a', padding: '12px', borderRadius: '6px', border: '1px solid #334155' }}>
-                <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block' }}>Cota por Membro (Equal Share)</span>
-                <strong style={{ fontSize: '15px', color: '#38bdf8' }}>{formatTibiaGold(Math.round(calculation.equalShare))}</strong>
+              <div style={{ background: 'var(--color-bg-input)', padding: '12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
+                <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'block' }}>Cota por Membro (Equal Share)</span>
+                <strong style={{ fontSize: '15px', color: 'var(--color-accent)' }}>{formatTibiaGold(Math.round(calculation.equalShare))}</strong>
               </div>
             </div>
 
-            <h4 style={{ fontSize: '13px', margin: '0 0 10px 0', color: '#f8fafc' }}>Copiar Comandos de Transferência:</h4>
-            
+            <h4 style={{ fontSize: '13px', margin: '0 0 10px 0', color: 'var(--color-text)' }}>Copiar Comandos de Transferência:</h4>
+
             <div style={{ maxHeight: '350px', overflowY: 'auto' }}>
               {calculation.transfers.length === 0 ? (
-                <p style={{ fontSize: '13px', color: '#64748b', textAlign: 'center', margin: '20px 0' }}>
+                <p style={{ fontSize: '13px', color: 'var(--color-text-faint)', textAlign: 'center', margin: '20px 0' }}>
                   Nenhuma transferência necessária no momento.
                 </p>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {calculation.transfers.map((t, idx) => (
-                    <div 
-                      key={idx} 
-                      style={{ 
-                        background: '#0f172a', 
-                        padding: '10px 12px', 
-                        borderRadius: '6px', 
-                        border: '1px solid #334155',
+                    <div
+                      key={idx}
+                      style={{
+                        background: 'var(--color-bg-input)',
+                        padding: '10px 12px',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--color-border)',
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center'
                       }}
                     >
                       <div>
-                        <div style={{ fontSize: '11px', color: '#94a3b8' }}>
-                          <span style={{ color: '#ef4444', fontWeight: 'bold' }}>{t.from}</span> paga para <span style={{ color: '#10b981', fontWeight: 'bold' }}>{t.to}</span>
+                        <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                          <span style={{ color: 'var(--color-danger)', fontWeight: 'bold' }}>{t.from}</span> paga para <span style={{ color: 'var(--color-success)', fontWeight: 'bold' }}>{t.to}</span>
                         </div>
-                        <div style={{ fontSize: '13px', fontFamily: 'monospace', color: '#f8fafc', marginTop: '2px' }}>
+                        <div style={{ fontSize: '13px', fontFamily: 'monospace', color: 'var(--color-text)', marginTop: '2px' }}>
                           {t.commandText}
                         </div>
                       </div>
                       <button
                         onClick={() => handleCopyCommand(t.commandText, idx)}
                         style={{
-                          background: copiedIndex === idx ? '#10b981' : '#334155',
-                          color: '#fff',
+                          background: copiedIndex === idx ? 'var(--color-success)' : 'var(--color-border)',
+                          color: 'var(--color-text)',
                           border: 'none',
                           padding: '6px 12px',
-                          borderRadius: '4px',
+                          borderRadius: 'var(--radius-sm)',
                           fontSize: '12px',
                           fontWeight: 'bold',
                           cursor: 'pointer',

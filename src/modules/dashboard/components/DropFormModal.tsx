@@ -310,10 +310,10 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
   };
 
   const fieldStyle: React.CSSProperties = {
-    width: '100%', marginTop: '4px', background: '#0f172a', color: '#fff',
-    border: '1px solid #334155', borderRadius: '6px', padding: '8px', boxSizing: 'border-box', fontSize: '13px',
+    width: '100%', marginTop: '4px', background: 'var(--color-bg-input)', color: 'var(--color-text)',
+    border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '8px', boxSizing: 'border-box', fontSize: '13px',
   };
-  const labelStyle: React.CSSProperties = { fontSize: '12px', color: '#94a3b8' };
+  const labelStyle: React.CSSProperties = { fontSize: '12px', color: 'var(--color-text-muted)' };
 
   return (
     <Modal title={mode === 'create' ? 'Registro de Drop' : 'Editar Drop'} onClose={onClose}>
@@ -374,18 +374,18 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
 
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-            <span style={{ fontSize: '12px', color: '#94a3b8' }}>Serviceiros nesse item</span>
+            <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Serviceiros nesse item</span>
             <button
               type="button"
               onClick={addServiceRow}
-              style={{ background: 'transparent', color: '#38bdf8', border: '1px solid #334155', borderRadius: '6px', padding: '4px 10px', fontSize: '12px', cursor: 'pointer' }}
+              style={{ background: 'transparent', color: 'var(--color-accent)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '4px 10px', fontSize: '12px', cursor: 'pointer' }}
             >
               + Adicionar Serviceiro
             </button>
           </div>
 
           {serviceDrafts.length === 0 ? (
-            <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0' }}>Nenhum serviceiro nesse item.</p>
+            <p style={{ fontSize: '12px', color: 'var(--color-text-faint)', margin: '4px 0' }}>Nenhum serviceiro nesse item.</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {serviceDrafts.map((row, index) => {
@@ -422,7 +422,7 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
                       type="button"
                       onClick={() => removeServiceRow(index)}
                       title="Remover serviceiro do item"
-                      style={{ background: 'transparent', color: '#ef4444', border: 'none', cursor: 'pointer', fontSize: '15px' }}
+                      style={{ background: 'transparent', color: 'var(--color-danger)', border: 'none', cursor: 'pointer', fontSize: '15px' }}
                     >
                       🗑️
                     </button>
@@ -440,31 +440,31 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
           </label>
           <label style={labelStyle}>
             Valor Cada (calculado):
-            <div style={{ ...fieldStyle, color: '#94a3b8', cursor: 'default' }} title="Valor Total dividido pelo número de jogadores (EK/ED/MS/RP/5º) preenchidos">
+            <div style={{ ...fieldStyle, color: 'var(--color-text-muted)', cursor: 'default' }} title="Valor Total dividido pelo número de jogadores (EK/ED/MS/RP/5º) preenchidos">
               {formatTibiaGold(unitValue)} {playerCount > 0 ? `(÷ ${playerCount})` : ''}
             </div>
           </label>
         </div>
 
         {bossQuestsError && (
-          <span style={{ color: '#ef4444', fontSize: '12px' }}>
+          <span style={{ color: 'var(--color-danger)', fontSize: '12px' }}>
             Não foi possível carregar a lista de bosses ({bossQuestsError}).
           </span>
         )}
         {bossItemsError && (
-          <span style={{ color: '#ef4444', fontSize: '12px' }}>
+          <span style={{ color: 'var(--color-danger)', fontSize: '12px' }}>
             Não foi possível carregar a lista de itens ({bossItemsError}).
           </span>
         )}
 
         {quests.length > 0 && (
           <div>
-            <span style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '6px' }}>
+            <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', display: 'block', marginBottom: '6px' }}>
               Filtrar bosses por quest
             </span>
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
               {quests.map((quest) => (
-                <label key={quest} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', color: '#cbd5e1', cursor: 'pointer' }}>
+                <label key={quest} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', color: 'var(--color-text-muted)', cursor: 'pointer' }}>
                   <input type="checkbox" checked={isQuestChecked(quest)} onChange={() => toggleQuest(quest)} />
                   {quest}
                 </label>
@@ -506,11 +506,11 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
 
         {mode === 'edit' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#f8fafc', cursor: 'pointer' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--color-text)', cursor: 'pointer' }}>
               <input type="checkbox" checked={sold} onChange={(e) => setSold(e.target.checked)} />
               Vendido
             </label>
-            <span style={{ fontSize: '12px', color: '#64748b' }}>
+            <span style={{ fontSize: '12px', color: 'var(--color-text-faint)' }}>
               {sold
                 ? wasSold && drop!.saleDate
                   ? `Vendido em ${drop!.saleDate}`
@@ -521,23 +521,23 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
         )}
 
         {mode === 'edit' && sold && !defaultSeller && unitValue > 0 && (
-          <span style={{ color: '#f59e0b', fontSize: '12px' }}>
+          <span style={{ color: 'var(--color-warning)', fontSize: '12px' }}>
             Nenhum "Vendedor Padrão" configurado em Configurações — não dá pra gerar os comandos de transferência sem saber quem paga.
           </span>
         )}
 
         {mode === 'edit' && sold && (transferInstructions.length > 0 || missingCharacterShares.length > 0) && (
-          <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '14px' }}>
-            <h4 style={{ fontSize: '13px', margin: '0 0 10px 0', color: '#f8fafc' }}>Copiar Comandos de Transferência:</h4>
+          <div style={{ background: 'var(--color-bg-input)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: '14px' }}>
+            <h4 style={{ fontSize: '13px', margin: '0 0 10px 0', color: 'var(--color-text)' }}>Copiar Comandos de Transferência:</h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {transferInstructions.map((t, idx) => (
                 <div
                   key={`cmd-${idx}`}
                   style={{
-                    background: '#1e293b',
+                    background: 'var(--color-bg-elevated)',
                     padding: '10px 12px',
-                    borderRadius: '6px',
-                    border: '1px solid #334155',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--color-border)',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
@@ -545,11 +545,11 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
                   }}
                 >
                   <div>
-                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>
-                      <span style={{ color: '#ef4444', fontWeight: 'bold' }}>{t.from}</span> paga para{' '}
-                      <span style={{ color: '#10b981', fontWeight: 'bold' }}>{t.to}</span>
+                    <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                      <span style={{ color: 'var(--color-danger)', fontWeight: 'bold' }}>{t.from}</span> paga para{' '}
+                      <span style={{ color: 'var(--color-success)', fontWeight: 'bold' }}>{t.to}</span>
                     </div>
-                    <div style={{ fontSize: '13px', fontFamily: 'monospace', color: '#f8fafc', marginTop: '2px' }}>
+                    <div style={{ fontSize: '13px', fontFamily: 'monospace', color: 'var(--color-text)', marginTop: '2px' }}>
                       {t.tibiaCommand}
                     </div>
                   </div>
@@ -557,11 +557,11 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
                     type="button"
                     onClick={() => handleCopyCommand(t.tibiaCommand, idx)}
                     style={{
-                      background: copiedIndex === idx ? '#10b981' : '#334155',
-                      color: '#fff',
+                      background: copiedIndex === idx ? 'var(--color-success)' : 'var(--color-border)',
+                      color: 'var(--color-text)',
                       border: 'none',
                       padding: '6px 12px',
-                      borderRadius: '4px',
+                      borderRadius: 'var(--radius-sm)',
                       fontSize: '12px',
                       fontWeight: 'bold',
                       cursor: 'pointer',
@@ -577,10 +577,10 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
                 <div
                   key={`missing-${idx}`}
                   style={{
-                    background: '#1e293b',
+                    background: 'var(--color-bg-elevated)',
                     padding: '10px 12px',
-                    borderRadius: '6px',
-                    border: '1px solid #f59e0b',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--color-warning)',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
@@ -588,20 +588,20 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
                   }}
                 >
                   <div>
-                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>
-                      <span style={{ color: '#ef4444', fontWeight: 'bold' }}>{defaultSeller}</span> deve pagar{' '}
-                      <span style={{ color: '#f59e0b', fontWeight: 'bold' }}>{m.serviceiroName}</span>
+                    <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                      <span style={{ color: 'var(--color-danger)', fontWeight: 'bold' }}>{defaultSeller}</span> deve pagar{' '}
+                      <span style={{ color: 'var(--color-warning)', fontWeight: 'bold' }}>{m.serviceiroName}</span>
                     </div>
-                    <div style={{ fontSize: '13px', fontFamily: 'monospace', color: '#f8fafc', marginTop: '2px' }}>
+                    <div style={{ fontSize: '13px', fontFamily: 'monospace', color: 'var(--color-text)', marginTop: '2px' }}>
                       {formatTibiaGold(m.amount)}
                     </div>
                   </div>
                   <span
                     title="Sem 'Boneco' cadastrado em Serviceiros — não dá pra gerar o comando transfer. Combine o pagamento por fora."
                     style={{
-                      color: '#f59e0b',
-                      border: '1px solid #f59e0b',
-                      borderRadius: '4px',
+                      color: 'var(--color-warning)',
+                      border: '1px solid var(--color-warning)',
+                      borderRadius: 'var(--radius-sm)',
                       padding: '6px 10px',
                       fontSize: '11px',
                       fontWeight: 'bold',
@@ -616,14 +616,14 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
           </div>
         )}
 
-        {formError && <span style={{ color: '#ef4444', fontSize: '12px' }}>{formError}</span>}
+        {formError && <span style={{ color: 'var(--color-danger)', fontSize: '12px' }}>{formError}</span>}
 
         <button
           type="submit"
           disabled={saving}
           style={{
-            background: '#38bdf8', color: '#0f172a', border: 'none', padding: '12px',
-            borderRadius: '8px', fontWeight: 'bold', cursor: saving ? 'default' : 'pointer',
+            background: 'var(--color-accent)', color: 'var(--color-bg)', border: 'none', padding: '12px',
+            borderRadius: 'var(--radius)', fontWeight: 'bold', cursor: saving ? 'default' : 'pointer',
             fontSize: '14px', opacity: saving ? 0.7 : 1,
           }}
         >

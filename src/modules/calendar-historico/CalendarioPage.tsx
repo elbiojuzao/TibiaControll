@@ -103,10 +103,10 @@ export function CalendarioPage() {
   };
 
   return (
-    <div className="dashboard-container" style={{ padding: '20px', maxWidth: '1100px', margin: '0 auto', color: '#f8fafc' }}>
-      <header className="page-header" style={{ marginBottom: '20px', borderBottom: '1px solid #334155', paddingBottom: '15px' }}>
-        <h2 style={{ margin: 0, fontSize: '20px', color: '#10b981' }}>Histórico — Calendário</h2>
-        <p style={{ margin: '5px 0 0 0', color: '#94a3b8', fontSize: '14px' }}>
+    <div className="dashboard-container" style={{ padding: '20px', maxWidth: '1100px', margin: '0 auto', color: 'var(--color-text)' }}>
+      <header className="page-header" style={{ marginBottom: '20px', borderBottom: '1px solid var(--color-border)', paddingBottom: '15px' }}>
+        <h2 style={{ margin: 0, fontSize: '20px', color: 'var(--color-success)' }}>Histórico — Calendário</h2>
+        <p style={{ margin: '5px 0 0 0', color: 'var(--color-text-muted)', fontSize: '14px' }}>
           Passe o mouse num dia pra um resumo rápido, ou clique pra abrir os detalhes completos (drops, hunts e XP por jogador).
         </p>
       </header>
@@ -178,23 +178,23 @@ export function CalendarioPage() {
 
                     {(hasBoss || hasHunt) && (
                       <div className="calendar-tooltip-item">
-                        {hasBoss && <>🐲 Boss: <strong style={{ color: '#38bdf8' }}>{formatXp(bossHuntEntry!.boss)}</strong><br /></>}
-                        {hasHunt && <>🗡️ Hunt: <strong style={{ color: '#f59e0b' }}>{formatXp(bossHuntEntry!.hunt)}</strong></>}
+                        {hasBoss && <>🐲 Boss: <strong style={{ color: 'var(--color-accent)' }}>{formatXp(bossHuntEntry!.boss)}</strong><br /></>}
+                        {hasHunt && <>🗡️ Hunt: <strong style={{ color: 'var(--color-warning)' }}>{formatXp(bossHuntEntry!.hunt)}</strong></>}
                       </div>
                     )}
 
                     {activity?.hunts.map((hunt) => (
                       <div key={hunt.id} className="calendar-tooltip-item">
                         🗡️ Hunt{hunt.bossName ? ` — ${hunt.bossName}` : ''}<br />
-                        Profit: <strong style={{ color: '#10b981' }}>{formatTibiaGold(hunt.profitTotal)}</strong>{' '}
+                        Profit: <strong style={{ color: 'var(--color-success)' }}>{formatTibiaGold(hunt.profitTotal)}</strong>{' '}
                         · XP: <strong>{hunt.xpGained.toLocaleString('pt-BR')}</strong>
                       </div>
                     ))}
 
                     {activity?.drops.map((drop) => (
                       <div key={drop.id} className="calendar-tooltip-item">
-                        💎 {drop.itemName} <span style={{ color: '#64748b' }}>({drop.bossName})</span><br />
-                        Valor: <strong style={{ color: '#10b981' }}>{formatTibiaGold(drop.totalValue)}</strong>{' '}
+                        💎 {drop.itemName} <span style={{ color: 'var(--color-text-faint)' }}>({drop.bossName})</span><br />
+                        Valor: <strong style={{ color: 'var(--color-success)' }}>{formatTibiaGold(drop.totalValue)}</strong>{' '}
                         · {drop.sold ? 'Vendido' : 'Pendente'}
                       </div>
                     ))}
@@ -212,30 +212,30 @@ export function CalendarioPage() {
             {/* Boss/Hunt: profit individual do dia, lido da aba "Boss hunt" da planilha
                 (já vem dividido — /4 hunt, /5 boss — ver useBossHuntSheet). */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-              <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '6px', padding: '10px' }}>
-                <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>Boss (individual)</span>
-                <strong style={{ color: selectedBossHunt ? (selectedBossHunt.boss < 0 ? '#ef4444' : '#10b981') : '#64748b' }}>
+              <div style={{ background: 'var(--color-bg-input)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '10px' }}>
+                <span style={{ fontSize: '11px', color: 'var(--color-text-faint)', display: 'block' }}>Boss (individual)</span>
+                <strong style={{ color: selectedBossHunt ? (selectedBossHunt.boss < 0 ? 'var(--color-danger)' : 'var(--color-success)') : 'var(--color-text-faint)' }}>
                   {selectedBossHunt ? formatXp(selectedBossHunt.boss) : 'Sem dado'}
                 </strong>
               </div>
-              <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '6px', padding: '10px' }}>
-                <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>Hunt (individual)</span>
-                <strong style={{ color: selectedBossHunt ? (selectedBossHunt.hunt < 0 ? '#ef4444' : '#10b981') : '#64748b' }}>
+              <div style={{ background: 'var(--color-bg-input)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '10px' }}>
+                <span style={{ fontSize: '11px', color: 'var(--color-text-faint)', display: 'block' }}>Hunt (individual)</span>
+                <strong style={{ color: selectedBossHunt ? (selectedBossHunt.hunt < 0 ? 'var(--color-danger)' : 'var(--color-success)') : 'var(--color-text-faint)' }}>
                   {selectedBossHunt ? formatXp(selectedBossHunt.hunt) : 'Sem dado'}
                 </strong>
               </div>
             </div>
 
             <div>
-              <h4 style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#38bdf8' }}>XP do dia</h4>
+              <h4 style={{ margin: '0 0 8px 0', fontSize: '13px', color: 'var(--color-accent)' }}>XP do dia</h4>
               {selectedXp.length === 0 ? (
-                <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>Sem dado de XP pra esse dia.</p>
+                <p style={{ fontSize: '12px', color: 'var(--color-text-faint)', margin: 0 }}>Sem dado de XP pra esse dia.</p>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   {selectedXp.map(({ name, value }) => (
                     <div key={name} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: '#f8fafc' }}>{name}</span>
-                      <strong style={{ color: value < 0 ? '#ef4444' : '#10b981' }}>{formatXp(value)}</strong>
+                      <span style={{ color: 'var(--color-text)' }}>{name}</span>
+                      <strong style={{ color: value < 0 ? 'var(--color-danger)' : 'var(--color-success)' }}>{formatXp(value)}</strong>
                     </div>
                   ))}
                 </div>
@@ -243,15 +243,15 @@ export function CalendarioPage() {
             </div>
 
             <div>
-              <h4 style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#10b981' }}>Drops</h4>
+              <h4 style={{ margin: '0 0 8px 0', fontSize: '13px', color: 'var(--color-success)' }}>Drops</h4>
               {(selectedActivity?.drops.length ?? 0) === 0 ? (
-                <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>Nenhum drop registrado nesse dia.</p>
+                <p style={{ fontSize: '12px', color: 'var(--color-text-faint)', margin: 0 }}>Nenhum drop registrado nesse dia.</p>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {selectedActivity!.drops.map((drop) => (
-                    <div key={drop.id} style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '6px', padding: '8px' }}>
-                      💎 {drop.itemName} <span style={{ color: '#64748b' }}>({drop.bossName})</span><br />
-                      Valor: <strong style={{ color: '#10b981' }}>{formatTibiaGold(drop.totalValue)}</strong>{' '}
+                    <div key={drop.id} style={{ background: 'var(--color-bg-input)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '8px' }}>
+                      💎 {drop.itemName} <span style={{ color: 'var(--color-text-faint)' }}>({drop.bossName})</span><br />
+                      Valor: <strong style={{ color: 'var(--color-success)' }}>{formatTibiaGold(drop.totalValue)}</strong>{' '}
                       · {drop.sold ? 'Vendido' : 'Pendente'}
                     </div>
                   ))}
