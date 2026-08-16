@@ -74,7 +74,7 @@ export function LootTable({ drops, onRowClick }: LootTableProps) {
                 </td>
                 <td style={{ textAlign: 'center', fontSize: '1.1rem' }} title={drop.itemName}>
                   {iconUrl
-                    ? <img src={iconUrl} alt={drop.itemName} width={24} height={24} style={{ imageRendering: 'pixelated', verticalAlign: 'middle' }} />
+                    ? <img src={iconUrl} alt={drop.itemName} className="h24 w24" style={{ imageRendering: 'pixelated', verticalAlign: 'middle' }} />
                     : guessItemIcon(drop.itemName)}
                 </td>
                 <td>

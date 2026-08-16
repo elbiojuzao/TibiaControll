@@ -50,12 +50,12 @@ export function LoginPage() {
       >
         <div style={{ textAlign: 'center', marginBottom: '8px' }}>
           <h1 style={{ margin: 0, fontSize: '20px', color: 'var(--color-success)' }}>Tibia PT Manager</h1>
-          <p style={{ margin: '6px 0 0 0', color: 'var(--color-text-muted)', fontSize: '13px' }}>
+          <p className="texto-mudo" style={{ margin: '6px 0 0 0', fontSize: '13px' }}>
             Entre com a credencial da party pra acessar Dashboard, Drops, Histórico e Serviceiros.
           </p>
         </div>
 
-        <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px', color: 'var(--color-text-muted)' }}>
+        <label className="texto-mudo" style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px' }}>
           E-mail
           <input
             type="email"
@@ -65,11 +65,12 @@ export function LoginPage() {
             autoFocus
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            style={{ background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '8px 10px', fontSize: '14px' }}
+            className="campo-input"
+            style={{ marginTop: 0, padding: '8px 10px', fontSize: '14px' }}
           />
         </label>
 
-        <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px', color: 'var(--color-text-muted)' }}>
+        <label className="texto-mudo" style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px' }}>
           Senha
           <input
             type="password"
@@ -78,29 +79,18 @@ export function LoginPage() {
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            style={{ background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '8px 10px', fontSize: '14px' }}
+            className="campo-input"
+            style={{ marginTop: 0, padding: '8px 10px', fontSize: '14px' }}
           />
         </label>
 
-        {(localError || error) && (
-          <div style={{ background: 'var(--color-danger-soft)', border: '1px solid var(--color-danger)', borderRadius: 'var(--radius-sm)', padding: '8px 10px', color: 'var(--color-danger)', fontSize: '13px' }}>
-            {localError ?? error}
-          </div>
-        )}
+        {(localError || error) && <div className="banner-erro">{localError ?? error}</div>}
 
         <button
           type="submit"
           disabled={submitting}
-          style={{
-            background: submitting ? 'var(--color-border)' : 'var(--color-accent)',
-            color: 'var(--color-bg)',
-            fontWeight: 'bold',
-            border: 'none',
-            borderRadius: 'var(--radius-sm)',
-            padding: '10px',
-            fontSize: '14px',
-            cursor: submitting ? 'default' : 'pointer',
-          }}
+          className="botao-primario"
+          style={{ background: submitting ? 'var(--color-border)' : 'var(--color-accent)', padding: '10px', fontSize: '14px' }}
         >
           {submitting ? 'Entrando...' : 'Entrar'}
         </button>

@@ -57,18 +57,12 @@ export function ServiceirosPage() {
       <header className="page-header" style={{ marginBottom: '25px', borderBottom: '1px solid var(--color-border)', paddingBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <h2 style={{ margin: 0, fontSize: '20px', color: 'var(--color-success)' }}>Serviceiros</h2>
-          <p style={{ margin: '5px 0 0 0', color: 'var(--color-text-muted)', fontSize: '14px' }}>
+          <p className="subtitulo-pagina">
             Contatos dos serviceiros da party. O número não fica visível — clique no ícone do WhatsApp pra abrir uma
             conversa direto com a mensagem que você escrever abaixo.
           </p>
         </div>
-        <button
-          onClick={openCreate}
-          style={{
-            background: 'var(--color-accent)', color: 'var(--color-text)', border: 'none', padding: '10px 16px',
-            borderRadius: 'var(--radius-sm)', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap',
-          }}
-        >
+        <button onClick={openCreate} className="botao-primario">
           + Cadastrar Serviceiro
         </button>
       </header>
@@ -82,28 +76,25 @@ export function ServiceirosPage() {
         />
       )}
 
-      <div style={{ background: 'var(--color-bg-elevated)', padding: '15px', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)', marginBottom: '20px' }}>
-        <label style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+      <div className="card-compacto" style={{ marginBottom: '20px' }}>
+        <label className="label-padrao">
           Mensagem a enviar
           <textarea
             rows={3}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             placeholder="Ex: Fala! Bora fazer a hunt de hoje às 20h?"
-            style={{ width: '100%', marginTop: '4px', background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '10px', boxSizing: 'border-box', resize: 'vertical', fontFamily: 'inherit' }}
+            className="campo-input"
+            style={{ resize: 'vertical', fontFamily: 'inherit' }}
           />
         </label>
       </div>
 
-      {deleteError && (
-        <div style={{ background: 'var(--color-danger-soft)', border: '1px solid var(--color-danger)', color: 'var(--color-danger)', padding: '10px 14px', borderRadius: 'var(--radius)', marginBottom: '14px', fontSize: '13px' }}>
-          {deleteError}
-        </div>
-      )}
+      {deleteError && <div className="banner-erro" style={{ marginBottom: '14px' }}>{deleteError}</div>}
 
       {!loading && serviceiros.length > 0 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
-          <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Filtrar por vocação:</span>
+          <span className="texto-mudo" style={{ fontSize: '12px' }}>Filtrar por vocação:</span>
           <button
             onClick={() => setFilterVocations([])}
             style={{
@@ -141,15 +132,11 @@ export function ServiceirosPage() {
       {loading && <div className="loading">Carregando...</div>}
 
       {!loading && serviceiros.length === 0 && (
-        <p style={{ fontSize: '13px', color: 'var(--color-text-faint)', textAlign: 'center', margin: '40px 0' }}>
-          Nenhum serviceiro cadastrado ainda.
-        </p>
+        <p className="estado-vazio">Nenhum serviceiro cadastrado ainda.</p>
       )}
 
       {!loading && serviceiros.length > 0 && filteredServiceiros.length === 0 && (
-        <p style={{ fontSize: '13px', color: 'var(--color-text-faint)', textAlign: 'center', margin: '40px 0' }}>
-          Nenhum serviceiro encontrado para essa vocação.
-        </p>
+        <p className="estado-vazio">Nenhum serviceiro encontrado para essa vocação.</p>
       )}
 
       {!loading && filteredServiceiros.length > 0 && (
@@ -158,16 +145,9 @@ export function ServiceirosPage() {
         // se ajusta a partir de ~150px de largura.
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '12px' }}>
           {filteredServiceiros.map((s) => (
-            <div
-              key={s.id}
-              style={{
-                background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)',
-                padding: '14px 10px', display: 'flex', flexDirection: 'column', alignItems: 'center',
-                textAlign: 'center', gap: '6px',
-              }}
-            >
+            <div key={s.id} className="card-compacto" style={{ padding: '14px 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '6px' }}>
               <div style={{ fontWeight: 'bold', fontSize: '14px' }}>{s.name}</div>
-              <div style={{ fontSize: '11px', color: 'var(--color-text-faint)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
+              <div className="texto-fraco" style={{ fontSize: '11px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
                 Boneco: {s.characterName || '—'}
               </div>
               <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
@@ -183,19 +163,16 @@ export function ServiceirosPage() {
                   target="_blank"
                   rel="noopener noreferrer"
                   title={`Chamar ${s.name} no WhatsApp`}
+                  className="h30 w30"
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    width: '30px', height: '30px', borderRadius: 'var(--radius-pill)',
+                    borderRadius: 'var(--radius-pill)',
                     background: '#25D366', color: 'var(--color-bg)', textDecoration: 'none',
                   }}
                 >
                   <WhatsAppIcon />
                 </a>
-                <button
-                  onClick={() => openEdit(s)}
-                  title="Editar serviceiro"
-                  style={{ background: 'transparent', color: 'var(--color-text-muted)', border: 'none', cursor: 'pointer', fontSize: '15px', opacity: 0.8 }}
-                >
+                <button onClick={() => openEdit(s)} title="Editar serviceiro" className="botao-icone">
                   ✏️
                 </button>
                 <button
@@ -209,7 +186,7 @@ export function ServiceirosPage() {
                     }
                   }}
                   title="Remover serviceiro"
-                  style={{ background: 'transparent', color: 'var(--color-danger)', border: 'none', cursor: 'pointer', fontSize: '15px', opacity: 0.8 }}
+                  className="botao-icone-perigo"
                 >
                   🗑️
                 </button>

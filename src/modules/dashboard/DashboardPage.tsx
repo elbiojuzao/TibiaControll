@@ -233,7 +233,8 @@ export function DashboardPage() {
                 type="text"
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(e.target.value)}
-                style={{ width: '75px', background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', padding: '6px 8px', borderRadius: 'var(--radius-sm)', textAlign: 'center', fontSize: '13px' }}
+                className="w75"
+                style={{ background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', padding: '6px 8px', borderRadius: 'var(--radius-sm)', textAlign: 'center', fontSize: '13px' }}
               />
             </div>
           </div>
@@ -260,14 +261,14 @@ export function DashboardPage() {
                         <tr key={drop.id || idx} style={{ borderBottom: '1px solid var(--color-border)', background: rowBg }}>
                           <td className="texto-mudo" style={{ padding: '6px 4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                             {getItemIconUrl(drop.itemName) && (
-                              <img src={getItemIconUrl(drop.itemName)} alt="" style={{ width: '18px', height: '18px', objectFit: 'contain', imageRendering: 'pixelated' }} />
+                              <img src={getItemIconUrl(drop.itemName)} alt="" className="h18 w18" style={{ objectFit: 'contain', imageRendering: 'pixelated' }} />
                             )}
                             <span>{drop.itemName || 'Item Raro'}</span>
                           </td>
-                          <td className={isSold ? 'texto-sucesso' : 'texto-perigo'} style={{ padding: '6px 4px', textAlign: 'center', fontWeight: 'bold', width: '60px' }}>
+                          <td className={`w60 ${isSold ? 'texto-sucesso' : 'texto-perigo'}`} style={{ padding: '6px 4px', textAlign: 'center', fontWeight: 'bold' }}>
                             {isSold ? 'Sim' : 'Não'}
                           </td>
-                          <td className={`texto-mono ${isSold ? 'texto-sucesso' : 'texto-fraco'}`} style={{ padding: '6px 4px', textAlign: 'right', width: '110px' }}>
+                          <td className={`texto-mono w110 ${isSold ? 'texto-sucesso' : 'texto-fraco'}`} style={{ padding: '6px 4px', textAlign: 'right' }}>
                             {isSold ? formatTibiaGold(drop.totalValue) : '---'}
                           </td>
                         </tr>
@@ -347,7 +348,7 @@ export function DashboardPage() {
               <thead>
                 {/* Linha de Nomes dos Membros */}
                 <tr className="linha-cabecalho-tabela">
-                  <th className="borda-padrao" style={{ padding: '10px', width: '110px' }}></th>
+                  <th className="borda-padrao w110" style={{ padding: '10px' }}></th>
                   {members.map((m) => (
                     <th key={m.id} className="borda-padrao" style={{ padding: '10px', fontWeight: 'bold', fontSize: '13px' }}>
                       {m.characterName}
@@ -465,8 +466,8 @@ export function DashboardPage() {
                     return (
                       <div key={item.itemName} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 4px', borderBottom: '1px solid var(--color-bg-elevated)' }}>
                         {iconUrl
-                          ? <img src={iconUrl} alt="" width={20} height={20} style={{ objectFit: 'contain', imageRendering: 'pixelated', flexShrink: 0 }} />
-                          : <span style={{ width: '20px', flexShrink: 0 }} />}
+                          ? <img src={iconUrl} alt="" className="h20 w20" style={{ objectFit: 'contain', imageRendering: 'pixelated', flexShrink: 0 }} />
+                          : <span className="w20" style={{ flexShrink: 0 }} />}
                         <span className="texto-mudo" style={{ fontSize: '13px', flex: 1 }}>{item.itemName || 'Item Raro'}</span>
                         <span style={{ color: 'var(--color-warning)', fontSize: '13px', fontWeight: 'bold' }}>x{item.count}</span>
                       </div>
@@ -490,12 +491,12 @@ export function DashboardPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {topDropRanking.map((entry, idx) => (
                   <div key={entry.looter} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '6px 4px', borderBottom: '1px solid var(--color-bg-elevated)' }}>
-                    <span style={{
-                      width: '22px', height: '22px', borderRadius: 'var(--radius-pill)', flexShrink: 0,
+                    <span className="h22 w22" style={{
+                      borderRadius: 'var(--radius-pill)', flexShrink: 0,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: '11px', fontWeight: 'bold',
                       background: idx === 0 ? 'var(--color-warning)' : idx === 1 ? 'var(--color-text-muted)' : idx === 2 ? '#b45309' : 'var(--color-border)',
-                      color: idx <= 2 ? '#0f172a' : 'var(--color-text-muted)',
+                      color: idx <= 2 ? 'var(--color-bg)' : 'var(--color-text-muted)',
                     }}>
                       {idx + 1}
                     </span>

@@ -88,37 +88,30 @@ export function SettingsPage() {
             value={formPartyName}
             onChange={(e) => setFormPartyName(e.target.value)}
             placeholder="Ex: Thanatos PT"
-            style={{ flex: '1 1 240px', minWidth: '200px', background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '8px', boxSizing: 'border-box' }}
+            className="campo-input"
+            style={{ flex: '1 1 240px', minWidth: '200px', marginTop: 0 }}
           />
           <button
             type="submit"
             disabled={savingPartyName || !account}
-            style={{
-              background: partyNameSaved ? 'var(--color-success)' : 'var(--color-accent)', color: 'var(--color-text)', border: 'none', padding: '8px 16px',
-              borderRadius: 'var(--radius-sm)', fontWeight: 'bold', cursor: savingPartyName ? 'default' : 'pointer', fontSize: '13px', opacity: savingPartyName ? 0.7 : 1, whiteSpace: 'nowrap',
-            }}
+            className="botao-primario"
+            style={{ background: partyNameSaved ? 'var(--color-success)' : 'var(--color-accent)', opacity: savingPartyName ? 0.7 : 1 }}
           >
             {savingPartyName ? 'Salvando...' : partyNameSaved ? 'Salvo!' : 'Salvar Nome'}
           </button>
         </form>
-        {partyNameError && <span style={{ display: 'block', marginTop: '8px', color: 'var(--color-danger)', fontSize: '12px' }}>{partyNameError}</span>}
+        {partyNameError && <span className="texto-perigo" style={{ display: 'block', marginTop: '8px', fontSize: '12px' }}>{partyNameError}</span>}
       </div>
 
       <header className="page-header" style={{ marginBottom: '25px', borderBottom: '1px solid var(--color-border)', paddingBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <h2 style={{ margin: 0, fontSize: '20px', color: 'var(--color-accent)' }}>Configurações — Membros da Party</h2>
-          <p style={{ margin: '5px 0 0 0', color: 'var(--color-text-muted)', fontSize: '14px', maxWidth: '520px' }}>
+          <p className="subtitulo-pagina" style={{ maxWidth: '520px' }}>
             Cadastre os jogadores base da party — eles aparecem no Dashboard, Histórico, Histórico de XP e Log de Drops.
             O nome do personagem precisa bater exatamente com o nome real no Tibia e com a coluna correspondente na sua planilha de XP.
           </p>
         </div>
-        <button
-          onClick={openCreate}
-          style={{
-            background: 'var(--color-accent)', color: 'var(--color-text)', border: 'none', padding: '10px 16px',
-            borderRadius: 'var(--radius-sm)', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap',
-          }}
-        >
+        <button onClick={openCreate} className="botao-primario">
           + Cadastrar Membro
         </button>
       </header>
@@ -132,36 +125,24 @@ export function SettingsPage() {
         />
       )}
 
-      {deleteError && (
-        <div style={{ background: 'var(--color-danger-soft)', border: '1px solid var(--color-danger)', color: 'var(--color-danger)', padding: '10px 14px', borderRadius: 'var(--radius)', marginBottom: '14px', fontSize: '13px' }}>
-          {deleteError}
-        </div>
-      )}
+      {deleteError && <div className="banner-erro" style={{ marginBottom: '14px' }}>{deleteError}</div>}
 
       {loading && <div className="loading">Carregando...</div>}
-      {error && <div style={{ padding: '20px', textAlign: 'center', color: 'var(--color-danger)', fontSize: '13px' }}>{error}</div>}
+      {error && <div className="texto-perigo" style={{ padding: '20px', textAlign: 'center', fontSize: '13px' }}>{error}</div>}
 
       {!loading && !error && members.length === 0 && (
-        <p style={{ fontSize: '13px', color: 'var(--color-text-faint)', textAlign: 'center', margin: '40px 0' }}>
-          Nenhum membro cadastrado ainda.
-        </p>
+        <p className="estado-vazio">Nenhum membro cadastrado ainda.</p>
       )}
 
       {!loading && !error && members.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {members.map((m) => (
-            <div
-              key={m.id}
-              style={{
-                background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)',
-                padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              }}
-            >
+            <div key={m.id} className="card-compacto" style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <span title={VOCATION_LABEL[m.vocation]} style={{ fontSize: '18px' }}>{VOCATION_ICON[m.vocation]}</span>
                 <div>
                   <div style={{ fontWeight: 'bold', fontSize: '14px' }}>{m.characterName}</div>
-                  <div style={{ fontSize: '11px', color: 'var(--color-text-faint)' }}>
+                  <div className="texto-fraco" style={{ fontSize: '11px' }}>
                     {VOCATION_LABEL[m.vocation]}
                     {m.skillCategory ? ` · ${SKILL_CATEGORY_LABEL[m.skillCategory]}` : ''}
                     {m.isServiceiro ? ` · Serviceiro${m.ownerCharacterName ? ` (dono: ${m.ownerCharacterName})` : ''}${m.serviceiroSharePercent !== undefined ? ` · ${m.serviceiroSharePercent}%` : ''}` : ''}
@@ -170,11 +151,7 @@ export function SettingsPage() {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <button
-                  onClick={() => openEdit(m)}
-                  title="Editar membro"
-                  style={{ background: 'transparent', color: 'var(--color-text-muted)', border: 'none', cursor: 'pointer', fontSize: '15px', opacity: 0.8 }}
-                >
+                <button onClick={() => openEdit(m)} title="Editar membro" className="botao-icone">
                   ✏️
                 </button>
                 <button
@@ -188,7 +165,7 @@ export function SettingsPage() {
                     }
                   }}
                   title="Remover membro"
-                  style={{ background: 'transparent', color: 'var(--color-danger)', border: 'none', cursor: 'pointer', fontSize: '15px', opacity: 0.8 }}
+                  className="botao-icone-perigo"
                 >
                   🗑️
                 </button>

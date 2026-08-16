@@ -84,9 +84,8 @@ function CharmRune({ charmId, name, level, cost, onClick }: CharmRuneProps) {
         </span>
       )}
       <div
+        className="h44 w44"
         style={{
-          width: '44px',
-          height: '44px',
           borderRadius: 'var(--radius-pill)',
           border: `3px solid ${LEVEL_BORDER[level]}`,
           boxShadow: LEVEL_GLOW[level],
@@ -99,7 +98,7 @@ function CharmRune({ charmId, name, level, cost, onClick }: CharmRuneProps) {
         }}
       >
         {iconUrl ? (
-          <img src={iconUrl} alt={name} width={32} height={32} style={{ imageRendering: 'pixelated' }} />
+          <img src={iconUrl} alt={name} className="h32 w32" style={{ imageRendering: 'pixelated' }} />
         ) : (
           <span className="texto-fraco" style={{ fontSize: '10px' }}>?</span>
         )}
@@ -219,13 +218,13 @@ export function CharmPlannerPage() {
         </p>
         <div style={{ display: 'flex', gap: '16px', marginTop: '12px', fontSize: '12px', color: 'var(--color-text-muted)' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ width: '12px', height: '12px', borderRadius: 'var(--radius-pill)', border: `2px solid ${LEVEL_BORDER[1]}`, display: 'inline-block' }} /> Bronze
+            <span className="h12 w12" style={{ borderRadius: 'var(--radius-pill)', border: `2px solid ${LEVEL_BORDER[1]}`, display: 'inline-block' }} /> Bronze
           </span>
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ width: '12px', height: '12px', borderRadius: 'var(--radius-pill)', border: `2px solid ${LEVEL_BORDER[2]}`, display: 'inline-block' }} /> Prata
+            <span className="h12 w12" style={{ borderRadius: 'var(--radius-pill)', border: `2px solid ${LEVEL_BORDER[2]}`, display: 'inline-block' }} /> Prata
           </span>
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ width: '12px', height: '12px', borderRadius: 'var(--radius-pill)', border: `2px solid ${LEVEL_BORDER[3]}`, display: 'inline-block' }} /> Ouro
+            <span className="h12 w12" style={{ borderRadius: 'var(--radius-pill)', border: `2px solid ${LEVEL_BORDER[3]}`, display: 'inline-block' }} /> Ouro
           </span>
         </div>
       </header>
