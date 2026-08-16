@@ -81,51 +81,45 @@ export function ServiceiroFormModal({ mode, serviceiro, onClose, onSubmit }: Ser
     }
   };
 
-  const fieldStyle: React.CSSProperties = {
-    width: '100%', marginTop: '4px', background: 'var(--color-bg-input)', color: 'var(--color-text)',
-    border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '8px', boxSizing: 'border-box',
-  };
-  const labelStyle: React.CSSProperties = { fontSize: '12px', color: 'var(--color-text-muted)' };
-
   return (
     <Modal title={mode === 'create' ? 'Novo Serviceiro' : 'Editar Serviceiro'} onClose={onClose}>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-          <label style={labelStyle}>
+      <form onSubmit={handleSubmit} className="form-coluna">
+        <div className="grid-2col">
+          <label className="label-padrao">
             Nome
             <input
               type="text"
               value={formName}
               onChange={(e) => setFormName(e.target.value)}
               placeholder="Ex: Dedinho"
-              style={fieldStyle}
+              className="campo-input"
             />
           </label>
-          <label style={labelStyle}>
+          <label className="label-padrao">
             Nome do Boneco (pagamento)
             <input
               type="text"
               value={formCharacterName}
               onChange={(e) => setFormCharacterName(e.target.value)}
               placeholder="Ex: Dedinho Knight"
-              style={fieldStyle}
+              className="campo-input"
             />
           </label>
         </div>
 
-        <label style={labelStyle}>
+        <label className="label-padrao">
           Telefone (WhatsApp, com DDI+DDD)
           <input
             type="text"
             value={formPhone}
             onChange={(e) => setFormPhone(e.target.value)}
             placeholder={mode === 'edit' ? 'Deixe em branco pra manter o atual' : 'Ex: 5511999998888'}
-            style={fieldStyle}
+            className="campo-input"
           />
         </label>
 
         <div>
-          <span style={{ ...labelStyle, display: 'block', marginBottom: '6px' }}>
+          <span className="label-padrao" style={{ display: 'block', marginBottom: '6px' }}>
             Faz serviço em quais vocações?
           </span>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -153,16 +147,13 @@ export function ServiceiroFormModal({ mode, serviceiro, onClose, onSubmit }: Ser
           </div>
         </div>
 
-        {formError && <span style={{ color: 'var(--color-danger)', fontSize: '12px' }}>{formError}</span>}
+        {formError && <span className="texto-perigo" style={{ fontSize: '12px' }}>{formError}</span>}
 
         <button
           type="submit"
           disabled={saving}
-          style={{
-            background: 'var(--color-accent)', color: 'var(--color-bg)', border: 'none', padding: '12px',
-            borderRadius: 'var(--radius)', fontWeight: 'bold', cursor: saving ? 'default' : 'pointer', fontSize: '14px',
-            opacity: saving ? 0.7 : 1,
-          }}
+          className="botao-primario"
+          style={{ padding: '12px', borderRadius: 'var(--radius)', fontSize: '14px' }}
         >
           {saving ? 'Salvando...' : mode === 'create' ? 'Salvar Serviceiro' : 'Salvar Alterações'}
         </button>

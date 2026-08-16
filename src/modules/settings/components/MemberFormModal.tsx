@@ -19,7 +19,9 @@ interface MemberFormModalProps {
 
 /** Formulário de criar/editar Membro — antes vivia inline na página (2026-08-16: virou
  * modal, mesmo padrão de DropFormModal.tsx, que passou a ser o padrão do sistema pra
- * qualquer edição de item, não só drop). */
+ * qualquer edição de item, não só drop). Usa o catálogo de classes reutilizáveis de
+ * global.css (.label-padrao/.campo-input/.botao-primario/etc, ver o comentário lá) em vez
+ * de `style={{}}` repetido — pedido do usuário no mesmo dia. */
 export function MemberFormModal({ mode, member, onClose, onSubmit }: MemberFormModalProps) {
   const [formCharacterName, setFormCharacterName] = useState(mode === 'edit' ? member!.characterName : '');
   const [formVocation, setFormVocation] = useState<Vocation>(mode === 'edit' ? member!.vocation : 'EK');
@@ -70,32 +72,26 @@ export function MemberFormModal({ mode, member, onClose, onSubmit }: MemberFormM
     }
   };
 
-  const fieldStyle: React.CSSProperties = {
-    width: '100%', marginTop: '4px', background: 'var(--color-bg-input)', color: 'var(--color-text)',
-    border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '8px', boxSizing: 'border-box',
-  };
-  const labelStyle: React.CSSProperties = { fontSize: '12px', color: 'var(--color-text-muted)' };
-
   return (
     <Modal title={mode === 'create' ? 'Novo Membro' : 'Editar Membro'} onClose={onClose}>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-          <label style={labelStyle}>
+      <form onSubmit={handleSubmit} className="form-coluna">
+        <div className="grid-2col">
+          <label className="label-padrao">
             Nome do Personagem
             <input
               type="text"
               value={formCharacterName}
               onChange={(e) => setFormCharacterName(e.target.value)}
               placeholder="Ex: Thanatos Celestial"
-              style={fieldStyle}
+              className="campo-input"
             />
           </label>
-          <label style={labelStyle}>
+          <label className="label-padrao">
             Vocação
             <select
               value={formVocation}
               onChange={(e) => setFormVocation(e.target.value as Vocation)}
-              style={fieldStyle}
+              className="campo-input"
             >
               {VOCATIONS.map((v) => (
                 <option key={v} value={v}>{VOCATION_ICON[v]} {VOCATION_LABEL[v]}</option>
@@ -105,12 +101,12 @@ export function MemberFormModal({ mode, member, onClose, onSubmit }: MemberFormM
         </div>
 
         {formVocation === 'EK' && (
-          <label style={labelStyle}>
+          <label className="label-padrao">
             Skill treinada (pra buscar o valor certo nos Highscores)
             <select
               value={formSkillCategory}
               onChange={(e) => setFormSkillCategory(e.target.value as HighscoreSkillCategory)}
-              style={{ ...fieldStyle, width: '220px' }}
+              className="campo-input w220"
             >
               {EK_SKILL_OPTIONS.map((cat) => (
                 <option key={cat} value={cat}>{SKILL_CATEGORY_LABEL[cat]}</option>
@@ -119,7 +115,7 @@ export function MemberFormModal({ mode, member, onClose, onSubmit }: MemberFormM
           </label>
         )}
 
-        <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+        <label className="label-checkbox">
           <input
             type="checkbox"
             checked={formIsServiceiro}
@@ -128,7 +124,7 @@ export function MemberFormModal({ mode, member, onClose, onSubmit }: MemberFormM
           Esse personagem é jogado por um serviceiro (conta de terceiro)
         </label>
 
-        <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+        <label className="label-checkbox">
           <input
             type="checkbox"
             checked={formIsDefaultSeller}
@@ -138,18 +134,18 @@ export function MemberFormModal({ mode, member, onClose, onSubmit }: MemberFormM
         </label>
 
         {formIsServiceiro && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            <label style={labelStyle}>
+          <div className="grid-2col">
+            <label className="label-padrao">
               Dono da conta
               <input
                 type="text"
                 value={formOwnerCharacterName}
                 onChange={(e) => setFormOwnerCharacterName(e.target.value)}
                 placeholder="Nome do dono da conta"
-                style={fieldStyle}
+                className="campo-input"
               />
             </label>
-            <label style={labelStyle}>
+            <label className="label-padrao">
               % que fica com o serviceiro
               <input
                 type="number"
@@ -158,22 +154,19 @@ export function MemberFormModal({ mode, member, onClose, onSubmit }: MemberFormM
                 value={formSharePercent}
                 onChange={(e) => setFormSharePercent(e.target.value)}
                 placeholder="Ex: 50"
-                style={fieldStyle}
+                className="campo-input"
               />
             </label>
           </div>
         )}
 
-        {formError && <span style={{ color: 'var(--color-danger)', fontSize: '12px' }}>{formError}</span>}
+        {formError && <span className="texto-perigo" style={{ fontSize: '12px' }}>{formError}</span>}
 
         <button
           type="submit"
           disabled={saving}
-          style={{
-            background: 'var(--color-accent)', color: 'var(--color-bg)', border: 'none', padding: '12px',
-            borderRadius: 'var(--radius)', fontWeight: 'bold', cursor: saving ? 'default' : 'pointer', fontSize: '14px',
-            opacity: saving ? 0.7 : 1,
-          }}
+          className="botao-primario"
+          style={{ padding: '12px', borderRadius: 'var(--radius)', fontSize: '14px' }}
         >
           {saving ? 'Salvando...' : mode === 'create' ? 'Salvar Membro' : 'Salvar Alterações'}
         </button>

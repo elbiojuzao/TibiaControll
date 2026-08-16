@@ -77,9 +77,9 @@ export function SettingsPage() {
 
   return (
     <div className="dashboard-container" style={{ padding: '20px', maxWidth: '900px', margin: '0 auto', color: 'var(--color-text)' }}>
-      <div className="card" style={{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: 'var(--space-card)', marginBottom: '20px' }}>
+      <div className="card" style={{ marginBottom: '20px' }}>
         <h3 style={{ margin: '0 0 4px 0', fontSize: '13px', color: 'var(--color-accent)' }}>Nome da Party</h3>
-        <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: 'var(--color-text-muted)' }}>
+        <p className="texto-mudo" style={{ margin: '0 0 12px 0', fontSize: '12px' }}>
           Aparece na topbar de qualquer um que logar com a credencial compartilhada da PT.
         </p>
         <form onSubmit={handleSavePartyName} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
