@@ -458,6 +458,233 @@ table {
   padding: 1.25rem;
 }
 
+/* ============================================================================
+   Catálogo de classes reutilizáveis (2026-08-16) — pedido do usuário: "nosso
+   codigo esta muito poluido... vamos fazer uma reescrita do css... quero que
+   faça um arquivo .css para ter todas as classes que usamos, exemplo tempo
+   uma borda que usamos como padrão... apenas usamos essa classe". Substitui
+   os `style={{...}}` inline repetidos centenas de vezes pelos módulos (só
+   `color: var(--color-text-muted)` aparecia ~90 vezes) por classes com nome.
+   Ao escrever um componente novo, usar essas classes em vez de reinventar o
+   estilo inline — só criar um `style={{}}` novo pra algo que não se repete em
+   outro lugar (posição/tamanho específico daquele elemento, por exemplo).
+   ============================================================================ */
+
+/* Borda padrão — a mesma usada em cards, inputs, tabelas etc. Se só precisar
+   da borda (sem o resto do .card), usar essa. */
+.borda-padrao {
+  border: 1px solid var(--color-border);
+}
+
+/* Texto */
+.texto-mudo {
+  color: var(--color-text-muted);
+}
+
+.texto-fraco {
+  color: var(--color-text-faint);
+}
+
+.texto-perigo {
+  color: var(--color-danger);
+}
+
+.texto-sucesso {
+  color: var(--color-success);
+}
+
+.texto-mono {
+  font-family: monospace;
+}
+
+/* Formulário */
+.label-padrao {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.campo-input {
+  width: 100%;
+  margin-top: 4px;
+  background: var(--color-bg-input);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 8px;
+  box-sizing: border-box;
+  font-size: 0.85rem;
+  font-family: inherit;
+}
+
+.campo-input:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -1px;
+}
+
+.label-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.form-coluna {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.grid-3col {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+
+/* Botões */
+.botao-primario {
+  background: var(--color-accent);
+  color: var(--color-bg);
+  border: none;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.botao-primario:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.botao-secundario {
+  background: transparent;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.botao-secundario:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text);
+}
+
+.botao-icone {
+  background: transparent;
+  color: var(--color-text-muted);
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  opacity: 0.8;
+}
+
+.botao-icone:hover {
+  opacity: 1;
+}
+
+.botao-icone-perigo {
+  background: transparent;
+  color: var(--color-danger);
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  opacity: 0.8;
+}
+
+.botao-icone-perigo:hover {
+  opacity: 1;
+}
+
+/* Banners */
+.banner-erro {
+  background: var(--color-danger-soft);
+  border: 1px solid var(--color-danger);
+  color: var(--color-danger);
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  font-size: 0.82rem;
+}
+
+/* Card compacto — mesma coisa que .card mas com padding menor (15px em vez de
+   20px), usado em painéis de formulário/filtro que não precisam do respiro do
+   card padrão. */
+.card-compacto {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 15px;
+}
+
+/* Mini box de KPI/estatística (Dashboard, Timers, Calculadora Tier) — rótulo
+   pequeno em cima, valor grande embaixo, centralizado. */
+.stat-box {
+  background: var(--color-bg-elevated);
+  padding: 10px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  text-align: center;
+}
+
+.stat-box-rotulo {
+  font-size: 0.625rem;
+  color: var(--color-text-muted);
+  display: block;
+  margin-bottom: 4px;
+}
+
+/* Cabeçalho de página — título + subtítulo logo abaixo (a cor do título varia
+   por módulo de propósito, então só o subtítulo vira classe). */
+.subtitulo-pagina {
+  margin: 5px 0 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+/* Estado vazio ("nenhum X cadastrado ainda") */
+.estado-vazio {
+  font-size: 0.8125rem;
+  color: var(--color-text-faint);
+  text-align: center;
+  margin: 20px 0;
+}
+
+/* Tabela simples (não a .loot-table grande, é pra tabelas menores tipo a de
+   metas do Dashboard ou rotas da Calculadora Tier) */
+.tabela-simples {
+  width: 100%;
+  font-size: 0.75rem;
+  border-collapse: collapse;
+}
+
+.celula-dir {
+  text-align: right;
+  padding: 6px;
+}
+
+.celula-esq {
+  text-align: left;
+  padding: 6px;
+}
+
+.celula-centro {
+  text-align: center;
+  padding: 6px;
+}
+
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -845,3 +1072,248 @@ table {
 .calendar-tooltip-item strong {
   color: var(--color-text);
 }
+
+/* Largura/altura utilitárias (2026-08-16, pedido do usuário: "para hidth e width usar h10 h20 para
+   10px 20px etc e w10 e w20 para 10px e 20px assim por diante") — h{N}/w{N} = N em pixels. Cobre
+   de 1 a 100px em passos de 1 (ícones, avatares, badges — onde 1px de diferença já muda o visual)
+   e de 110 a 300px em passos de 10 (caixas/containers maiores, onde precisão fina não importa). */
+.h1 { height: 1px; }
+.w1 { width: 1px; }
+.h2 { height: 2px; }
+.w2 { width: 2px; }
+.h3 { height: 3px; }
+.w3 { width: 3px; }
+.h4 { height: 4px; }
+.w4 { width: 4px; }
+.h5 { height: 5px; }
+.w5 { width: 5px; }
+.h6 { height: 6px; }
+.w6 { width: 6px; }
+.h7 { height: 7px; }
+.w7 { width: 7px; }
+.h8 { height: 8px; }
+.w8 { width: 8px; }
+.h9 { height: 9px; }
+.w9 { width: 9px; }
+.h10 { height: 10px; }
+.w10 { width: 10px; }
+.h11 { height: 11px; }
+.w11 { width: 11px; }
+.h12 { height: 12px; }
+.w12 { width: 12px; }
+.h13 { height: 13px; }
+.w13 { width: 13px; }
+.h14 { height: 14px; }
+.w14 { width: 14px; }
+.h15 { height: 15px; }
+.w15 { width: 15px; }
+.h16 { height: 16px; }
+.w16 { width: 16px; }
+.h17 { height: 17px; }
+.w17 { width: 17px; }
+.h18 { height: 18px; }
+.w18 { width: 18px; }
+.h19 { height: 19px; }
+.w19 { width: 19px; }
+.h20 { height: 20px; }
+.w20 { width: 20px; }
+.h21 { height: 21px; }
+.w21 { width: 21px; }
+.h22 { height: 22px; }
+.w22 { width: 22px; }
+.h23 { height: 23px; }
+.w23 { width: 23px; }
+.h24 { height: 24px; }
+.w24 { width: 24px; }
+.h25 { height: 25px; }
+.w25 { width: 25px; }
+.h26 { height: 26px; }
+.w26 { width: 26px; }
+.h27 { height: 27px; }
+.w27 { width: 27px; }
+.h28 { height: 28px; }
+.w28 { width: 28px; }
+.h29 { height: 29px; }
+.w29 { width: 29px; }
+.h30 { height: 30px; }
+.w30 { width: 30px; }
+.h31 { height: 31px; }
+.w31 { width: 31px; }
+.h32 { height: 32px; }
+.w32 { width: 32px; }
+.h33 { height: 33px; }
+.w33 { width: 33px; }
+.h34 { height: 34px; }
+.w34 { width: 34px; }
+.h35 { height: 35px; }
+.w35 { width: 35px; }
+.h36 { height: 36px; }
+.w36 { width: 36px; }
+.h37 { height: 37px; }
+.w37 { width: 37px; }
+.h38 { height: 38px; }
+.w38 { width: 38px; }
+.h39 { height: 39px; }
+.w39 { width: 39px; }
+.h40 { height: 40px; }
+.w40 { width: 40px; }
+.h41 { height: 41px; }
+.w41 { width: 41px; }
+.h42 { height: 42px; }
+.w42 { width: 42px; }
+.h43 { height: 43px; }
+.w43 { width: 43px; }
+.h44 { height: 44px; }
+.w44 { width: 44px; }
+.h45 { height: 45px; }
+.w45 { width: 45px; }
+.h46 { height: 46px; }
+.w46 { width: 46px; }
+.h47 { height: 47px; }
+.w47 { width: 47px; }
+.h48 { height: 48px; }
+.w48 { width: 48px; }
+.h49 { height: 49px; }
+.w49 { width: 49px; }
+.h50 { height: 50px; }
+.w50 { width: 50px; }
+.h51 { height: 51px; }
+.w51 { width: 51px; }
+.h52 { height: 52px; }
+.w52 { width: 52px; }
+.h53 { height: 53px; }
+.w53 { width: 53px; }
+.h54 { height: 54px; }
+.w54 { width: 54px; }
+.h55 { height: 55px; }
+.w55 { width: 55px; }
+.h56 { height: 56px; }
+.w56 { width: 56px; }
+.h57 { height: 57px; }
+.w57 { width: 57px; }
+.h58 { height: 58px; }
+.w58 { width: 58px; }
+.h59 { height: 59px; }
+.w59 { width: 59px; }
+.h60 { height: 60px; }
+.w60 { width: 60px; }
+.h61 { height: 61px; }
+.w61 { width: 61px; }
+.h62 { height: 62px; }
+.w62 { width: 62px; }
+.h63 { height: 63px; }
+.w63 { width: 63px; }
+.h64 { height: 64px; }
+.w64 { width: 64px; }
+.h65 { height: 65px; }
+.w65 { width: 65px; }
+.h66 { height: 66px; }
+.w66 { width: 66px; }
+.h67 { height: 67px; }
+.w67 { width: 67px; }
+.h68 { height: 68px; }
+.w68 { width: 68px; }
+.h69 { height: 69px; }
+.w69 { width: 69px; }
+.h70 { height: 70px; }
+.w70 { width: 70px; }
+.h71 { height: 71px; }
+.w71 { width: 71px; }
+.h72 { height: 72px; }
+.w72 { width: 72px; }
+.h73 { height: 73px; }
+.w73 { width: 73px; }
+.h74 { height: 74px; }
+.w74 { width: 74px; }
+.h75 { height: 75px; }
+.w75 { width: 75px; }
+.h76 { height: 76px; }
+.w76 { width: 76px; }
+.h77 { height: 77px; }
+.w77 { width: 77px; }
+.h78 { height: 78px; }
+.w78 { width: 78px; }
+.h79 { height: 79px; }
+.w79 { width: 79px; }
+.h80 { height: 80px; }
+.w80 { width: 80px; }
+.h81 { height: 81px; }
+.w81 { width: 81px; }
+.h82 { height: 82px; }
+.w82 { width: 82px; }
+.h83 { height: 83px; }
+.w83 { width: 83px; }
+.h84 { height: 84px; }
+.w84 { width: 84px; }
+.h85 { height: 85px; }
+.w85 { width: 85px; }
+.h86 { height: 86px; }
+.w86 { width: 86px; }
+.h87 { height: 87px; }
+.w87 { width: 87px; }
+.h88 { height: 88px; }
+.w88 { width: 88px; }
+.h89 { height: 89px; }
+.w89 { width: 89px; }
+.h90 { height: 90px; }
+.w90 { width: 90px; }
+.h91 { height: 91px; }
+.w91 { width: 91px; }
+.h92 { height: 92px; }
+.w92 { width: 92px; }
+.h93 { height: 93px; }
+.w93 { width: 93px; }
+.h94 { height: 94px; }
+.w94 { width: 94px; }
+.h95 { height: 95px; }
+.w95 { width: 95px; }
+.h96 { height: 96px; }
+.w96 { width: 96px; }
+.h97 { height: 97px; }
+.w97 { width: 97px; }
+.h98 { height: 98px; }
+.w98 { width: 98px; }
+.h99 { height: 99px; }
+.w99 { width: 99px; }
+.h100 { height: 100px; }
+.w100 { width: 100px; }
+.h110 { height: 110px; }
+.w110 { width: 110px; }
+.h120 { height: 120px; }
+.w120 { width: 120px; }
+.h130 { height: 130px; }
+.w130 { width: 130px; }
+.h140 { height: 140px; }
+.w140 { width: 140px; }
+.h150 { height: 150px; }
+.w150 { width: 150px; }
+.h160 { height: 160px; }
+.w160 { width: 160px; }
+.h170 { height: 170px; }
+.w170 { width: 170px; }
+.h180 { height: 180px; }
+.w180 { width: 180px; }
+.h190 { height: 190px; }
+.w190 { width: 190px; }
+.h200 { height: 200px; }
+.w200 { width: 200px; }
+.h210 { height: 210px; }
+.w210 { width: 210px; }
+.h220 { height: 220px; }
+.w220 { width: 220px; }
+.h230 { height: 230px; }
+.w230 { width: 230px; }
+.h240 { height: 240px; }
+.w240 { width: 240px; }
+.h250 { height: 250px; }
+.w250 { width: 250px; }
+.h260 { height: 260px; }
+.w260 { width: 260px; }
+.h270 { height: 270px; }
+.w270 { width: 270px; }
+.h280 { height: 280px; }
+.w280 { width: 280px; }
+.h290 { height: 290px; }
+.w290 { width: 290px; }
+.h300 { height: 300px; }
+.w300 { width: 300px; }

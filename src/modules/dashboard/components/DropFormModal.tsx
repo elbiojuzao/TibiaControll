@@ -309,51 +309,45 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
     }
   };
 
-  const fieldStyle: React.CSSProperties = {
-    width: '100%', marginTop: '4px', background: 'var(--color-bg-input)', color: 'var(--color-text)',
-    border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '8px', boxSizing: 'border-box', fontSize: '13px',
-  };
-  const labelStyle: React.CSSProperties = { fontSize: '12px', color: 'var(--color-text-muted)' };
-
   return (
     <Modal title={mode === 'create' ? 'Registro de Drop' : 'Editar Drop'} onClose={onClose}>
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-        <label style={labelStyle}>
+        <label className="label-padrao">
           Data:
-          <input type="date" value={brToIso(date)} onChange={(e) => setDate(isoToBr(e.target.value))} style={fieldStyle} />
+          <input type="date" value={brToIso(date)} onChange={(e) => setDate(isoToBr(e.target.value))} className="campo-input" />
         </label>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-          <label style={labelStyle}>
+        <div className="grid-2col">
+          <label className="label-padrao">
             EK:
-            <select value={ek} onChange={(e) => setEk(e.target.value)} style={fieldStyle}>
+            <select value={ek} onChange={(e) => setEk(e.target.value)} className="campo-input">
               <option value={VAZIO}>-- Vazio --</option>
               {vocationOptions(members, 'EK', ek).map((name) => (
                 <option key={name} value={name}>{name}</option>
               ))}
             </select>
           </label>
-          <label style={labelStyle}>
+          <label className="label-padrao">
             ED:
-            <select value={ed} onChange={(e) => setEd(e.target.value)} style={fieldStyle}>
+            <select value={ed} onChange={(e) => setEd(e.target.value)} className="campo-input">
               <option value={VAZIO}>-- Vazio --</option>
               {vocationOptions(members, 'ED', ed).map((name) => (
                 <option key={name} value={name}>{name}</option>
               ))}
             </select>
           </label>
-          <label style={labelStyle}>
+          <label className="label-padrao">
             RP:
-            <select value={rp} onChange={(e) => setRp(e.target.value)} style={fieldStyle}>
+            <select value={rp} onChange={(e) => setRp(e.target.value)} className="campo-input">
               <option value={VAZIO}>-- Vazio --</option>
               {vocationOptions(members, 'RP', rp).map((name) => (
                 <option key={name} value={name}>{name}</option>
               ))}
             </select>
           </label>
-          <label style={labelStyle}>
+          <label className="label-padrao">
             MS:
-            <select value={ms} onChange={(e) => setMs(e.target.value)} style={fieldStyle}>
+            <select value={ms} onChange={(e) => setMs(e.target.value)} className="campo-input">
               <option value={VAZIO}>-- Vazio --</option>
               {vocationOptions(members, 'MS', ms).map((name) => (
                 <option key={name} value={name}>{name}</option>
@@ -362,9 +356,9 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
           </label>
         </div>
 
-        <label style={labelStyle}>
+        <label className="label-padrao">
           5º Player:
-          <select value={fifthPlayer} onChange={(e) => setFifthPlayer(e.target.value)} style={fieldStyle}>
+          <select value={fifthPlayer} onChange={(e) => setFifthPlayer(e.target.value)} className="campo-input">
             <option value={VAZIO}>-- Vazio --</option>
             {fifthPlayerOptions(serviceiros, fifthPlayer).map((name) => (
               <option key={name} value={name}>{name}</option>
@@ -374,7 +368,7 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
 
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-            <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Serviceiros nesse item</span>
+            <span className="label-padrao">Serviceiros nesse item</span>
             <button
               type="button"
               onClick={addServiceRow}
@@ -396,7 +390,7 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
                     <select
                       value={row.serviceiroId}
                       onChange={(e) => updateServiceRow(index, { serviceiroId: e.target.value, vocation: '' })}
-                      style={fieldStyle}
+                      className="campo-input"
                     >
                       <option value={VAZIO}>-- Vazio --</option>
                       {serviceiros.map((s) => (
@@ -410,7 +404,7 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
                         updateServiceRow(index, { servedCharacterName, vocation: deriveVocation({ ek, ed, ms, rp }, servedCharacterName) });
                       }}
                       disabled={!serviceiro}
-                      style={fieldStyle}
+                      className="campo-input"
                       title="Em quem esse serviceiro fez o service"
                     >
                       <option value={VAZIO}>{serviceiro ? '-- Jogador servido --' : 'Escolha o serviceiro'}</option>
@@ -433,33 +427,33 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
           )}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-          <label style={labelStyle}>
+        <div className="grid-2col">
+          <label className="label-padrao">
             Valor Total:
-            <input type="number" min={0} value={totalValue} onChange={(e) => setTotalValue(e.target.value)} placeholder="0" style={fieldStyle} />
+            <input type="number" min={0} value={totalValue} onChange={(e) => setTotalValue(e.target.value)} placeholder="0" className="campo-input" />
           </label>
-          <label style={labelStyle}>
+          <label className="label-padrao">
             Valor Cada (calculado):
-            <div style={{ ...fieldStyle, color: 'var(--color-text-muted)', cursor: 'default' }} title="Valor Total dividido pelo número de jogadores (EK/ED/MS/RP/5º) preenchidos">
+            <div className="campo-input" style={{ color: 'var(--color-text-muted)', cursor: 'default' }} title="Valor Total dividido pelo número de jogadores (EK/ED/MS/RP/5º) preenchidos">
               {formatTibiaGold(unitValue)} {playerCount > 0 ? `(÷ ${playerCount})` : ''}
             </div>
           </label>
         </div>
 
         {bossQuestsError && (
-          <span style={{ color: 'var(--color-danger)', fontSize: '12px' }}>
+          <span className="texto-perigo" style={{ fontSize: '12px' }}>
             Não foi possível carregar a lista de bosses ({bossQuestsError}).
           </span>
         )}
         {bossItemsError && (
-          <span style={{ color: 'var(--color-danger)', fontSize: '12px' }}>
+          <span className="texto-perigo" style={{ fontSize: '12px' }}>
             Não foi possível carregar a lista de itens ({bossItemsError}).
           </span>
         )}
 
         {quests.length > 0 && (
           <div>
-            <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', display: 'block', marginBottom: '6px' }}>
+            <span className="label-padrao" style={{ marginBottom: '6px' }}>
               Filtrar bosses por quest
             </span>
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
@@ -473,19 +467,19 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
           </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-          <label style={labelStyle}>
+        <div className="grid-2col">
+          <label className="label-padrao">
             Boss:
-            <select value={bossName} onChange={(e) => handleBossChange(e.target.value)} style={fieldStyle}>
+            <select value={bossName} onChange={(e) => handleBossChange(e.target.value)} className="campo-input">
               <option value={VAZIO}>-- Vazio --</option>
               {bossOptions.map((boss) => (
                 <option key={boss} value={boss}>{boss}</option>
               ))}
             </select>
           </label>
-          <label style={labelStyle}>
+          <label className="label-padrao">
             Item:
-            <select value={itemName} onChange={(e) => setItemName(e.target.value)} disabled={!bossName} style={fieldStyle}>
+            <select value={itemName} onChange={(e) => setItemName(e.target.value)} disabled={!bossName} className="campo-input">
               <option value={VAZIO}>{bossName ? '-- Vazio --' : 'Escolha o boss primeiro'}</option>
               {itemOptions.map((item) => (
                 <option key={item} value={item}>{item}</option>
@@ -494,9 +488,9 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
           </label>
         </div>
 
-        <label style={labelStyle}>
+        <label className="label-padrao">
           Fragador:
-          <select value={looter} onChange={(e) => setLooter(e.target.value)} style={fieldStyle}>
+          <select value={looter} onChange={(e) => setLooter(e.target.value)} className="campo-input">
             <option value={VAZIO}>-- Vazio --</option>
             {looterOptions.map((name) => (
               <option key={name} value={name}>{name}</option>
@@ -510,7 +504,7 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
               <input type="checkbox" checked={sold} onChange={(e) => setSold(e.target.checked)} />
               Vendido
             </label>
-            <span style={{ fontSize: '12px', color: 'var(--color-text-faint)' }}>
+            <span className="texto-fraco" style={{ fontSize: '12px' }}>
               {sold
                 ? wasSold && drop!.saleDate
                   ? `Vendido em ${drop!.saleDate}`
@@ -545,11 +539,11 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
                   }}
                 >
                   <div>
-                    <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
-                      <span style={{ color: 'var(--color-danger)', fontWeight: 'bold' }}>{t.from}</span> paga para{' '}
-                      <span style={{ color: 'var(--color-success)', fontWeight: 'bold' }}>{t.to}</span>
+                    <div className="texto-mudo" style={{ fontSize: '11px' }}>
+                      <span className="texto-perigo" style={{ fontWeight: 'bold' }}>{t.from}</span> paga para{' '}
+                      <span className="texto-sucesso" style={{ fontWeight: 'bold' }}>{t.to}</span>
                     </div>
-                    <div style={{ fontSize: '13px', fontFamily: 'monospace', color: 'var(--color-text)', marginTop: '2px' }}>
+                    <div className="texto-mono" style={{ fontSize: '13px', color: 'var(--color-text)', marginTop: '2px' }}>
                       {t.tibiaCommand}
                     </div>
                   </div>
@@ -588,11 +582,11 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
                   }}
                 >
                   <div>
-                    <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
-                      <span style={{ color: 'var(--color-danger)', fontWeight: 'bold' }}>{defaultSeller}</span> deve pagar{' '}
+                    <div className="texto-mudo" style={{ fontSize: '11px' }}>
+                      <span className="texto-perigo" style={{ fontWeight: 'bold' }}>{defaultSeller}</span> deve pagar{' '}
                       <span style={{ color: 'var(--color-warning)', fontWeight: 'bold' }}>{m.serviceiroName}</span>
                     </div>
-                    <div style={{ fontSize: '13px', fontFamily: 'monospace', color: 'var(--color-text)', marginTop: '2px' }}>
+                    <div className="texto-mono" style={{ fontSize: '13px', color: 'var(--color-text)', marginTop: '2px' }}>
                       {formatTibiaGold(m.amount)}
                     </div>
                   </div>
@@ -616,16 +610,13 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
           </div>
         )}
 
-        {formError && <span style={{ color: 'var(--color-danger)', fontSize: '12px' }}>{formError}</span>}
+        {formError && <span className="texto-perigo" style={{ fontSize: '12px' }}>{formError}</span>}
 
         <button
           type="submit"
           disabled={saving}
-          style={{
-            background: 'var(--color-accent)', color: 'var(--color-bg)', border: 'none', padding: '12px',
-            borderRadius: 'var(--radius)', fontWeight: 'bold', cursor: saving ? 'default' : 'pointer',
-            fontSize: '14px', opacity: saving ? 0.7 : 1,
-          }}
+          className="botao-primario"
+          style={{ padding: '12px', borderRadius: 'var(--radius)', fontSize: '14px' }}
         >
           {saving
             ? (mode === 'create' ? 'Registrando...' : 'Salvando...')

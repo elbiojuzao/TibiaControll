@@ -207,7 +207,7 @@ export function DashboardPage() {
       <header className="page-header" style={{ marginBottom: '20px', borderBottom: '1px solid var(--color-border)', paddingBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h2 style={{ margin: 0, fontSize: '20px' }}>Dashboard — {account?.partyName}</h2>
-          <p style={{ margin: '5px 0 0 0', color: 'var(--color-text-muted)', fontSize: '14px' }}>Painel geral de controle de indicadores, XP e histórico da party</p>
+          <p className="subtitulo-pagina">Painel geral de controle de indicadores, XP e histórico da party</p>
         </div>
       </header>
 
@@ -218,7 +218,7 @@ export function DashboardPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
 
           <div style={{ background: 'var(--color-bg-elevated)', padding: '10px 15px', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 'bold' }}>Mês</span>
+            <span className="texto-mudo" style={{ fontSize: '11px', fontWeight: 'bold' }}>Mês</span>
             <div style={{ display: 'flex', gap: '10px' }}>
               <select
                 value={selectedMonth}
@@ -238,36 +238,36 @@ export function DashboardPage() {
             </div>
           </div>
 
-          <div className="card" style={{ background: 'var(--color-bg-elevated)', padding: '12px', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)' }}>
+          <div className="card" style={{ padding: '12px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', borderBottom: '1px solid var(--color-border)', paddingBottom: '6px' }}>
               <span style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--color-accent)' }}>Drops no mês</span>
-              <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Vendido / Valor</span>
+              <span className="texto-mudo" style={{ fontSize: '12px' }}>Vendido / Valor</span>
             </div>
 
             <div style={{ maxHeight: '720px', overflowY: 'auto' }}>
-              {loading && <div style={{ padding: '20px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '13px' }}>Carregando...</div>}
-              {error && <div style={{ padding: '20px', textAlign: 'center', color: 'var(--color-danger)', fontSize: '13px' }}>{error}</div>}
+              {loading && <div className="texto-mudo" style={{ padding: '20px', textAlign: 'center', fontSize: '13px' }}>Carregando...</div>}
+              {error && <div className="texto-perigo" style={{ padding: '20px', textAlign: 'center', fontSize: '13px' }}>{error}</div>}
               {!loading && !error && drops.length === 0 && (
-                <div style={{ padding: '20px', textAlign: 'center', color: 'var(--color-text-faint)', fontSize: '13px' }}>Nenhum drop encontrado.</div>
+                <div className="texto-fraco" style={{ padding: '20px', textAlign: 'center', fontSize: '13px' }}>Nenhum drop encontrado.</div>
               )}
               {!loading && !error && drops.length > 0 && (
-                <table style={{ width: '100%', fontSize: '12px', borderCollapse: 'collapse' }}>
+                <table className="tabela-simples">
                   <tbody>
                     {drops.map((drop, idx) => {
                       const isSold = drop.sold;
                       const rowBg = isSold ? 'var(--color-success-soft)' : 'var(--color-danger-soft)';
                       return (
                         <tr key={drop.id || idx} style={{ borderBottom: '1px solid var(--color-border)', background: rowBg }}>
-                          <td style={{ padding: '6px 4px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <td className="texto-mudo" style={{ padding: '6px 4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                             {getItemIconUrl(drop.itemName) && (
                               <img src={getItemIconUrl(drop.itemName)} alt="" style={{ width: '18px', height: '18px', objectFit: 'contain', imageRendering: 'pixelated' }} />
                             )}
                             <span>{drop.itemName || 'Item Raro'}</span>
                           </td>
-                          <td style={{ padding: '6px 4px', textAlign: 'center', color: isSold ? 'var(--color-success)' : 'var(--color-danger)', fontWeight: 'bold', width: '60px' }}>
+                          <td className={isSold ? 'texto-sucesso' : 'texto-perigo'} style={{ padding: '6px 4px', textAlign: 'center', fontWeight: 'bold', width: '60px' }}>
                             {isSold ? 'Sim' : 'Não'}
                           </td>
-                          <td style={{ padding: '6px 4px', textAlign: 'right', color: isSold ? 'var(--color-success)' : 'var(--color-text-faint)', fontFamily: 'monospace', width: '110px' }}>
+                          <td className={`texto-mono ${isSold ? 'texto-sucesso' : 'texto-fraco'}`} style={{ padding: '6px 4px', textAlign: 'right', width: '110px' }}>
                             {isSold ? formatTibiaGold(drop.totalValue) : '---'}
                           </td>
                         </tr>
@@ -286,45 +286,45 @@ export function DashboardPage() {
 
           {/* GRADE DE 10 INDICADORES */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px' }}>
-            <div style={{ background: 'var(--color-bg-elevated)', padding: '10px 8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', textAlign: 'center' }}>
-              <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', display: 'block', marginBottom: '4px' }}>Qtd Drops</span>
+            <div className="stat-box">
+              <span className="stat-box-rotulo">Qtd Drops</span>
               <strong style={{ fontSize: '14px', color: 'var(--color-text)' }}>{stats.totalDrops}</strong>
             </div>
-            <div style={{ background: 'var(--color-bg-elevated)', padding: '10px 8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', textAlign: 'center' }}>
-              <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', display: 'block', marginBottom: '4px' }}>Qtd N Vendido</span>
+            <div className="stat-box">
+              <span className="stat-box-rotulo">Qtd N Vendido</span>
               <strong style={{ fontSize: '14px', color: 'var(--color-warning)' }}>{stats.pendingCount}</strong>
             </div>
-            <div style={{ background: 'var(--color-bg-elevated)', padding: '10px 8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', textAlign: 'center' }}>
-              <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', display: 'block', marginBottom: '4px' }}>Qtd Serviceiro</span>
+            <div className="stat-box">
+              <span className="stat-box-rotulo">Qtd Serviceiro</span>
               <strong style={{ fontSize: '14px', color: 'var(--color-accent)' }}>{stats.serviceiroDropsCount}</strong>
             </div>
-            <div style={{ background: 'var(--color-bg-elevated)', padding: '10px 8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', textAlign: 'center' }}>
-              <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', display: 'block', marginBottom: '4px' }}>KKs Plunder(ind)</span>
-              <strong style={{ fontSize: '11px', color: 'var(--color-success)' }}>{formatTibiaGold(stats.plunderTotal)}</strong>
+            <div className="stat-box">
+              <span className="stat-box-rotulo">KKs Plunder(ind)</span>
+              <strong className="texto-sucesso" style={{ fontSize: '11px' }}>{formatTibiaGold(stats.plunderTotal)}</strong>
             </div>
-            <div style={{ background: 'var(--color-bg-elevated)', padding: '10px 8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', textAlign: 'center' }}>
-              <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', display: 'block', marginBottom: '4px' }}>KKs Hunt</span>
+            <div className="stat-box">
+              <span className="stat-box-rotulo">KKs Hunt</span>
               <strong style={{ fontSize: '11px', color: 'var(--color-text)' }}>{formatTibiaGold(bossHuntTotals.hunt)}</strong>
             </div>
 
-            <div style={{ background: 'var(--color-bg-elevated)', padding: '10px 8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', textAlign: 'center' }}>
-              <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', display: 'block', marginBottom: '4px' }}>Qtd Bags</span>
+            <div className="stat-box">
+              <span className="stat-box-rotulo">Qtd Bags</span>
               <strong style={{ fontSize: '14px', color: 'var(--color-text)' }}>{stats.bagsCount}</strong>
             </div>
-            <div style={{ background: 'var(--color-bg-elevated)', padding: '10px 8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', textAlign: 'center' }}>
-              <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', display: 'block', marginBottom: '4px' }}>Qtd Plunders</span>
+            <div className="stat-box">
+              <span className="stat-box-rotulo">Qtd Plunders</span>
               <strong style={{ fontSize: '14px', color: 'var(--color-text)' }}>{stats.plunderCount}</strong>
             </div>
-            <div style={{ background: 'var(--color-bg-elevated)', padding: '10px 8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', textAlign: 'center' }}>
-              <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', display: 'block', marginBottom: '4px' }}>Total (ind)</span>
-              <strong style={{ fontSize: '11px', color: 'var(--color-success)' }}>{formatTibiaGold(totalInd)}</strong>
+            <div className="stat-box">
+              <span className="stat-box-rotulo">Total (ind)</span>
+              <strong className="texto-sucesso" style={{ fontSize: '11px' }}>{formatTibiaGold(totalInd)}</strong>
             </div>
-            <div style={{ background: 'var(--color-bg-elevated)', padding: '10px 8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', textAlign: 'center' }}>
-              <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', display: 'block', marginBottom: '4px' }}>KKs Bags(ind)</span>
-              <strong style={{ fontSize: '11px', color: 'var(--color-success)' }}>{formatTibiaGold(stats.bagsTotal)}</strong>
+            <div className="stat-box">
+              <span className="stat-box-rotulo">KKs Bags(ind)</span>
+              <strong className="texto-sucesso" style={{ fontSize: '11px' }}>{formatTibiaGold(stats.bagsTotal)}</strong>
             </div>
-            <div style={{ background: 'var(--color-bg-elevated)', padding: '10px 8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', textAlign: 'center' }}>
-              <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', display: 'block', marginBottom: '4px' }}>KKs Boss</span>
+            <div className="stat-box">
+              <span className="stat-box-rotulo">KKs Boss</span>
               <strong style={{ fontSize: '11px', color: 'var(--color-accent)' }}>{formatTibiaGold(bossHuntTotals.boss)}</strong>
             </div>
           </div>
@@ -332,24 +332,24 @@ export function DashboardPage() {
           {/* VALOR TOTAL CONSOLIDADO */}
           <div style={{ background: 'var(--color-bg-elevated)', padding: '12px 20px', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', display: 'block' }}>Valor Total em Drops (Sistema)</span>
-              <span style={{ fontSize: '18px', fontWeight: 'bold', color: 'var(--color-success)' }}>{formatTibiaGold(stats.totalValue)}</span>
+              <span className="label-padrao">Valor Total em Drops (Sistema)</span>
+              <span className="texto-sucesso" style={{ fontSize: '18px', fontWeight: 'bold' }}>{formatTibiaGold(stats.totalValue)}</span>
             </div>
             <div style={{ textAlign: 'right' }}>
-              <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', display: 'block' }}>Vendidos / Pendentes</span>
+              <span className="label-padrao">Vendidos / Pendentes</span>
               <span style={{ fontSize: '14px', color: 'var(--color-accent)' }}>{stats.soldCount} / {stats.pendingCount}</span>
             </div>
           </div>
 
           {/* PLANILHA CENTRAL DE MEMBROS, SKILLS E METAS DE XP */}
-          <div className="card" style={{ background: 'var(--color-bg-elevated)', padding: '15px', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)', overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'center', fontFamily: 'monospace' }}>
+          <div className="card-compacto" style={{ overflowX: 'auto' }}>
+            <table className="tabela-simples texto-mono" style={{ textAlign: 'center' }}>
               <thead>
                 {/* Linha de Nomes dos Membros */}
                 <tr style={{ background: 'var(--color-border)', color: 'var(--color-text)' }}>
-                  <th style={{ padding: '8px', border: '1px solid var(--color-border-strong)', width: '110px' }}></th>
+                  <th className="borda-padrao" style={{ padding: '8px', width: '110px' }}></th>
                   {members.map((m) => (
-                    <th key={m.id} style={{ padding: '8px', border: '1px solid var(--color-border-strong)', fontWeight: 'bold', fontSize: '13px' }}>
+                    <th key={m.id} className="borda-padrao" style={{ padding: '8px', fontWeight: 'bold', fontSize: '13px' }}>
                       {m.characterName}
                     </th>
                   ))}
@@ -358,11 +358,11 @@ export function DashboardPage() {
               <tbody>
                 {/* Lvl Atual — ao vivo via TibiaData (character) */}
                 <tr style={{ background: 'var(--color-text-muted)', color: 'var(--color-bg)', fontWeight: 'bold' }}>
-                  <td style={{ padding: '6px', border: '1px solid var(--color-text-muted)', textAlign: 'left', paddingLeft: '10px' }}>Lvl Atual</td>
+                  <td className="borda-padrao" style={{ padding: '6px', textAlign: 'left', paddingLeft: '10px' }}>Lvl Atual</td>
                   {members.map((m) => {
                     const live = liveStats[m.characterName];
                     return (
-                      <td key={m.id} style={{ padding: '6px', border: '1px solid var(--color-text-muted)' }}>
+                      <td key={m.id} className="borda-padrao" style={{ padding: '6px' }}>
                         {live?.loading ? '…' : live?.level ?? '—'}
                       </td>
                     );
@@ -370,11 +370,11 @@ export function DashboardPage() {
                 </tr>
                 {/* Skill — ao vivo via TibiaData (highscores, top 500 do mundo) */}
                 <tr style={{ background: 'var(--color-text-muted)', color: 'var(--color-bg)', fontWeight: 'bold' }}>
-                  <td style={{ padding: '6px', border: '1px solid var(--color-text-muted)', textAlign: 'left', paddingLeft: '10px' }}>Skill</td>
+                  <td className="borda-padrao" style={{ padding: '6px', textAlign: 'left', paddingLeft: '10px' }}>Skill</td>
                   {members.map((m) => {
                     const live = liveStats[m.characterName];
                     return (
-                      <td key={m.id} style={{ padding: '6px', border: '1px solid var(--color-text-muted)' }}>
+                      <td key={m.id} className="borda-padrao" style={{ padding: '6px' }}>
                         {live?.loading ? '…' : live?.skillLabel ?? '—'}
                       </td>
                     );
@@ -382,11 +382,11 @@ export function DashboardPage() {
                 </tr>
                 {/* Xp Ontem */}
                 <tr style={{ background: 'var(--color-text-muted)', color: 'var(--color-bg)' }}>
-                  <td style={{ padding: '6px', border: '1px solid var(--color-text-muted)', textAlign: 'left', paddingLeft: '10px', fontWeight: 'bold' }}>Xp Ontem</td>
+                  <td className="borda-padrao" style={{ padding: '6px', textAlign: 'left', paddingLeft: '10px', fontWeight: 'bold' }}>Xp Ontem</td>
                   {members.map((m) => {
                     const extra = statsByName[m.characterName] ?? EMPTY_XP_STATS;
                     return (
-                      <td key={m.id} style={{ padding: '6px', border: '1px solid var(--color-text-muted)', color: extra.xpOntem.startsWith('-') ? 'var(--color-danger)' : 'var(--color-success)' }}>
+                      <td key={m.id} className={`borda-padrao ${extra.xpOntem.startsWith('-') ? 'texto-perigo' : 'texto-sucesso'}`} style={{ padding: '6px' }}>
                         {extra.xpOntem}
                       </td>
                     );
@@ -394,18 +394,18 @@ export function DashboardPage() {
                 </tr>
                 {/* Xp 30Dias */}
                 <tr style={{ background: 'var(--color-text-muted)', color: 'var(--color-bg)' }}>
-                  <td style={{ padding: '6px', border: '1px solid var(--color-text-muted)', textAlign: 'left', paddingLeft: '10px', fontWeight: 'bold' }}>Xp 30Dias</td>
+                  <td className="borda-padrao" style={{ padding: '6px', textAlign: 'left', paddingLeft: '10px', fontWeight: 'bold' }}>Xp 30Dias</td>
                   {members.map((m) => (
-                    <td key={m.id} style={{ padding: '6px', border: '1px solid var(--color-text-muted)', color: 'var(--color-success)' }}>
+                    <td key={m.id} className="borda-padrao texto-sucesso" style={{ padding: '6px' }}>
                       {(statsByName[m.characterName] ?? EMPTY_XP_STATS).xp30Dias}
                     </td>
                   ))}
                 </tr>
                 {/* Previsão fim de ano */}
                 <tr style={{ background: 'var(--color-warning)', color: 'var(--color-bg)', fontWeight: 'bold' }}>
-                  <td style={{ padding: '6px', border: '1px solid var(--color-warning)', textAlign: 'left', paddingLeft: '10px' }}>Previsão fim de ano</td>
+                  <td className="borda-padrao" style={{ padding: '6px', textAlign: 'left', paddingLeft: '10px' }}>Previsão fim de ano</td>
                   {members.map((m) => (
-                    <td key={m.id} style={{ padding: '6px', border: '1px solid var(--color-warning)' }}>
+                    <td key={m.id} className="borda-padrao" style={{ padding: '6px' }}>
                       {previsaoPorMembro[m.characterName] ?? '—'}
                     </td>
                   ))}
@@ -413,7 +413,7 @@ export function DashboardPage() {
 
                 {/* Cabeçalho Seção Metas */}
                 <tr>
-                  <td colSpan={members.length + 1} style={{ background: 'var(--color-border-strong)', color: 'var(--color-text)', padding: '6px', fontWeight: 'bold', fontSize: '11px', textAlign: 'center', border: '1px solid var(--color-border)' }}>
+                  <td colSpan={members.length + 1} className="borda-padrao" style={{ background: 'var(--color-border-strong)', color: 'var(--color-text)', padding: '6px', fontWeight: 'bold', fontSize: '11px', textAlign: 'center' }}>
                     Meta XP Diaria para atingir ao final do ano o Lvl Indicado
                   </td>
                 </tr>
@@ -421,14 +421,14 @@ export function DashboardPage() {
                 {/* Linhas de Metas por Nível */}
                 {niveisMetas.map((lvl) => (
                   <tr key={lvl} style={{ background: 'var(--color-bg-elevated)' }}>
-                    <td style={{ padding: '5px', border: '1px solid var(--color-border)', textAlign: 'left', paddingLeft: '10px', fontWeight: 'bold', color: 'var(--color-text-muted)', fontSize: '11px' }}>
+                    <td className="borda-padrao texto-mudo" style={{ padding: '5px', textAlign: 'left', paddingLeft: '10px', fontWeight: 'bold', fontSize: '11px' }}>
                       Lvl {lvl}
                     </td>
                     {members.map((m) => {
                       const val = metaXpDiariaPorMembro[m.characterName]?.[lvl] ?? '';
                       const style = getMetaCellStyle(val);
                       return (
-                        <td key={m.id} style={{ padding: '5px', border: '1px solid var(--color-border)', backgroundColor: style.background, color: style.color, fontSize: '11px' }}>
+                        <td key={m.id} className="borda-padrao" style={{ padding: '5px', backgroundColor: style.background, color: style.color, fontSize: '11px' }}>
                           {val}
                         </td>
                       );
@@ -444,7 +444,7 @@ export function DashboardPage() {
         {/* COLUNA 3: ITENS NÃO VENDIDOS & TOP DROPS */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
 
-          <div className="card" style={{ background: 'var(--color-bg-elevated)', padding: '15px', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)' }}>
+          <div className="card-compacto">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1px solid var(--color-border)', paddingBottom: '8px' }}>
               <h3 style={{ fontSize: '14px', margin: 0, color: 'var(--color-warning)' }}>TODOS os Itens não vendidos</h3>
               <span style={{ fontSize: '12px', background: 'var(--color-bg-input)', padding: '2px 6px', borderRadius: 'var(--radius-sm)' }}>
@@ -453,10 +453,10 @@ export function DashboardPage() {
             </div>
 
             <div style={{ maxHeight: '320px', overflowY: 'auto' }}>
-              {unsoldLoading && <div style={{ padding: '15px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '13px' }}>Carregando...</div>}
-              {unsoldError && <div style={{ padding: '15px', textAlign: 'center', color: 'var(--color-danger)', fontSize: '13px' }}>{unsoldError}</div>}
+              {unsoldLoading && <div className="texto-mudo" style={{ padding: '15px', textAlign: 'center', fontSize: '13px' }}>Carregando...</div>}
+              {unsoldError && <div className="texto-perigo" style={{ padding: '15px', textAlign: 'center', fontSize: '13px' }}>{unsoldError}</div>}
               {!unsoldLoading && !unsoldError && unsoldGrouped.length === 0 && (
-                <p style={{ fontSize: '13px', color: 'var(--color-text-faint)', textAlign: 'center', margin: '20px 0' }}>Nenhum item pendente no momento.</p>
+                <p className="estado-vazio">Nenhum item pendente no momento.</p>
               )}
               {!unsoldLoading && !unsoldError && unsoldGrouped.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
@@ -467,7 +467,7 @@ export function DashboardPage() {
                         {iconUrl
                           ? <img src={iconUrl} alt="" width={20} height={20} style={{ objectFit: 'contain', imageRendering: 'pixelated', flexShrink: 0 }} />
                           : <span style={{ width: '20px', flexShrink: 0 }} />}
-                        <span style={{ color: 'var(--color-text-muted)', fontSize: '13px', flex: 1 }}>{item.itemName || 'Item Raro'}</span>
+                        <span className="texto-mudo" style={{ fontSize: '13px', flex: 1 }}>{item.itemName || 'Item Raro'}</span>
                         <span style={{ color: 'var(--color-warning)', fontSize: '13px', fontWeight: 'bold' }}>x{item.count}</span>
                       </div>
                     );
@@ -477,12 +477,12 @@ export function DashboardPage() {
             </div>
           </div>
 
-          <div className="card" style={{ background: 'var(--color-bg-elevated)', padding: '15px', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)' }}>
+          <div className="card-compacto">
             <h3 style={{ fontSize: '14px', margin: '0 0 10px 0', color: 'var(--color-accent)', borderBottom: '1px solid var(--color-border)', paddingBottom: '8px' }}>Top Drop</h3>
-            <span style={{ fontSize: '11px', color: 'var(--color-text-faint)', display: 'block', marginBottom: '8px', marginTop: '-6px' }}>Últimos 365 dias</span>
-            {topDropLoading && <div style={{ fontSize: '13px', color: 'var(--color-text-muted)', textAlign: 'center', padding: '20px 0' }}>Carregando...</div>}
+            <span className="texto-fraco" style={{ fontSize: '11px', display: 'block', marginBottom: '8px', marginTop: '-6px' }}>Últimos 365 dias</span>
+            {topDropLoading && <div className="texto-mudo" style={{ fontSize: '13px', textAlign: 'center', padding: '20px 0' }}>Carregando...</div>}
             {!topDropLoading && topDropRanking.length === 0 && (
-              <div style={{ fontSize: '13px', color: 'var(--color-text-faint)', textAlign: 'center', padding: '20px 0' }}>
+              <div className="texto-fraco" style={{ fontSize: '13px', textAlign: 'center', padding: '20px 0' }}>
                 Nenhum drop com fragador nos últimos 365 dias.
               </div>
             )}
@@ -499,12 +499,12 @@ export function DashboardPage() {
                     }}>
                       {idx + 1}
                     </span>
-                    <span style={{ flex: 1, color: 'var(--color-text-muted)', fontSize: '13px' }}>{entry.looter}</span>
+                    <span className="texto-mudo" style={{ flex: 1, fontSize: '13px' }}>{entry.looter}</span>
                     <span style={{ textAlign: 'right' }}>
-                      <span style={{ display: 'block', color: 'var(--color-success)', fontSize: '13px', fontWeight: 'bold' }}>
+                      <span className="texto-sucesso" style={{ display: 'block', fontSize: '13px', fontWeight: 'bold' }}>
                         {formatTibiaGold(entry.totalValue)}
                       </span>
-                      <span style={{ display: 'block', color: 'var(--color-text-faint)', fontSize: '11px' }}>
+                      <span className="texto-fraco" style={{ display: 'block', fontSize: '11px' }}>
                         {entry.dropCount} {entry.dropCount === 1 ? 'drop' : 'drops'}
                       </span>
                     </span>

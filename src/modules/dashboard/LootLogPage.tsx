@@ -54,17 +54,15 @@ export function LootLogPage() {
       <header className="page-header" style={{ marginBottom: '20px', borderBottom: '1px solid var(--color-border)', paddingBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <h2 style={{ margin: 0, fontSize: '20px', color: 'var(--color-success)' }}>Log de Drops</h2>
-          <p style={{ margin: '5px 0 0 0', color: 'var(--color-text-muted)', fontSize: '14px' }}>
+          <p className="subtitulo-pagina">
             Registro de itens raros dropados pela party — espelha a planilha original (data, composição da party,
             valores, fragador, item, boss e status de venda).
           </p>
         </div>
         <button
           onClick={() => setShowRegisterModal(true)}
-          style={{
-            background: 'var(--color-accent)', color: 'var(--color-text)', border: 'none', padding: '10px 16px',
-            borderRadius: 'var(--radius-sm)', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap',
-          }}
+          className="botao-primario"
+          style={{ color: 'var(--color-text)', fontSize: '13px' }}
         >
           + Registrar Drop
         </button>
@@ -77,7 +75,7 @@ export function LootLogPage() {
         </div>
         <div className="stat-card">
           <label>Vendidos</label>
-          <div className="value" style={{ color: 'var(--color-success)' }}>{stats.soldCount}</div>
+          <div className="value texto-sucesso">{stats.soldCount}</div>
         </div>
         <div className="stat-card">
           <label>Pendentes</label>
@@ -85,7 +83,7 @@ export function LootLogPage() {
         </div>
         <div className="stat-card">
           <label>Valor Total</label>
-          <div className="value" style={{ color: 'var(--color-success)' }}>{formatTibiaGold(stats.totalValue)}</div>
+          <div className="value texto-sucesso">{formatTibiaGold(stats.totalValue)}</div>
         </div>
       </div>
 

@@ -101,10 +101,10 @@ function CharmRune({ charmId, name, level, cost, onClick }: CharmRuneProps) {
         {iconUrl ? (
           <img src={iconUrl} alt={name} width={32} height={32} style={{ imageRendering: 'pixelated' }} />
         ) : (
-          <span style={{ fontSize: '10px', color: 'var(--color-text-faint)' }}>?</span>
+          <span className="texto-fraco" style={{ fontSize: '10px' }}>?</span>
         )}
       </div>
-      <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', textAlign: 'center', lineHeight: 1.2 }}>{name}</span>
+      <span className="texto-mudo" style={{ fontSize: '11px', textAlign: 'center', lineHeight: 1.2 }}>{name}</span>
       <span style={{ fontSize: '10px', fontWeight: 'bold', color: level > 0 ? LEVEL_BORDER[level] : 'var(--color-text-faint)' }}>
         {level > 0 ? formatPoints(cost) : '—'}
       </span>
@@ -142,8 +142,8 @@ function CharmSection({
   const costByCharm = Object.fromEntries(rows.map((r) => [r.charmId, r.cost]));
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-      <div style={{ background: 'var(--color-bg-elevated)', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)', overflow: 'hidden' }}>
+    <div className="form-coluna">
+      <div className="card-compacto" style={{ padding: 0, overflow: 'hidden' }}>
         <div style={{ padding: '10px 15px', background: accentColor, color: 'var(--color-bg)', fontWeight: 'bold', fontSize: '13px' }}>
           {title}
         </div>
@@ -172,7 +172,7 @@ function CharmSection({
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-        <div style={{ background: 'var(--color-bg-elevated)', padding: '10px', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)', textAlign: 'center' }}>
+        <div className="stat-box" style={{ padding: '10px', borderRadius: 'var(--radius)' }}>
           <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'block', marginBottom: '4px' }}>{unitLabel} disponíveis</span>
           <input
             type="number"
@@ -182,11 +182,11 @@ function CharmSection({
             style={{ width: '100%', background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '6px', textAlign: 'center', boxSizing: 'border-box' }}
           />
         </div>
-        <div style={{ background: 'var(--color-bg-elevated)', padding: '10px', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)', textAlign: 'center' }}>
+        <div className="stat-box" style={{ padding: '10px', borderRadius: 'var(--radius)' }}>
           <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'block', marginBottom: '4px' }}>Necessários</span>
           <strong style={{ fontSize: '15px', color: 'var(--color-accent)' }}>{formatPoints(required)}</strong>
         </div>
-        <div style={{ background: 'var(--color-bg-elevated)', padding: '10px', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)', textAlign: 'center' }}>
+        <div className="stat-box" style={{ padding: '10px', borderRadius: 'var(--radius)' }}>
           <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'block', marginBottom: '4px' }}>Sobrando</span>
           <strong style={{ fontSize: '15px', color: remaining < 0 ? 'var(--color-danger)' : 'var(--color-success)' }}>{formatPoints(remaining)}</strong>
         </div>
@@ -213,7 +213,7 @@ export function CharmPlannerPage() {
     <div className="dashboard-container" style={{ padding: '20px', maxWidth: '1500px', margin: '0 auto', color: 'var(--color-text)' }}>
       <header className="page-header" style={{ marginBottom: '25px', borderBottom: '1px solid var(--color-border)', paddingBottom: '15px' }}>
         <h2 style={{ margin: 0, fontSize: '20px', color: 'var(--color-accent)' }}>Charm Planner</h2>
-        <p style={{ margin: '5px 0 0 0', color: 'var(--color-text-muted)', fontSize: '14px' }}>
+        <p className="subtitulo-pagina">
           Clique na runa pra avançar de nível (Bronze → Prata → Ouro → desbloqueia de novo) e veja quanto de Charm
           Points / Minor Charm Echoes você precisa e quanto sobra do que já tem.
         </p>
@@ -230,7 +230,7 @@ export function CharmPlannerPage() {
         </div>
       </header>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', alignItems: 'start' }}>
+      <div className="grid-2col" style={{ gap: '20px', alignItems: 'start' }}>
         <CharmSection
           title="MAJOR CHARMS"
           accentColor="var(--color-warning)"
