@@ -33,13 +33,12 @@ const EMPTY_XP_STATS: MemberXpStats = { xpOntem: '—', xp30Dias: '—' };
 
 function getMetaCellStyle(val: string) {
   if (val === 'Lvl Atingido') {
-    return { background: '#ef4444', color: '#fff' }; // Vermelho
+    return { background: 'var(--color-danger)', color: 'var(--color-text)' }; // Vermelho
   }
   if (val.startsWith('+')) {
-    // Definindo cores conforme a imagem de referência (exemplos aproximados por faixa/coluna)
-    return { background: '#3b82f6', color: '#fff' }; // Azul padrão ou verde/amarelo conforme status
+    return { background: 'var(--color-accent)', color: 'var(--color-text)' };
   }
-  return { background: '#1e293b', color: '#f8fafc' };
+  return { background: 'var(--color-bg-elevated)', color: 'var(--color-text)' };
 }
 
 export function DashboardPage() {
@@ -202,13 +201,13 @@ export function DashboardPage() {
   if (accountLoading) return <div className="loading">Carregando...</div>;
 
   return (
-    <div className="dashboard-container" style={{ padding: '20px', maxWidth: '1700px', margin: '0 auto', color: '#f8fafc' }}>
-      
+    <div className="dashboard-container" style={{ padding: '20px', maxWidth: '1700px', margin: '0 auto', color: 'var(--color-text)' }}>
+
       {/* CABEÇALHO */}
-      <header className="page-header" style={{ marginBottom: '20px', borderBottom: '1px solid #334155', paddingBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <header className="page-header" style={{ marginBottom: '20px', borderBottom: '1px solid var(--color-border)', paddingBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h2 style={{ margin: 0, fontSize: '20px' }}>Dashboard — {account?.partyName}</h2>
-          <p style={{ margin: '5px 0 0 0', color: '#94a3b8', fontSize: '14px' }}>Painel geral de controle de indicadores, XP e histórico da party</p>
+          <p style={{ margin: '5px 0 0 0', color: 'var(--color-text-muted)', fontSize: '14px' }}>Painel geral de controle de indicadores, XP e histórico da party</p>
         </div>
       </header>
 
@@ -217,58 +216,58 @@ export function DashboardPage() {
 
         {/* COLUNA 1: TABELA "DROPS NO MÊS" + SELETOR */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          
-          <div style={{ background: '#1e293b', padding: '10px 15px', borderRadius: '8px', border: '1px solid #334155', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 'bold' }}>Mês</span>
+
+          <div style={{ background: 'var(--color-bg-elevated)', padding: '10px 15px', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 'bold' }}>Mês</span>
             <div style={{ display: 'flex', gap: '10px' }}>
-              <select 
-                value={selectedMonth} 
+              <select
+                value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}
-                style={{ flex: 1, background: '#0f172a', color: '#fff', border: '1px solid #334155', padding: '6px 10px', borderRadius: '4px', fontSize: '13px' }}
+                style={{ flex: 1, background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', padding: '6px 10px', borderRadius: 'var(--radius-sm)', fontSize: '13px' }}
               >
                 {MESES.map((m) => (
                   <option key={m.value} value={m.value}>{m.label}</option>
                 ))}
               </select>
-              <input 
-                type="text" 
-                value={selectedYear} 
+              <input
+                type="text"
+                value={selectedYear}
                 onChange={(e) => setSelectedYear(e.target.value)}
-                style={{ width: '75px', background: '#0f172a', color: '#fff', border: '1px solid #334155', padding: '6px 8px', borderRadius: '4px', textAlign: 'center', fontSize: '13px' }}
+                style={{ width: '75px', background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', padding: '6px 8px', borderRadius: 'var(--radius-sm)', textAlign: 'center', fontSize: '13px' }}
               />
             </div>
           </div>
 
-          <div className="card" style={{ background: '#1e293b', padding: '12px', borderRadius: '8px', border: '1px solid #334155' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', borderBottom: '1px solid #334155', paddingBottom: '6px' }}>
-              <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#38bdf8' }}>Drops no mês</span>
-              <span style={{ fontSize: '12px', color: '#94a3b8' }}>Vendido / Valor</span>
+          <div className="card" style={{ background: 'var(--color-bg-elevated)', padding: '12px', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', borderBottom: '1px solid var(--color-border)', paddingBottom: '6px' }}>
+              <span style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--color-accent)' }}>Drops no mês</span>
+              <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Vendido / Valor</span>
             </div>
 
             <div style={{ maxHeight: '720px', overflowY: 'auto' }}>
-              {loading && <div style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>Carregando...</div>}
-              {error && <div style={{ padding: '20px', textAlign: 'center', color: '#ef4444', fontSize: '13px' }}>{error}</div>}
+              {loading && <div style={{ padding: '20px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '13px' }}>Carregando...</div>}
+              {error && <div style={{ padding: '20px', textAlign: 'center', color: 'var(--color-danger)', fontSize: '13px' }}>{error}</div>}
               {!loading && !error && drops.length === 0 && (
-                <div style={{ padding: '20px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>Nenhum drop encontrado.</div>
+                <div style={{ padding: '20px', textAlign: 'center', color: 'var(--color-text-faint)', fontSize: '13px' }}>Nenhum drop encontrado.</div>
               )}
               {!loading && !error && drops.length > 0 && (
                 <table style={{ width: '100%', fontSize: '12px', borderCollapse: 'collapse' }}>
                   <tbody>
                     {drops.map((drop, idx) => {
                       const isSold = drop.sold;
-                      const rowBg = isSold ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.12)';
+                      const rowBg = isSold ? 'var(--color-success-soft)' : 'var(--color-danger-soft)';
                       return (
-                        <tr key={drop.id || idx} style={{ borderBottom: '1px solid #334155', background: rowBg }}>
-                          <td style={{ padding: '6px 4px', color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <tr key={drop.id || idx} style={{ borderBottom: '1px solid var(--color-border)', background: rowBg }}>
+                          <td style={{ padding: '6px 4px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                             {getItemIconUrl(drop.itemName) && (
                               <img src={getItemIconUrl(drop.itemName)} alt="" style={{ width: '18px', height: '18px', objectFit: 'contain', imageRendering: 'pixelated' }} />
                             )}
                             <span>{drop.itemName || 'Item Raro'}</span>
                           </td>
-                          <td style={{ padding: '6px 4px', textAlign: 'center', color: isSold ? '#10b981' : '#ef4444', fontWeight: 'bold', width: '60px' }}>
+                          <td style={{ padding: '6px 4px', textAlign: 'center', color: isSold ? 'var(--color-success)' : 'var(--color-danger)', fontWeight: 'bold', width: '60px' }}>
                             {isSold ? 'Sim' : 'Não'}
                           </td>
-                          <td style={{ padding: '6px 4px', textAlign: 'right', color: isSold ? '#10b981' : '#64748b', fontFamily: 'monospace', width: '110px' }}>
+                          <td style={{ padding: '6px 4px', textAlign: 'right', color: isSold ? 'var(--color-success)' : 'var(--color-text-faint)', fontFamily: 'monospace', width: '110px' }}>
                             {isSold ? formatTibiaGold(drop.totalValue) : '---'}
                           </td>
                         </tr>
@@ -284,73 +283,73 @@ export function DashboardPage() {
 
         {/* COLUNA 2: BLOCOS DE INDICADORES (KPIs) + PLANILHA CENTRAL DE MEMBROS E METAS DE XP */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          
+
           {/* GRADE DE 10 INDICADORES */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px' }}>
-            <div style={{ background: '#1e293b', padding: '10px 8px', borderRadius: '6px', border: '1px solid #334155', textAlign: 'center' }}>
-              <span style={{ fontSize: '10px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Qtd Drops</span>
-              <strong style={{ fontSize: '14px', color: '#fff' }}>{stats.totalDrops}</strong>
+            <div style={{ background: 'var(--color-bg-elevated)', padding: '10px 8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', textAlign: 'center' }}>
+              <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', display: 'block', marginBottom: '4px' }}>Qtd Drops</span>
+              <strong style={{ fontSize: '14px', color: 'var(--color-text)' }}>{stats.totalDrops}</strong>
             </div>
-            <div style={{ background: '#1e293b', padding: '10px 8px', borderRadius: '6px', border: '1px solid #334155', textAlign: 'center' }}>
-              <span style={{ fontSize: '10px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Qtd N Vendido</span>
-              <strong style={{ fontSize: '14px', color: 'var(--color-warning, #f59e0b)' }}>{stats.pendingCount}</strong>
+            <div style={{ background: 'var(--color-bg-elevated)', padding: '10px 8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', textAlign: 'center' }}>
+              <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', display: 'block', marginBottom: '4px' }}>Qtd N Vendido</span>
+              <strong style={{ fontSize: '14px', color: 'var(--color-warning)' }}>{stats.pendingCount}</strong>
             </div>
-            <div style={{ background: '#1e293b', padding: '10px 8px', borderRadius: '6px', border: '1px solid #334155', textAlign: 'center' }}>
-              <span style={{ fontSize: '10px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Qtd Serviceiro</span>
-              <strong style={{ fontSize: '14px', color: '#38bdf8' }}>{stats.serviceiroDropsCount}</strong>
+            <div style={{ background: 'var(--color-bg-elevated)', padding: '10px 8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', textAlign: 'center' }}>
+              <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', display: 'block', marginBottom: '4px' }}>Qtd Serviceiro</span>
+              <strong style={{ fontSize: '14px', color: 'var(--color-accent)' }}>{stats.serviceiroDropsCount}</strong>
             </div>
-            <div style={{ background: '#1e293b', padding: '10px 8px', borderRadius: '6px', border: '1px solid #334155', textAlign: 'center' }}>
-              <span style={{ fontSize: '10px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>KKs Plunder(ind)</span>
-              <strong style={{ fontSize: '11px', color: '#10b981' }}>{formatTibiaGold(stats.plunderTotal)}</strong>
+            <div style={{ background: 'var(--color-bg-elevated)', padding: '10px 8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', textAlign: 'center' }}>
+              <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', display: 'block', marginBottom: '4px' }}>KKs Plunder(ind)</span>
+              <strong style={{ fontSize: '11px', color: 'var(--color-success)' }}>{formatTibiaGold(stats.plunderTotal)}</strong>
             </div>
-            <div style={{ background: '#1e293b', padding: '10px 8px', borderRadius: '6px', border: '1px solid #334155', textAlign: 'center' }}>
-              <span style={{ fontSize: '10px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>KKs Hunt</span>
-              <strong style={{ fontSize: '11px', color: '#f8fafc' }}>{formatTibiaGold(bossHuntTotals.hunt)}</strong>
+            <div style={{ background: 'var(--color-bg-elevated)', padding: '10px 8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', textAlign: 'center' }}>
+              <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', display: 'block', marginBottom: '4px' }}>KKs Hunt</span>
+              <strong style={{ fontSize: '11px', color: 'var(--color-text)' }}>{formatTibiaGold(bossHuntTotals.hunt)}</strong>
             </div>
 
-            <div style={{ background: '#1e293b', padding: '10px 8px', borderRadius: '6px', border: '1px solid #334155', textAlign: 'center' }}>
-              <span style={{ fontSize: '10px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Qtd Bags</span>
-              <strong style={{ fontSize: '14px', color: '#fff' }}>{stats.bagsCount}</strong>
+            <div style={{ background: 'var(--color-bg-elevated)', padding: '10px 8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', textAlign: 'center' }}>
+              <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', display: 'block', marginBottom: '4px' }}>Qtd Bags</span>
+              <strong style={{ fontSize: '14px', color: 'var(--color-text)' }}>{stats.bagsCount}</strong>
             </div>
-            <div style={{ background: '#1e293b', padding: '10px 8px', borderRadius: '6px', border: '1px solid #334155', textAlign: 'center' }}>
-              <span style={{ fontSize: '10px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Qtd Plunders</span>
-              <strong style={{ fontSize: '14px', color: '#fff' }}>{stats.plunderCount}</strong>
+            <div style={{ background: 'var(--color-bg-elevated)', padding: '10px 8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', textAlign: 'center' }}>
+              <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', display: 'block', marginBottom: '4px' }}>Qtd Plunders</span>
+              <strong style={{ fontSize: '14px', color: 'var(--color-text)' }}>{stats.plunderCount}</strong>
             </div>
-            <div style={{ background: '#1e293b', padding: '10px 8px', borderRadius: '6px', border: '1px solid #334155', textAlign: 'center' }}>
-              <span style={{ fontSize: '10px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Total (ind)</span>
-              <strong style={{ fontSize: '11px', color: '#10b981' }}>{formatTibiaGold(totalInd)}</strong>
+            <div style={{ background: 'var(--color-bg-elevated)', padding: '10px 8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', textAlign: 'center' }}>
+              <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', display: 'block', marginBottom: '4px' }}>Total (ind)</span>
+              <strong style={{ fontSize: '11px', color: 'var(--color-success)' }}>{formatTibiaGold(totalInd)}</strong>
             </div>
-            <div style={{ background: '#1e293b', padding: '10px 8px', borderRadius: '6px', border: '1px solid #334155', textAlign: 'center' }}>
-              <span style={{ fontSize: '10px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>KKs Bags(ind)</span>
-              <strong style={{ fontSize: '11px', color: '#10b981' }}>{formatTibiaGold(stats.bagsTotal)}</strong>
+            <div style={{ background: 'var(--color-bg-elevated)', padding: '10px 8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', textAlign: 'center' }}>
+              <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', display: 'block', marginBottom: '4px' }}>KKs Bags(ind)</span>
+              <strong style={{ fontSize: '11px', color: 'var(--color-success)' }}>{formatTibiaGold(stats.bagsTotal)}</strong>
             </div>
-            <div style={{ background: '#1e293b', padding: '10px 8px', borderRadius: '6px', border: '1px solid #334155', textAlign: 'center' }}>
-              <span style={{ fontSize: '10px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>KKs Boss</span>
-              <strong style={{ fontSize: '11px', color: '#38bdf8' }}>{formatTibiaGold(bossHuntTotals.boss)}</strong>
+            <div style={{ background: 'var(--color-bg-elevated)', padding: '10px 8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', textAlign: 'center' }}>
+              <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', display: 'block', marginBottom: '4px' }}>KKs Boss</span>
+              <strong style={{ fontSize: '11px', color: 'var(--color-accent)' }}>{formatTibiaGold(bossHuntTotals.boss)}</strong>
             </div>
           </div>
 
           {/* VALOR TOTAL CONSOLIDADO */}
-          <div style={{ background: '#1e293b', padding: '12px 20px', borderRadius: '8px', border: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ background: 'var(--color-bg-elevated)', padding: '12px 20px', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <span style={{ fontSize: '12px', color: '#94a3b8', display: 'block' }}>Valor Total em Drops (Sistema)</span>
-              <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#10b981' }}>{formatTibiaGold(stats.totalValue)}</span>
+              <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', display: 'block' }}>Valor Total em Drops (Sistema)</span>
+              <span style={{ fontSize: '18px', fontWeight: 'bold', color: 'var(--color-success)' }}>{formatTibiaGold(stats.totalValue)}</span>
             </div>
             <div style={{ textAlign: 'right' }}>
-              <span style={{ fontSize: '12px', color: '#94a3b8', display: 'block' }}>Vendidos / Pendentes</span>
-              <span style={{ fontSize: '14px', color: '#38bdf8' }}>{stats.soldCount} / {stats.pendingCount}</span>
+              <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', display: 'block' }}>Vendidos / Pendentes</span>
+              <span style={{ fontSize: '14px', color: 'var(--color-accent)' }}>{stats.soldCount} / {stats.pendingCount}</span>
             </div>
           </div>
 
           {/* PLANILHA CENTRAL DE MEMBROS, SKILLS E METAS DE XP */}
-          <div className="card" style={{ background: '#1e293b', padding: '15px', borderRadius: '8px', border: '1px solid #334155', overflowX: 'auto' }}>
+          <div className="card" style={{ background: 'var(--color-bg-elevated)', padding: '15px', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)', overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'center', fontFamily: 'monospace' }}>
               <thead>
                 {/* Linha de Nomes dos Membros */}
-                <tr style={{ background: '#334155', color: '#fff' }}>
-                  <th style={{ padding: '8px', border: '1px solid #475569', width: '110px' }}></th>
+                <tr style={{ background: 'var(--color-border)', color: 'var(--color-text)' }}>
+                  <th style={{ padding: '8px', border: '1px solid var(--color-border-strong)', width: '110px' }}></th>
                   {members.map((m) => (
-                    <th key={m.id} style={{ padding: '8px', border: '1px solid #475569', fontWeight: 'bold', fontSize: '13px' }}>
+                    <th key={m.id} style={{ padding: '8px', border: '1px solid var(--color-border-strong)', fontWeight: 'bold', fontSize: '13px' }}>
                       {m.characterName}
                     </th>
                   ))}
@@ -358,55 +357,55 @@ export function DashboardPage() {
               </thead>
               <tbody>
                 {/* Lvl Atual — ao vivo via TibiaData (character) */}
-                <tr style={{ background: '#cbd5e1', color: '#0f172a', fontWeight: 'bold' }}>
-                  <td style={{ padding: '6px', border: '1px solid #94a3b8', textAlign: 'left', paddingLeft: '10px' }}>Lvl Atual</td>
+                <tr style={{ background: 'var(--color-text-muted)', color: 'var(--color-bg)', fontWeight: 'bold' }}>
+                  <td style={{ padding: '6px', border: '1px solid var(--color-text-muted)', textAlign: 'left', paddingLeft: '10px' }}>Lvl Atual</td>
                   {members.map((m) => {
                     const live = liveStats[m.characterName];
                     return (
-                      <td key={m.id} style={{ padding: '6px', border: '1px solid #94a3b8' }}>
+                      <td key={m.id} style={{ padding: '6px', border: '1px solid var(--color-text-muted)' }}>
                         {live?.loading ? '…' : live?.level ?? '—'}
                       </td>
                     );
                   })}
                 </tr>
                 {/* Skill — ao vivo via TibiaData (highscores, top 500 do mundo) */}
-                <tr style={{ background: '#cbd5e1', color: '#0f172a', fontWeight: 'bold' }}>
-                  <td style={{ padding: '6px', border: '1px solid #94a3b8', textAlign: 'left', paddingLeft: '10px' }}>Skill</td>
+                <tr style={{ background: 'var(--color-text-muted)', color: 'var(--color-bg)', fontWeight: 'bold' }}>
+                  <td style={{ padding: '6px', border: '1px solid var(--color-text-muted)', textAlign: 'left', paddingLeft: '10px' }}>Skill</td>
                   {members.map((m) => {
                     const live = liveStats[m.characterName];
                     return (
-                      <td key={m.id} style={{ padding: '6px', border: '1px solid #94a3b8' }}>
+                      <td key={m.id} style={{ padding: '6px', border: '1px solid var(--color-text-muted)' }}>
                         {live?.loading ? '…' : live?.skillLabel ?? '—'}
                       </td>
                     );
                   })}
                 </tr>
                 {/* Xp Ontem */}
-                <tr style={{ background: '#e2e8f0', color: '#0f172a' }}>
-                  <td style={{ padding: '6px', border: '1px solid #cbd5e1', textAlign: 'left', paddingLeft: '10px', fontWeight: 'bold' }}>Xp Ontem</td>
+                <tr style={{ background: 'var(--color-text-muted)', color: 'var(--color-bg)' }}>
+                  <td style={{ padding: '6px', border: '1px solid var(--color-text-muted)', textAlign: 'left', paddingLeft: '10px', fontWeight: 'bold' }}>Xp Ontem</td>
                   {members.map((m) => {
                     const extra = statsByName[m.characterName] ?? EMPTY_XP_STATS;
                     return (
-                      <td key={m.id} style={{ padding: '6px', border: '1px solid #cbd5e1', color: extra.xpOntem.startsWith('-') ? '#ef4444' : '#10b981' }}>
+                      <td key={m.id} style={{ padding: '6px', border: '1px solid var(--color-text-muted)', color: extra.xpOntem.startsWith('-') ? 'var(--color-danger)' : 'var(--color-success)' }}>
                         {extra.xpOntem}
                       </td>
                     );
                   })}
                 </tr>
                 {/* Xp 30Dias */}
-                <tr style={{ background: '#e2e8f0', color: '#0f172a' }}>
-                  <td style={{ padding: '6px', border: '1px solid #cbd5e1', textAlign: 'left', paddingLeft: '10px', fontWeight: 'bold' }}>Xp 30Dias</td>
+                <tr style={{ background: 'var(--color-text-muted)', color: 'var(--color-bg)' }}>
+                  <td style={{ padding: '6px', border: '1px solid var(--color-text-muted)', textAlign: 'left', paddingLeft: '10px', fontWeight: 'bold' }}>Xp 30Dias</td>
                   {members.map((m) => (
-                    <td key={m.id} style={{ padding: '6px', border: '1px solid #cbd5e1', color: '#10b981' }}>
+                    <td key={m.id} style={{ padding: '6px', border: '1px solid var(--color-text-muted)', color: 'var(--color-success)' }}>
                       {(statsByName[m.characterName] ?? EMPTY_XP_STATS).xp30Dias}
                     </td>
                   ))}
                 </tr>
                 {/* Previsão fim de ano */}
-                <tr style={{ background: '#facc15', color: '#0f172a', fontWeight: 'bold' }}>
-                  <td style={{ padding: '6px', border: '1px solid #eab308', textAlign: 'left', paddingLeft: '10px' }}>Previsão fim de ano</td>
+                <tr style={{ background: 'var(--color-warning)', color: 'var(--color-bg)', fontWeight: 'bold' }}>
+                  <td style={{ padding: '6px', border: '1px solid var(--color-warning)', textAlign: 'left', paddingLeft: '10px' }}>Previsão fim de ano</td>
                   {members.map((m) => (
-                    <td key={m.id} style={{ padding: '6px', border: '1px solid #eab308' }}>
+                    <td key={m.id} style={{ padding: '6px', border: '1px solid var(--color-warning)' }}>
                       {previsaoPorMembro[m.characterName] ?? '—'}
                     </td>
                   ))}
@@ -414,22 +413,22 @@ export function DashboardPage() {
 
                 {/* Cabeçalho Seção Metas */}
                 <tr>
-                  <td colSpan={members.length + 1} style={{ background: '#475569', color: '#fff', padding: '6px', fontWeight: 'bold', fontSize: '11px', textAlign: 'center', border: '1px solid #334155' }}>
+                  <td colSpan={members.length + 1} style={{ background: 'var(--color-border-strong)', color: 'var(--color-text)', padding: '6px', fontWeight: 'bold', fontSize: '11px', textAlign: 'center', border: '1px solid var(--color-border)' }}>
                     Meta XP Diaria para atingir ao final do ano o Lvl Indicado
                   </td>
                 </tr>
 
                 {/* Linhas de Metas por Nível */}
                 {niveisMetas.map((lvl) => (
-                  <tr key={lvl} style={{ background: '#1e293b' }}>
-                    <td style={{ padding: '5px', border: '1px solid #334155', textAlign: 'left', paddingLeft: '10px', fontWeight: 'bold', color: '#cbd5e1', fontSize: '11px' }}>
+                  <tr key={lvl} style={{ background: 'var(--color-bg-elevated)' }}>
+                    <td style={{ padding: '5px', border: '1px solid var(--color-border)', textAlign: 'left', paddingLeft: '10px', fontWeight: 'bold', color: 'var(--color-text-muted)', fontSize: '11px' }}>
                       Lvl {lvl}
                     </td>
                     {members.map((m) => {
                       const val = metaXpDiariaPorMembro[m.characterName]?.[lvl] ?? '';
                       const style = getMetaCellStyle(val);
                       return (
-                        <td key={m.id} style={{ padding: '5px', border: '1px solid #334155', backgroundColor: style.background, color: style.color, fontSize: '11px' }}>
+                        <td key={m.id} style={{ padding: '5px', border: '1px solid var(--color-border)', backgroundColor: style.background, color: style.color, fontSize: '11px' }}>
                           {val}
                         </td>
                       );
@@ -444,32 +443,32 @@ export function DashboardPage() {
 
         {/* COLUNA 3: ITENS NÃO VENDIDOS & TOP DROPS */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          
-          <div className="card" style={{ background: '#1e293b', padding: '15px', borderRadius: '8px', border: '1px solid #334155' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1px solid #334155', paddingBottom: '8px' }}>
-              <h3 style={{ fontSize: '14px', margin: 0, color: '#f59e0b' }}>TODOS os Itens não vendidos</h3>
-              <span style={{ fontSize: '12px', background: '#0f172a', padding: '2px 6px', borderRadius: '4px' }}>
+
+          <div className="card" style={{ background: 'var(--color-bg-elevated)', padding: '15px', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1px solid var(--color-border)', paddingBottom: '8px' }}>
+              <h3 style={{ fontSize: '14px', margin: 0, color: 'var(--color-warning)' }}>TODOS os Itens não vendidos</h3>
+              <span style={{ fontSize: '12px', background: 'var(--color-bg-input)', padding: '2px 6px', borderRadius: 'var(--radius-sm)' }}>
                 Qtd: {allUnsoldDrops.length}
               </span>
             </div>
 
             <div style={{ maxHeight: '320px', overflowY: 'auto' }}>
-              {unsoldLoading && <div style={{ padding: '15px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>Carregando...</div>}
-              {unsoldError && <div style={{ padding: '15px', textAlign: 'center', color: '#ef4444', fontSize: '13px' }}>{unsoldError}</div>}
+              {unsoldLoading && <div style={{ padding: '15px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '13px' }}>Carregando...</div>}
+              {unsoldError && <div style={{ padding: '15px', textAlign: 'center', color: 'var(--color-danger)', fontSize: '13px' }}>{unsoldError}</div>}
               {!unsoldLoading && !unsoldError && unsoldGrouped.length === 0 && (
-                <p style={{ fontSize: '13px', color: '#64748b', textAlign: 'center', margin: '20px 0' }}>Nenhum item pendente no momento.</p>
+                <p style={{ fontSize: '13px', color: 'var(--color-text-faint)', textAlign: 'center', margin: '20px 0' }}>Nenhum item pendente no momento.</p>
               )}
               {!unsoldLoading && !unsoldError && unsoldGrouped.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                   {unsoldGrouped.map((item) => {
                     const iconUrl = getItemIconUrl(item.itemName);
                     return (
-                      <div key={item.itemName} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 4px', borderBottom: '1px solid #1e293b' }}>
+                      <div key={item.itemName} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 4px', borderBottom: '1px solid var(--color-bg-elevated)' }}>
                         {iconUrl
                           ? <img src={iconUrl} alt="" width={20} height={20} style={{ objectFit: 'contain', imageRendering: 'pixelated', flexShrink: 0 }} />
                           : <span style={{ width: '20px', flexShrink: 0 }} />}
-                        <span style={{ color: '#e2e8f0', fontSize: '13px', flex: 1 }}>{item.itemName || 'Item Raro'}</span>
-                        <span style={{ color: '#f59e0b', fontSize: '13px', fontWeight: 'bold' }}>x{item.count}</span>
+                        <span style={{ color: 'var(--color-text-muted)', fontSize: '13px', flex: 1 }}>{item.itemName || 'Item Raro'}</span>
+                        <span style={{ color: 'var(--color-warning)', fontSize: '13px', fontWeight: 'bold' }}>x{item.count}</span>
                       </div>
                     );
                   })}
@@ -478,34 +477,34 @@ export function DashboardPage() {
             </div>
           </div>
 
-          <div className="card" style={{ background: '#1e293b', padding: '15px', borderRadius: '8px', border: '1px solid #334155' }}>
-            <h3 style={{ fontSize: '14px', margin: '0 0 10px 0', color: '#38bdf8', borderBottom: '1px solid #334155', paddingBottom: '8px' }}>Top Drop</h3>
-            <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '8px', marginTop: '-6px' }}>Últimos 365 dias</span>
-            {topDropLoading && <div style={{ fontSize: '13px', color: '#94a3b8', textAlign: 'center', padding: '20px 0' }}>Carregando...</div>}
+          <div className="card" style={{ background: 'var(--color-bg-elevated)', padding: '15px', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)' }}>
+            <h3 style={{ fontSize: '14px', margin: '0 0 10px 0', color: 'var(--color-accent)', borderBottom: '1px solid var(--color-border)', paddingBottom: '8px' }}>Top Drop</h3>
+            <span style={{ fontSize: '11px', color: 'var(--color-text-faint)', display: 'block', marginBottom: '8px', marginTop: '-6px' }}>Últimos 365 dias</span>
+            {topDropLoading && <div style={{ fontSize: '13px', color: 'var(--color-text-muted)', textAlign: 'center', padding: '20px 0' }}>Carregando...</div>}
             {!topDropLoading && topDropRanking.length === 0 && (
-              <div style={{ fontSize: '13px', color: '#64748b', textAlign: 'center', padding: '20px 0' }}>
+              <div style={{ fontSize: '13px', color: 'var(--color-text-faint)', textAlign: 'center', padding: '20px 0' }}>
                 Nenhum drop com fragador nos últimos 365 dias.
               </div>
             )}
             {!topDropLoading && topDropRanking.length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {topDropRanking.map((entry, idx) => (
-                  <div key={entry.looter} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '6px 4px', borderBottom: '1px solid #1e293b' }}>
+                  <div key={entry.looter} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '6px 4px', borderBottom: '1px solid var(--color-bg-elevated)' }}>
                     <span style={{
-                      width: '22px', height: '22px', borderRadius: '50%', flexShrink: 0,
+                      width: '22px', height: '22px', borderRadius: 'var(--radius-pill)', flexShrink: 0,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: '11px', fontWeight: 'bold',
-                      background: idx === 0 ? '#f59e0b' : idx === 1 ? '#94a3b8' : idx === 2 ? '#b45309' : '#334155',
-                      color: idx <= 2 ? '#0f172a' : '#cbd5e1',
+                      background: idx === 0 ? 'var(--color-warning)' : idx === 1 ? 'var(--color-text-muted)' : idx === 2 ? '#b45309' : 'var(--color-border)',
+                      color: idx <= 2 ? '#0f172a' : 'var(--color-text-muted)',
                     }}>
                       {idx + 1}
                     </span>
-                    <span style={{ flex: 1, color: '#e2e8f0', fontSize: '13px' }}>{entry.looter}</span>
+                    <span style={{ flex: 1, color: 'var(--color-text-muted)', fontSize: '13px' }}>{entry.looter}</span>
                     <span style={{ textAlign: 'right' }}>
-                      <span style={{ display: 'block', color: '#10b981', fontSize: '13px', fontWeight: 'bold' }}>
+                      <span style={{ display: 'block', color: 'var(--color-success)', fontSize: '13px', fontWeight: 'bold' }}>
                         {formatTibiaGold(entry.totalValue)}
                       </span>
-                      <span style={{ display: 'block', color: '#64748b', fontSize: '11px' }}>
+                      <span style={{ display: 'block', color: 'var(--color-text-faint)', fontSize: '11px' }}>
                         {entry.dropCount} {entry.dropCount === 1 ? 'drop' : 'drops'}
                       </span>
                     </span>

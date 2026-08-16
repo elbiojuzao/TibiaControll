@@ -13,7 +13,7 @@ function cycleLevel(current: CharmLevel): CharmLevel {
 }
 
 const LEVEL_BORDER: Record<CharmLevel, string> = {
-  0: '#334155',
+  0: 'var(--color-border)',
   1: '#cd7f32', // bronze
   2: '#cbd5e1', // prata
   3: '#fbbf24', // ouro
@@ -55,9 +55,9 @@ function CharmRune({ charmId, name, level, cost, onClick }: CharmRuneProps) {
         flexDirection: 'column',
         alignItems: 'center',
         gap: '6px',
-        background: '#0f172a',
-        border: '1px solid #334155',
-        borderRadius: '8px',
+        background: 'var(--color-bg-input)',
+        border: '1px solid var(--color-border)',
+        borderRadius: 'var(--radius)',
         padding: '10px 6px',
         cursor: 'pointer',
         width: '100%',
@@ -75,9 +75,9 @@ function CharmRune({ charmId, name, level, cost, onClick }: CharmRuneProps) {
             fontWeight: 'bold',
             lineHeight: 1,
             padding: '2px 4px',
-            borderRadius: '4px',
+            borderRadius: 'var(--radius-sm)',
             background: LEVEL_BORDER[level],
-            color: '#0f172a',
+            color: 'var(--color-bg)',
           }}
         >
           Nv{level}
@@ -87,13 +87,13 @@ function CharmRune({ charmId, name, level, cost, onClick }: CharmRuneProps) {
         style={{
           width: '44px',
           height: '44px',
-          borderRadius: '50%',
+          borderRadius: 'var(--radius-pill)',
           border: `3px solid ${LEVEL_BORDER[level]}`,
           boxShadow: LEVEL_GLOW[level],
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: '#1e293b',
+          background: 'var(--color-bg-elevated)',
           opacity: level === 0 ? 0.55 : 1,
           transition: 'border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease',
         }}
@@ -101,11 +101,11 @@ function CharmRune({ charmId, name, level, cost, onClick }: CharmRuneProps) {
         {iconUrl ? (
           <img src={iconUrl} alt={name} width={32} height={32} style={{ imageRendering: 'pixelated' }} />
         ) : (
-          <span style={{ fontSize: '10px', color: '#64748b' }}>?</span>
+          <span style={{ fontSize: '10px', color: 'var(--color-text-faint)' }}>?</span>
         )}
       </div>
-      <span style={{ fontSize: '11px', color: '#e2e8f0', textAlign: 'center', lineHeight: 1.2 }}>{name}</span>
-      <span style={{ fontSize: '10px', fontWeight: 'bold', color: level > 0 ? LEVEL_BORDER[level] : '#64748b' }}>
+      <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', textAlign: 'center', lineHeight: 1.2 }}>{name}</span>
+      <span style={{ fontSize: '10px', fontWeight: 'bold', color: level > 0 ? LEVEL_BORDER[level] : 'var(--color-text-faint)' }}>
         {level > 0 ? formatPoints(cost) : '—'}
       </span>
     </button>
@@ -143,8 +143,8 @@ function CharmSection({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-      <div style={{ background: '#1e293b', borderRadius: '8px', border: '1px solid #334155', overflow: 'hidden' }}>
-        <div style={{ padding: '10px 15px', background: accentColor, color: '#0f172a', fontWeight: 'bold', fontSize: '13px' }}>
+      <div style={{ background: 'var(--color-bg-elevated)', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)', overflow: 'hidden' }}>
+        <div style={{ padding: '10px 15px', background: accentColor, color: 'var(--color-bg)', fontWeight: 'bold', fontSize: '13px' }}>
           {title}
         </div>
         <div
@@ -172,23 +172,23 @@ function CharmSection({
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-        <div style={{ background: '#1e293b', padding: '10px', borderRadius: '8px', border: '1px solid #334155', textAlign: 'center' }}>
-          <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>{unitLabel} disponíveis</span>
+        <div style={{ background: 'var(--color-bg-elevated)', padding: '10px', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)', textAlign: 'center' }}>
+          <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'block', marginBottom: '4px' }}>{unitLabel} disponíveis</span>
           <input
             type="number"
             min={0}
             value={available}
             onChange={(e) => onAvailableChange(Number(e.target.value) || 0)}
-            style={{ width: '100%', background: '#0f172a', color: '#fff', border: '1px solid #334155', borderRadius: '6px', padding: '6px', textAlign: 'center', boxSizing: 'border-box' }}
+            style={{ width: '100%', background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '6px', textAlign: 'center', boxSizing: 'border-box' }}
           />
         </div>
-        <div style={{ background: '#1e293b', padding: '10px', borderRadius: '8px', border: '1px solid #334155', textAlign: 'center' }}>
-          <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Necessários</span>
-          <strong style={{ fontSize: '15px', color: '#38bdf8' }}>{formatPoints(required)}</strong>
+        <div style={{ background: 'var(--color-bg-elevated)', padding: '10px', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)', textAlign: 'center' }}>
+          <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'block', marginBottom: '4px' }}>Necessários</span>
+          <strong style={{ fontSize: '15px', color: 'var(--color-accent)' }}>{formatPoints(required)}</strong>
         </div>
-        <div style={{ background: '#1e293b', padding: '10px', borderRadius: '8px', border: '1px solid #334155', textAlign: 'center' }}>
-          <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Sobrando</span>
-          <strong style={{ fontSize: '15px', color: remaining < 0 ? '#ef4444' : '#10b981' }}>{formatPoints(remaining)}</strong>
+        <div style={{ background: 'var(--color-bg-elevated)', padding: '10px', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)', textAlign: 'center' }}>
+          <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'block', marginBottom: '4px' }}>Sobrando</span>
+          <strong style={{ fontSize: '15px', color: remaining < 0 ? 'var(--color-danger)' : 'var(--color-success)' }}>{formatPoints(remaining)}</strong>
         </div>
       </div>
     </div>
@@ -210,22 +210,22 @@ export function CharmPlannerPage() {
   );
 
   return (
-    <div className="dashboard-container" style={{ padding: '20px', maxWidth: '1500px', margin: '0 auto', color: '#f8fafc' }}>
-      <header className="page-header" style={{ marginBottom: '25px', borderBottom: '1px solid #334155', paddingBottom: '15px' }}>
-        <h2 style={{ margin: 0, fontSize: '20px', color: '#10b981' }}>Charm Planner</h2>
-        <p style={{ margin: '5px 0 0 0', color: '#94a3b8', fontSize: '14px' }}>
+    <div className="dashboard-container" style={{ padding: '20px', maxWidth: '1500px', margin: '0 auto', color: 'var(--color-text)' }}>
+      <header className="page-header" style={{ marginBottom: '25px', borderBottom: '1px solid var(--color-border)', paddingBottom: '15px' }}>
+        <h2 style={{ margin: 0, fontSize: '20px', color: 'var(--color-accent)' }}>Charm Planner</h2>
+        <p style={{ margin: '5px 0 0 0', color: 'var(--color-text-muted)', fontSize: '14px' }}>
           Clique na runa pra avançar de nível (Bronze → Prata → Ouro → desbloqueia de novo) e veja quanto de Charm
           Points / Minor Charm Echoes você precisa e quanto sobra do que já tem.
         </p>
-        <div style={{ display: 'flex', gap: '16px', marginTop: '12px', fontSize: '12px', color: '#94a3b8' }}>
+        <div style={{ display: 'flex', gap: '16px', marginTop: '12px', fontSize: '12px', color: 'var(--color-text-muted)' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ width: '12px', height: '12px', borderRadius: '50%', border: `2px solid ${LEVEL_BORDER[1]}`, display: 'inline-block' }} /> Bronze
+            <span style={{ width: '12px', height: '12px', borderRadius: 'var(--radius-pill)', border: `2px solid ${LEVEL_BORDER[1]}`, display: 'inline-block' }} /> Bronze
           </span>
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ width: '12px', height: '12px', borderRadius: '50%', border: `2px solid ${LEVEL_BORDER[2]}`, display: 'inline-block' }} /> Prata
+            <span style={{ width: '12px', height: '12px', borderRadius: 'var(--radius-pill)', border: `2px solid ${LEVEL_BORDER[2]}`, display: 'inline-block' }} /> Prata
           </span>
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ width: '12px', height: '12px', borderRadius: '50%', border: `2px solid ${LEVEL_BORDER[3]}`, display: 'inline-block' }} /> Ouro
+            <span style={{ width: '12px', height: '12px', borderRadius: 'var(--radius-pill)', border: `2px solid ${LEVEL_BORDER[3]}`, display: 'inline-block' }} /> Ouro
           </span>
         </div>
       </header>
@@ -233,7 +233,7 @@ export function CharmPlannerPage() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', alignItems: 'start' }}>
         <CharmSection
           title="MAJOR CHARMS"
-          accentColor="#f59e0b"
+          accentColor="var(--color-warning)"
           charms={MAJOR_CHARMS}
           selections={selections}
           onRuneClick={handleRuneClick}
@@ -246,7 +246,7 @@ export function CharmPlannerPage() {
         />
         <CharmSection
           title="MINOR CHARMS"
-          accentColor="#38bdf8"
+          accentColor="var(--color-accent)"
           charms={MINOR_CHARMS}
           selections={selections}
           onRuneClick={handleRuneClick}

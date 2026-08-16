@@ -124,11 +124,11 @@ export function ServiceirosPage() {
   };
 
   return (
-    <div className="dashboard-container" style={{ padding: '20px', maxWidth: '900px', margin: '0 auto', color: '#f8fafc' }}>
-      <header className="page-header" style={{ marginBottom: '25px', borderBottom: '1px solid #334155', paddingBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+    <div className="dashboard-container" style={{ padding: '20px', maxWidth: '900px', margin: '0 auto', color: 'var(--color-text)' }}>
+      <header className="page-header" style={{ marginBottom: '25px', borderBottom: '1px solid var(--color-border)', paddingBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: '20px', color: '#10b981' }}>Serviceiros</h2>
-          <p style={{ margin: '5px 0 0 0', color: '#94a3b8', fontSize: '14px' }}>
+          <h2 style={{ margin: 0, fontSize: '20px', color: 'var(--color-success)' }}>Serviceiros</h2>
+          <p style={{ margin: '5px 0 0 0', color: 'var(--color-text-muted)', fontSize: '14px' }}>
             Contatos dos serviceiros da party. O número não fica visível — clique no ícone do WhatsApp pra abrir uma
             conversa direto com a mensagem que você escrever abaixo.
           </p>
@@ -136,8 +136,8 @@ export function ServiceirosPage() {
         <button
           onClick={startCreate}
           style={{
-            background: '#10b981', color: '#fff', border: 'none', padding: '10px 16px',
-            borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap',
+            background: 'var(--color-accent)', color: 'var(--color-text)', border: 'none', padding: '10px 16px',
+            borderRadius: 'var(--radius-sm)', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap',
           }}
         >
           {showForm && !editingId ? 'Cancelar' : '+ Cadastrar Serviceiro'}
@@ -147,47 +147,47 @@ export function ServiceirosPage() {
       {showForm && (
         <form
           onSubmit={handleSubmit}
-          style={{ background: '#1e293b', padding: '15px', borderRadius: '8px', border: '1px solid #334155', marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}
+          style={{ background: 'var(--color-bg-elevated)', padding: '15px', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)', marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}
         >
-          <h3 style={{ margin: 0, fontSize: '13px', color: '#38bdf8' }}>
+          <h3 style={{ margin: 0, fontSize: '13px', color: 'var(--color-accent)' }}>
             {editingId ? 'Editar Serviceiro' : 'Novo Serviceiro'}
           </h3>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
-            <label style={{ fontSize: '12px', color: '#94a3b8' }}>
+            <label style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
               Nome
               <input
                 type="text"
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
                 placeholder="Ex: Dedinho"
-                style={{ width: '100%', marginTop: '4px', background: '#0f172a', color: '#fff', border: '1px solid #334155', borderRadius: '6px', padding: '8px', boxSizing: 'border-box' }}
+                style={{ width: '100%', marginTop: '4px', background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '8px', boxSizing: 'border-box' }}
               />
             </label>
-            <label style={{ fontSize: '12px', color: '#94a3b8' }}>
+            <label style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
               Nome do Boneco (pagamento)
               <input
                 type="text"
                 value={formCharacterName}
                 onChange={(e) => setFormCharacterName(e.target.value)}
                 placeholder="Ex: Dedinho Knight"
-                style={{ width: '100%', marginTop: '4px', background: '#0f172a', color: '#fff', border: '1px solid #334155', borderRadius: '6px', padding: '8px', boxSizing: 'border-box' }}
+                style={{ width: '100%', marginTop: '4px', background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '8px', boxSizing: 'border-box' }}
               />
             </label>
-            <label style={{ fontSize: '12px', color: '#94a3b8' }}>
+            <label style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
               Telefone (WhatsApp, com DDI+DDD)
               <input
                 type="text"
                 value={formPhone}
                 onChange={(e) => setFormPhone(e.target.value)}
                 placeholder={editingId ? 'Deixe em branco pra manter o atual' : 'Ex: 5511999998888'}
-                style={{ width: '100%', marginTop: '4px', background: '#0f172a', color: '#fff', border: '1px solid #334155', borderRadius: '6px', padding: '8px', boxSizing: 'border-box' }}
+                style={{ width: '100%', marginTop: '4px', background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '8px', boxSizing: 'border-box' }}
               />
             </label>
           </div>
 
           <div>
-            <span style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '6px' }}>
+            <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', display: 'block', marginBottom: '6px' }}>
               Faz serviço em quais vocações?
             </span>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -201,10 +201,10 @@ export function ServiceirosPage() {
                     title={VOCATION_LABEL[vocation]}
                     style={{
                       display: 'flex', alignItems: 'center', gap: '6px',
-                      padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px',
-                      border: active ? '1px solid #10b981' : '1px solid #334155',
-                      background: active ? 'rgba(16, 185, 129, 0.15)' : '#0f172a',
-                      color: active ? '#10b981' : '#94a3b8',
+                      padding: '6px 12px', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '13px',
+                      border: active ? '1px solid var(--color-success)' : '1px solid var(--color-border)',
+                      background: active ? 'var(--color-success-soft)' : 'var(--color-bg-input)',
+                      color: active ? 'var(--color-success)' : 'var(--color-text-muted)',
                     }}
                   >
                     <span>{VOCATION_ICON[vocation]}</span>
@@ -215,15 +215,15 @@ export function ServiceirosPage() {
             </div>
           </div>
 
-          {formError && <span style={{ color: '#ef4444', fontSize: '12px' }}>{formError}</span>}
+          {formError && <span style={{ color: 'var(--color-danger)', fontSize: '12px' }}>{formError}</span>}
 
           <div style={{ display: 'flex', gap: '10px' }}>
             <button
               type="submit"
               disabled={saving}
               style={{
-                background: '#38bdf8', color: '#0f172a', border: 'none', padding: '8px 16px',
-                borderRadius: '6px', fontWeight: 'bold', cursor: saving ? 'default' : 'pointer', fontSize: '13px',
+                background: 'var(--color-accent)', color: 'var(--color-bg)', border: 'none', padding: '8px 16px',
+                borderRadius: 'var(--radius-sm)', fontWeight: 'bold', cursor: saving ? 'default' : 'pointer', fontSize: '13px',
                 opacity: saving ? 0.7 : 1, alignSelf: 'flex-start',
               }}
             >
@@ -233,7 +233,7 @@ export function ServiceirosPage() {
               <button
                 type="button"
                 onClick={resetForm}
-                style={{ background: 'transparent', color: '#94a3b8', border: '1px solid #334155', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}
+                style={{ background: 'transparent', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)', padding: '8px 16px', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '13px' }}
               >
                 Cancelar
               </button>
@@ -242,35 +242,35 @@ export function ServiceirosPage() {
         </form>
       )}
 
-      <div style={{ background: '#1e293b', padding: '15px', borderRadius: '8px', border: '1px solid #334155', marginBottom: '20px' }}>
-        <label style={{ fontSize: '12px', color: '#94a3b8' }}>
+      <div style={{ background: 'var(--color-bg-elevated)', padding: '15px', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)', marginBottom: '20px' }}>
+        <label style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
           Mensagem a enviar
           <textarea
             rows={3}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             placeholder="Ex: Fala! Bora fazer a hunt de hoje às 20h?"
-            style={{ width: '100%', marginTop: '4px', background: '#0f172a', color: '#fff', border: '1px solid #334155', borderRadius: '6px', padding: '10px', boxSizing: 'border-box', resize: 'vertical', fontFamily: 'inherit' }}
+            style={{ width: '100%', marginTop: '4px', background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '10px', boxSizing: 'border-box', resize: 'vertical', fontFamily: 'inherit' }}
           />
         </label>
       </div>
 
       {deleteError && (
-        <div style={{ background: 'rgba(239, 68, 68, 0.12)', border: '1px solid #ef4444', color: '#fca5a5', padding: '10px 14px', borderRadius: '8px', marginBottom: '14px', fontSize: '13px' }}>
+        <div style={{ background: 'var(--color-danger-soft)', border: '1px solid var(--color-danger)', color: 'var(--color-danger)', padding: '10px 14px', borderRadius: 'var(--radius)', marginBottom: '14px', fontSize: '13px' }}>
           {deleteError}
         </div>
       )}
 
       {!loading && serviceiros.length > 0 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
-          <span style={{ fontSize: '12px', color: '#94a3b8' }}>Filtrar por vocação:</span>
+          <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Filtrar por vocação:</span>
           <button
             onClick={() => setFilterVocations([])}
             style={{
-              padding: '5px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px',
-              border: filterVocations.length === 0 ? '1px solid #38bdf8' : '1px solid #334155',
-              background: filterVocations.length === 0 ? 'rgba(56, 189, 248, 0.15)' : '#0f172a',
-              color: filterVocations.length === 0 ? '#38bdf8' : '#94a3b8',
+              padding: '5px 10px', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '12px',
+              border: filterVocations.length === 0 ? '1px solid var(--color-accent)' : '1px solid var(--color-border)',
+              background: filterVocations.length === 0 ? 'var(--color-accent-soft)' : 'var(--color-bg-input)',
+              color: filterVocations.length === 0 ? 'var(--color-accent)' : 'var(--color-text-muted)',
             }}
           >
             Todos
@@ -284,10 +284,10 @@ export function ServiceirosPage() {
                 title={VOCATION_LABEL[vocation]}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '5px',
-                  padding: '5px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px',
-                  border: active ? '1px solid #38bdf8' : '1px solid #334155',
-                  background: active ? 'rgba(56, 189, 248, 0.15)' : '#0f172a',
-                  color: active ? '#38bdf8' : '#94a3b8',
+                  padding: '5px 10px', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '12px',
+                  border: active ? '1px solid var(--color-accent)' : '1px solid var(--color-border)',
+                  background: active ? 'var(--color-accent-soft)' : 'var(--color-bg-input)',
+                  color: active ? 'var(--color-accent)' : 'var(--color-text-muted)',
                 }}
               >
                 <span>{VOCATION_ICON[vocation]}</span>
@@ -301,13 +301,13 @@ export function ServiceirosPage() {
       {loading && <div className="loading">Carregando...</div>}
 
       {!loading && serviceiros.length === 0 && (
-        <p style={{ fontSize: '13px', color: '#64748b', textAlign: 'center', margin: '40px 0' }}>
+        <p style={{ fontSize: '13px', color: 'var(--color-text-faint)', textAlign: 'center', margin: '40px 0' }}>
           Nenhum serviceiro cadastrado ainda.
         </p>
       )}
 
       {!loading && serviceiros.length > 0 && filteredServiceiros.length === 0 && (
-        <p style={{ fontSize: '13px', color: '#64748b', textAlign: 'center', margin: '40px 0' }}>
+        <p style={{ fontSize: '13px', color: 'var(--color-text-faint)', textAlign: 'center', margin: '40px 0' }}>
           Nenhum serviceiro encontrado para essa vocação.
         </p>
       )}
@@ -318,14 +318,14 @@ export function ServiceirosPage() {
             <div
               key={s.id}
               style={{
-                background: '#1e293b', border: '1px solid #334155', borderRadius: '8px',
+                background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)',
                 padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div>
                   <div style={{ fontWeight: 'bold', fontSize: '14px' }}>{s.name}</div>
-                  <div style={{ fontSize: '11px', color: '#64748b' }}>Boneco: {s.characterName || '—'}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--color-text-faint)' }}>Boneco: {s.characterName || '—'}</div>
                 </div>
                 <div style={{ display: 'flex', gap: '4px' }}>
                   {s.vocations.map((vocation) => (
@@ -343,8 +343,8 @@ export function ServiceirosPage() {
                   title={`Chamar ${s.name} no WhatsApp`}
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    width: '34px', height: '34px', borderRadius: '50%',
-                    background: '#25D366', color: '#0f172a', textDecoration: 'none',
+                    width: '34px', height: '34px', borderRadius: 'var(--radius-pill)',
+                    background: '#25D366', color: 'var(--color-bg)', textDecoration: 'none',
                   }}
                 >
                   <WhatsAppIcon />
@@ -352,7 +352,7 @@ export function ServiceirosPage() {
                 <button
                   onClick={() => startEdit(s.id)}
                   title="Editar serviceiro"
-                  style={{ background: 'transparent', color: '#94a3b8', border: 'none', cursor: 'pointer', fontSize: '15px', opacity: 0.8 }}
+                  style={{ background: 'transparent', color: 'var(--color-text-muted)', border: 'none', cursor: 'pointer', fontSize: '15px', opacity: 0.8 }}
                 >
                   ✏️
                 </button>
@@ -367,7 +367,7 @@ export function ServiceirosPage() {
                     }
                   }}
                   title="Remover serviceiro"
-                  style={{ background: 'transparent', color: '#ef4444', border: 'none', cursor: 'pointer', fontSize: '15px', opacity: 0.8 }}
+                  style={{ background: 'transparent', color: 'var(--color-danger)', border: 'none', cursor: 'pointer', fontSize: '15px', opacity: 0.8 }}
                 >
                   🗑️
                 </button>

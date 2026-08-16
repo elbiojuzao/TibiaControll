@@ -2,11 +2,11 @@ const BOSS_PALETTE = [
   { bg: 'rgba(139, 92, 246, 0.2)', color: '#c4b5fd' }, // roxo
   { bg: 'rgba(59, 130, 246, 0.2)', color: '#93c5fd' }, // azul
   { bg: 'rgba(6, 182, 212, 0.2)', color: '#67e8f9' }, // ciano
-  { bg: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5' }, // vermelho
-  { bg: 'rgba(245, 158, 11, 0.2)', color: '#fde68a' }, // amber
-  { bg: 'rgba(16, 185, 129, 0.2)', color: '#6ee7b7' }, // verde
+  { bg: 'var(--color-danger-soft)', color: 'var(--color-danger)' }, // vermelho
+  { bg: 'var(--color-warning-soft)', color: '#fde68a' }, // amber
+  { bg: 'var(--color-success-soft)', color: '#6ee7b7' }, // verde
   { bg: 'rgba(236, 72, 153, 0.2)', color: '#f9a8d4' }, // rosa
-  { bg: 'rgba(100, 116, 139, 0.2)', color: '#cbd5e1' }, // slate
+  { bg: 'rgba(100, 116, 139, 0.2)', color: 'var(--color-text-muted)' }, // slate
 ];
 
 /** Cor determinística por nome do boss, para o badge da coluna Boss ficar consistente entre sessões */
