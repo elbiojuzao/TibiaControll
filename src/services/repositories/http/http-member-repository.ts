@@ -11,6 +11,7 @@ interface MemberRow {
   serviceiro_share_percent: number | null;
   owner_character_name: string | null;
   skill_category: HighscoreSkillCategory | null;
+  is_default_seller: boolean;
 }
 
 function toDomain(row: MemberRow): Member {
@@ -23,6 +24,7 @@ function toDomain(row: MemberRow): Member {
     serviceiroSharePercent: row.serviceiro_share_percent ?? undefined,
     ownerCharacterName: row.owner_character_name ?? undefined,
     skillCategory: row.skill_category ?? undefined,
+    isDefaultSeller: row.is_default_seller,
   };
 }
 
@@ -50,6 +52,7 @@ export class HttpMemberRepository implements IMemberRepository {
         serviceiro_share_percent: dto.serviceiroSharePercent,
         owner_character_name: dto.ownerCharacterName,
         skill_category: dto.skillCategory,
+        is_default_seller: dto.isDefaultSeller ?? false,
       })
       .select()
       .single();
@@ -65,6 +68,7 @@ export class HttpMemberRepository implements IMemberRepository {
     if (dto.serviceiroSharePercent !== undefined) patch.serviceiro_share_percent = dto.serviceiroSharePercent;
     if (dto.ownerCharacterName !== undefined) patch.owner_character_name = dto.ownerCharacterName;
     if (dto.skillCategory !== undefined) patch.skill_category = dto.skillCategory;
+    if (dto.isDefaultSeller !== undefined) patch.is_default_seller = dto.isDefaultSeller;
 
     const supabase = getSupabaseClient();
     const { data, error } = await supabase

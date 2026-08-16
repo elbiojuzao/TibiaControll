@@ -25,6 +25,10 @@ export interface Member {
   ownerCharacterName?: string;
   /** Categoria de skill a consultar nos Highscores. Se ausente, é inferida pela vocação. */
   skillCategory?: HighscoreSkillCategory;
+  /** Membro que efetivamente vende os itens (visita NPC/Market) — usado como "quem paga"
+   * nos comandos de transferência do drop vendido, independente de quem looted (Fragador).
+   * No máximo 1 por conta (garantido por índice único parcial no banco). */
+  isDefaultSeller?: boolean;
 }
 
 export interface CreateMemberDto {
@@ -34,4 +38,5 @@ export interface CreateMemberDto {
   serviceiroSharePercent?: number;
   ownerCharacterName?: string;
   skillCategory?: HighscoreSkillCategory;
+  isDefaultSeller?: boolean;
 }

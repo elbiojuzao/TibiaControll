@@ -22,6 +22,7 @@ export function SettingsPage() {
   const [formIsServiceiro, setFormIsServiceiro] = useState(false);
   const [formSharePercent, setFormSharePercent] = useState('');
   const [formOwnerCharacterName, setFormOwnerCharacterName] = useState('');
+  const [formIsDefaultSeller, setFormIsDefaultSeller] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -35,6 +36,7 @@ export function SettingsPage() {
     setFormIsServiceiro(false);
     setFormSharePercent('');
     setFormOwnerCharacterName('');
+    setFormIsDefaultSeller(false);
     setFormError(null);
   };
 
@@ -57,6 +59,7 @@ export function SettingsPage() {
     setFormIsServiceiro(target.isServiceiro);
     setFormSharePercent(target.serviceiroSharePercent !== undefined ? String(target.serviceiroSharePercent) : '');
     setFormOwnerCharacterName(target.ownerCharacterName ?? '');
+    setFormIsDefaultSeller(target.isDefaultSeller ?? false);
     setFormError(null);
     setShowForm(true);
   };
@@ -83,6 +86,13 @@ export function SettingsPage() {
 
     setSaving(true);
     try {
+      // Vendedor Padrão é único por conta (índice único parcial no banco) — se marcar
+      // um novo, desmarca o antigo primeiro, senão o banco rejeita a gravação.
+      if (formIsDefaultSeller) {
+        const currentDefault = members.find((m) => m.isDefaultSeller && m.id !== editingId);
+        if (currentDefault) await updateMember(currentDefault.id, { isDefaultSeller: false });
+      }
+
       const dto = {
         characterName: trimmedName,
         vocation: formVocation,
@@ -90,6 +100,7 @@ export function SettingsPage() {
         isServiceiro: formIsServiceiro,
         serviceiroSharePercent: formIsServiceiro ? sharePercent : undefined,
         ownerCharacterName: formIsServiceiro ? formOwnerCharacterName.trim() || undefined : undefined,
+        isDefaultSeller: formIsDefaultSeller,
       };
       if (editingId) {
         await updateMember(editingId, dto);
@@ -183,6 +194,15 @@ export function SettingsPage() {
             Esse personagem é jogado por um serviceiro (conta de terceiro)
           </label>
 
+          <label style={{ fontSize: '12px', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={formIsDefaultSeller}
+              onChange={(e) => setFormIsDefaultSeller(e.target.checked)}
+            />
+            Vendedor Padrão — quem efetivamente vende os itens (aparece como "quem paga" nos comandos de transferência do drop vendido). Só 1 por vez.
+          </label>
+
           {formIsServiceiro && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <label style={{ fontSize: '12px', color: '#94a3b8' }}>
@@ -270,6 +290,7 @@ export function SettingsPage() {
                     {VOCATION_LABEL[m.vocation]}
                     {m.skillCategory ? ` · ${SKILL_CATEGORY_LABEL[m.skillCategory]}` : ''}
                     {m.isServiceiro ? ` · Serviceiro${m.ownerCharacterName ? ` (dono: ${m.ownerCharacterName})` : ''}${m.serviceiroSharePercent !== undefined ? ` · ${m.serviceiroSharePercent}%` : ''}` : ''}
+                    {m.isDefaultSeller ? ' · 💰 Vendedor Padrão' : ''}
                   </div>
                 </div>
               </div>

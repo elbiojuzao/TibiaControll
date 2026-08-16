@@ -23,6 +23,7 @@ export class MockMemberRepository implements IMemberRepository {
       serviceiroSharePercent: dto.serviceiroSharePercent,
       ownerCharacterName: dto.ownerCharacterName,
       skillCategory: dto.skillCategory,
+      isDefaultSeller: dto.isDefaultSeller ?? false,
     };
     membersStore.push(member);
     return member;
