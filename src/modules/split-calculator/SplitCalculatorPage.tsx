@@ -245,7 +245,7 @@ Zo Tis
       {/* CABEÇALHO */}
       <header className="page-header" style={{ marginBottom: '25px', borderBottom: '1px solid var(--color-border)', paddingBottom: '15px' }}>
         <h2 style={{ margin: 0, fontSize: '20px', color: 'var(--color-accent)' }}>Calculadora de Split Loot</h2>
-        <p style={{ margin: '5px 0 0 0', color: 'var(--color-text-muted)', fontSize: '14px' }}>
+        <p className="subtitulo-pagina">
           Cole o log do Party Hunt Analyzer para calcular perfeitamente as transferências bancárias in-game.
         </p>
       </header>
@@ -255,7 +255,7 @@ Zo Tis
         {/* COLUNA ESQUERDA: LOG E TABELA DE JOGADORES */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
 
-          <div style={{ background: 'var(--color-bg-elevated)', padding: '15px', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)' }}>
+          <div className="card-compacto">
             <h3 style={{ fontSize: '14px', margin: '0 0 10px 0', color: 'var(--color-accent)' }}>1. Cole o Party Hunt Analyzer</h3>
             <textarea
               rows={8}
@@ -263,95 +263,67 @@ Zo Tis
               onChange={(e) => setRawLog(e.target.value)}
               onPaste={handlePasteLog}
               placeholder="Cole aqui o log completo do jogo..."
-              style={{
-                width: '100%',
-                background: 'var(--color-bg-input)',
-                color: 'var(--color-text)',
-                border: '1px solid var(--color-border)',
-                borderRadius: 'var(--radius-sm)',
-                padding: '10px',
-                fontSize: '12px',
-                fontFamily: 'monospace',
-                resize: 'vertical',
-                boxSizing: 'border-box'
-              }}
+              className="campo-input texto-mono"
+              style={{ marginTop: 0, fontSize: '12px', resize: 'vertical' }}
             />
             {parseError && (
               <p style={{ color: 'var(--color-warning)', fontSize: '12px', margin: '8px 0 0 0' }}>
                 ⚠ {parseError}
               </p>
             )}
-            <button
-              onClick={handleParseLog}
-              style={{
-                marginTop: '10px',
-                background: 'var(--color-accent)',
-                color: 'var(--color-text)',
-                border: 'none',
-                padding: '8px 16px',
-                borderRadius: 'var(--radius-sm)',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                fontSize: '13px',
-                width: '100%'
-              }}
-            >
+            <button onClick={handleParseLog} className="botao-primario" style={{ marginTop: '10px', width: '100%' }}>
               Processar Log & Calcular Split
             </button>
           </div>
 
           {/* TABELA DE GASTOS EXTRAS OPCIONAIS */}
-          <div style={{ background: 'var(--color-bg-elevated)', padding: '15px', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)' }}>
+          <div className="card-compacto">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1px solid var(--color-border)', paddingBottom: '8px' }}>
               <h3 style={{ fontSize: '14px', margin: 0, color: 'var(--color-warning)' }}>Gastos Extras (Opcional)</h3>
-              <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                Cotação TC: <input type="number" value={tcRate} onChange={(e) => setTcRate(Number(e.target.value))} style={{ width: '65px', background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', padding: '2px 4px', borderRadius: 'var(--radius-sm)', textAlign: 'center' }} />
+              <div className="texto-mudo" style={{ fontSize: '12px' }}>
+                Cotação TC: <input type="number" value={tcRate} onChange={(e) => setTcRate(Number(e.target.value))} className="campo-input w65" style={{ marginTop: 0, display: 'inline-block', padding: '2px 4px', textAlign: 'center' }} />
               </div>
             </div>
 
             {members.length === 0 ? (
-              <p style={{ fontSize: '13px', color: 'var(--color-text-faint)', textAlign: 'center', margin: '20px 0' }}>
-                Nenhum membro carregado. Cole o log acima e clique em processar.
-              </p>
+              <p className="estado-vazio">Nenhum membro carregado. Cole o log acima e clique em processar.</p>
             ) : (
               <div style={{ maxHeight: '350px', overflowY: 'auto' }}>
-                <table style={{ width: '100%', fontSize: '12px', borderCollapse: 'collapse' }}>
+                <table className="tabela-simples">
                   <thead>
-                    <tr style={{ color: 'var(--color-text-muted)', borderBottom: '1px solid var(--color-border)' }}>
-                      <th style={{ textAlign: 'left', padding: '6px' }}>Player</th>
-                      <th style={{ textAlign: 'center', padding: '6px', width: '110px' }}>Extra TC expense</th>
-                      <th style={{ textAlign: 'center', padding: '6px', width: '130px' }}>Extra gold (in k)</th>
-                      <th style={{ textAlign: 'center', padding: '6px', width: '35px' }}></th>
+                    <tr className="texto-mudo" style={{ borderBottom: '1px solid var(--color-border)' }}>
+                      <th className="celula-esq">Player</th>
+                      <th className="celula-centro w110">Extra TC expense</th>
+                      <th className="celula-centro w130">Extra gold (in k)</th>
+                      <th className="celula-centro w35"></th>
                     </tr>
                   </thead>
                   <tbody>
                     {members.map((m, idx) => (
                       <tr key={idx} style={{ borderBottom: '1px solid var(--color-bg-elevated)' }}>
                         <td style={{ padding: '8px 6px', color: 'var(--color-text)', fontWeight: 'bold' }}>{m.name}</td>
-                        <td style={{ padding: '6px', textAlign: 'center' }}>
+                        <td className="celula-centro">
                           <input
                             type="number"
                             value={m.extraTc}
                             onChange={(e) => handleExtraChange(idx, 'extraTc', e.target.value)}
                             placeholder="0"
-                            style={{ width: '90px', background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', padding: '4px 6px', borderRadius: 'var(--radius-sm)', textAlign: 'center', fontSize: '12px' }}
+                            className="campo-input w90"
+                            style={{ marginTop: 0, display: 'inline-block', padding: '4px 6px', textAlign: 'center', fontSize: '12px' }}
                           />
                         </td>
-                        <td style={{ padding: '6px', textAlign: 'center' }}>
+                        <td className="celula-centro">
                           <input
                             type="number"
                             value={m.extraGold}
                             onChange={(e) => handleExtraChange(idx, 'extraGold', e.target.value)}
                             placeholder="0"
-                            style={{ width: '90px', background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', padding: '4px 6px', borderRadius: 'var(--radius-sm)', textAlign: 'center', fontSize: '12px' }}
+                            className="campo-input w90"
+                            style={{ marginTop: 0, display: 'inline-block', padding: '4px 6px', textAlign: 'center', fontSize: '12px' }}
                           />
                         </td>
-                        <td style={{ padding: '6px', textAlign: 'center' }}>
-                          <button
-                            onClick={() => handleRemoveMember(idx)}
-                            title="Remover player"
-                            style={{ background: 'transparent', color: 'var(--color-danger)', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold', opacity: 0.8 }}
-                          >
+                        <td className="celula-centro">
+                          <button onClick={() => handleRemoveMember(idx)} title="Remover player" className="botao-icone-perigo" style={{ fontSize: '14px' }}>
                             🗑️
                           </button>
                         </td>
@@ -368,18 +340,18 @@ Zo Tis
         {/* COLUNA DIREITA: RESULTADOS E COMANDOS DE CÓPIA */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
 
-          <div style={{ background: 'var(--color-bg-elevated)', padding: '20px', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)' }}>
+          <div className="card-compacto" style={{ padding: '20px' }}>
             <h3 style={{ fontSize: '14px', margin: '0 0 15px 0', color: 'var(--color-warning)', borderBottom: '1px solid var(--color-border)', paddingBottom: '8px' }}>
               Resumo do Split & Transferências
             </h3>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
               <div style={{ background: 'var(--color-bg-input)', padding: '12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
-                <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'block' }}>Lucro Total (Balance)</span>
-                <strong style={{ fontSize: '15px', color: 'var(--color-success)' }}>{formatTibiaGold(calculation.totalBalance)}</strong>
+                <span className="label-padrao">Lucro Total (Balance)</span>
+                <strong className="texto-sucesso" style={{ fontSize: '15px' }}>{formatTibiaGold(calculation.totalBalance)}</strong>
               </div>
               <div style={{ background: 'var(--color-bg-input)', padding: '12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
-                <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'block' }}>Cota por Membro (Equal Share)</span>
+                <span className="label-padrao">Cota por Membro (Equal Share)</span>
                 <strong style={{ fontSize: '15px', color: 'var(--color-accent)' }}>{formatTibiaGold(Math.round(calculation.equalShare))}</strong>
               </div>
             </div>
@@ -388,9 +360,7 @@ Zo Tis
 
             <div style={{ maxHeight: '350px', overflowY: 'auto' }}>
               {calculation.transfers.length === 0 ? (
-                <p style={{ fontSize: '13px', color: 'var(--color-text-faint)', textAlign: 'center', margin: '20px 0' }}>
-                  Nenhuma transferência necessária no momento.
-                </p>
+                <p className="estado-vazio">Nenhuma transferência necessária no momento.</p>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {calculation.transfers.map((t, idx) => (
@@ -407,10 +377,10 @@ Zo Tis
                       }}
                     >
                       <div>
-                        <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
-                          <span style={{ color: 'var(--color-danger)', fontWeight: 'bold' }}>{t.from}</span> paga para <span style={{ color: 'var(--color-success)', fontWeight: 'bold' }}>{t.to}</span>
+                        <div className="texto-mudo" style={{ fontSize: '11px' }}>
+                          <span className="texto-perigo" style={{ fontWeight: 'bold' }}>{t.from}</span> paga para <span className="texto-sucesso" style={{ fontWeight: 'bold' }}>{t.to}</span>
                         </div>
-                        <div style={{ fontSize: '13px', fontFamily: 'monospace', color: 'var(--color-text)', marginTop: '2px' }}>
+                        <div className="texto-mono" style={{ fontSize: '13px', color: 'var(--color-text)', marginTop: '2px' }}>
                           {t.commandText}
                         </div>
                       </div>

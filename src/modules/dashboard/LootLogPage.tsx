@@ -98,9 +98,8 @@ export function LootLogPage() {
           ))}
         </select>
         <input
-          className="filter-input"
+          className="filter-input w90"
           type="number"
-          style={{ width: '90px' }}
           value={selectedYear}
           onChange={(e) => setSelectedYear(e.target.value)}
         />

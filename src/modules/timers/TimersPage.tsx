@@ -194,7 +194,8 @@ export function TimersPage() {
           value={selectedBossId}
           onChange={(e) => handleBossChange(e.target.value)}
           disabled={bossesLoading}
-          style={{ width: '100%', background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '8px', fontSize: '13px', boxSizing: 'border-box' }}
+          className="campo-input"
+          style={{ marginTop: 0, fontSize: '13px' }}
         >
           <option value={CUSTOM_OPTION}>Personalizado</option>
           {bosses.map((boss) => (
@@ -204,30 +205,29 @@ export function TimersPage() {
 
         {selectedBossId === CUSTOM_OPTION && (
           <div style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <label style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+            <label className="texto-mudo" style={{ fontSize: '11px' }}>
               Timer Global (minutos)
               <input
                 type="number"
                 min={1}
                 value={customGlobalMinutes}
                 onChange={(e) => setCustomGlobalMinutes(Number(e.target.value) || 1)}
-                style={{ width: '100%', marginTop: '4px', background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '6px', boxSizing: 'border-box' }}
+                className="campo-input"
+                style={{ padding: '6px' }}
               />
             </label>
-            <label style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+            <label className="texto-mudo" style={{ fontSize: '11px' }}>
               Timer de Loop (segundos)
               <input
                 type="number"
                 min={1}
                 value={customLoopSeconds}
                 onChange={(e) => setCustomLoopSeconds(Number(e.target.value) || 1)}
-                style={{ width: '100%', marginTop: '4px', background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '6px', boxSizing: 'border-box' }}
+                className="campo-input"
+                style={{ padding: '6px' }}
               />
             </label>
-            <button
-              onClick={handleApplyCustom}
-              style={{ background: 'var(--color-accent)', color: 'var(--color-bg)', border: 'none', padding: '8px', borderRadius: 'var(--radius-sm)', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}
-            >
+            <button onClick={handleApplyCustom} className="botao-primario" style={{ padding: '8px', fontSize: '12px' }}>
               Aplicar
             </button>
           </div>
@@ -354,8 +354,7 @@ export function TimersPage() {
                 src={iconUrl}
                 alt={name}
                 title={name}
-                width={32}
-                height={32}
+                className="h32 w32"
                 style={{ objectFit: 'contain', imageRendering: 'pixelated', opacity: iconUrl ? 1 : 0 }}
               />
             );

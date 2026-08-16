@@ -14,10 +14,10 @@ export function BoostedToday() {
   return (
     <div className="boosted-today-inline">
       <div className="boosted-today-chip" title={`Criatura bostada hoje: ${creature?.name ?? ''}`}>
-        <img src={creature?.imageUrl} alt={creature?.name ?? 'Criatura bostada'} width={40} height={40} />
+        <img src={creature?.imageUrl} alt={creature?.name ?? 'Criatura bostada'} className="h40 w40" />
       </div>
       <div className="boosted-today-chip" title={`Boss bostado hoje: ${boss?.name ?? ''}`}>
-        <img src={boss?.imageUrl} alt={boss?.name ?? 'Boss bostado'} width={40} height={40} />
+        <img src={boss?.imageUrl} alt={boss?.name ?? 'Boss bostado'} className="h40 w40" />
       </div>
     </div>
   );
