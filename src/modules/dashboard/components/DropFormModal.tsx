@@ -94,23 +94,27 @@ interface MissingCharacterShare {
  * contato, não Member — ver [[modulo-dashboard-historico]]) fica com 50% da cota, o
  * dono da vaga com os outros 50% (regra de negócio confirmada pelo usuário; fixo em
  * 50%, diferente do `serviceiroSharePercent` configurável de Member/Split Loot, que é
- * um conceito separado). Quem já está com o dinheiro em mãos (o Fragador, que vendeu o
- * item) nunca recebe um comando pra si mesmo. */
+ * um conceito separado). `payer` é quem já está com o dinheiro em mãos depois de vender
+ * o item — o Vendedor Padrão configurado em Configurações (`Member.isDefaultSeller`),
+ * NÃO o Fragador (quem looted o item pode ser qualquer um, quem vende é sempre o mesmo
+ * membro fixo da party — corrigido em 2026-08-16, bug real reportado pelo usuário: "hoje
+ * esta marcando o koe psiko mas na minha party quem vende é o thanatos"). `payer` nunca
+ * recebe um comando pra si mesmo. */
 function computeTransferInstructions(
   party: { ek: string; ed: string; ms: string; rp: string; fifthPlayer: string },
   services: ServiceDraft[],
   serviceiros: Serviceiro[],
   unitValue: number,
-  looter: string,
+  payer: string,
 ): { instructions: TransferInstruction[]; missingCharacterShares: MissingCharacterShare[] } {
-  if (!looter || unitValue <= 0) return { instructions: [], missingCharacterShares: [] };
+  if (!payer || unitValue <= 0) return { instructions: [], missingCharacterShares: [] };
 
   const slots = [party.ek, party.ed, party.ms, party.rp, party.fifthPlayer].filter(Boolean);
   const instructions: TransferInstruction[] = [];
   const missingCharacterShares: MissingCharacterShare[] = [];
   const push = (to: string, amount: number) => {
-    if (!to || to === looter || amount <= 0) return;
-    instructions.push({ from: looter, to, amount, tibiaCommand: `transfer ${amount} to ${to}` });
+    if (!to || to === payer || amount <= 0) return;
+    instructions.push({ from: payer, to, amount, tibiaCommand: `transfer ${amount} to ${to}` });
   };
 
   for (const slotName of slots) {
@@ -218,14 +222,20 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
   // Gold do Tibia é sempre inteiro (ver schema em supabase/migrations) — arredonda a cota.
   const unitValue = playerCount > 0 ? Math.round(totalNumber / playerCount) : 0;
 
+  // Quem efetivamente vende o item (visita NPC/Market) — configurado em Configurações
+  // (Member.isDefaultSeller), NÃO o Fragador. Bug real reportado pelo usuário em
+  // 2026-08-16: o card de transferência usava o Fragador como "quem paga", mas quem
+  // vende é sempre o mesmo membro fixo da party, independente de quem looted.
+  const defaultSeller = members.find((m) => m.isDefaultSeller)?.characterName ?? '';
+
   // Comandos de transferência só fazem sentido quando o item já foi vendido e tem
   // Valor Cada pra distribuir — recalcula ao vivo conforme o form muda, mesmo antes
   // de salvar.
   const { instructions: transferInstructions, missingCharacterShares } = useMemo(
     () => (sold
-      ? computeTransferInstructions({ ek, ed, ms, rp, fifthPlayer }, serviceDrafts, serviceiros, unitValue, looter)
+      ? computeTransferInstructions({ ek, ed, ms, rp, fifthPlayer }, serviceDrafts, serviceiros, unitValue, defaultSeller)
       : { instructions: [], missingCharacterShares: [] }),
-    [sold, ek, ed, ms, rp, fifthPlayer, serviceDrafts, serviceiros, unitValue, looter],
+    [sold, ek, ed, ms, rp, fifthPlayer, serviceDrafts, serviceiros, unitValue, defaultSeller],
   );
 
   const handleCopyCommand = (commandText: string, index: number) => {
@@ -510,6 +520,12 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
           </div>
         )}
 
+        {mode === 'edit' && sold && !defaultSeller && unitValue > 0 && (
+          <span style={{ color: '#f59e0b', fontSize: '12px' }}>
+            Nenhum "Vendedor Padrão" configurado em Configurações — não dá pra gerar os comandos de transferência sem saber quem paga.
+          </span>
+        )}
+
         {mode === 'edit' && sold && (transferInstructions.length > 0 || missingCharacterShares.length > 0) && (
           <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '14px' }}>
             <h4 style={{ fontSize: '13px', margin: '0 0 10px 0', color: '#f8fafc' }}>Copiar Comandos de Transferência:</h4>
@@ -573,7 +589,7 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
                 >
                   <div>
                     <div style={{ fontSize: '11px', color: '#94a3b8' }}>
-                      <span style={{ color: '#ef4444', fontWeight: 'bold' }}>{looter}</span> deve pagar{' '}
+                      <span style={{ color: '#ef4444', fontWeight: 'bold' }}>{defaultSeller}</span> deve pagar{' '}
                       <span style={{ color: '#f59e0b', fontWeight: 'bold' }}>{m.serviceiroName}</span>
                     </div>
                     <div style={{ fontSize: '13px', fontFamily: 'monospace', color: '#f8fafc', marginTop: '2px' }}>
