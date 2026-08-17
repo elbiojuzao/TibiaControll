@@ -583,7 +583,7 @@
       <details class="module">
         <summary><span class="summary-left">📈 Histórico de XP <span class="summary-path">src/modules/xp-historico/</span></span><span class="chip chip-real">planilha real</span></summary>
         <div class="module-body">
-          <p>Página própria (não é aba do Calendário) com tabela dos últimos 30 dias de XP por personagem + total do período.</p>
+          <p>Página própria (não é aba do Calendário) com tabela de XP por personagem + total do período, janela selecionável (2026-08-17: botões 30/60/90/120/365 dias, filtro 100% client-side sobre o histórico completo que <code>useXpSheet</code> já trazia). <b>2 pódios lado a lado</b> (componente <code>Podium</code> genérico, degraus decrescentes por posição, 🥇🥈🥉 + Nº, estilo pódio olímpico): "Recorde de XP num dia — últimos 365 dias" (maior XP num único dia + data) e "Melhor mês de XP" (soma por MÊS CALENDÁRIO real — dia 1 ao último dia do mês, não janela corrida de 30 dias — mostra qual mês foi).</p>
           <dl class="kv-list">
             <dt>Rota</dt><dd><code>/historico-xp</code></dd>
             <dt>Dado</dt><dd><code>useXpSheet</code> — cacheado 1×/dia (ver seção Planilha).</dd>
