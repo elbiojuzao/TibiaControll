@@ -5,14 +5,28 @@ import { useLootDrops } from '@/hooks/useLootDrops';
 import { useMembers } from '@/hooks/useMembers';
 import { useXpSheet } from '@/hooks/useXpSheet';
 import { useBossHuntSheet } from '@/hooks/useBossHuntSheet';
+import { useTibiaEvents, isDayInTibiaEvent } from '@/hooks/useTibiaEvents';
 import { Modal } from '@/components/common/Modal';
 import { formatTibiaGold } from '@/services/split';
 import { formatDateKey, findLatestActivityDate, groupActivityByDate } from '@/services/calendar';
+import type { TibiaEventCategory } from '@/types';
 
 function formatXp(value: number): string {
   const sign = value < 0 ? '-' : '+';
   return sign + Math.abs(value).toLocaleString('pt-BR');
 }
+
+const EVENT_CATEGORY_ICON: Record<TibiaEventCategory, string> = {
+  rapid_respawn: '🐇',
+  xp_boost: '⭐',
+  potion_boost: '🧪',
+};
+
+const EVENT_CATEGORY_LABEL: Record<TibiaEventCategory, string> = {
+  rapid_respawn: 'Rapid Respawn',
+  xp_boost: 'Bônus de XP',
+  potion_boost: 'Bônus de Poção',
+};
 
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const MONTH_NAMES = [
@@ -45,6 +59,7 @@ export function CalendarioPage() {
   const { members } = useMembers(accountId);
   const { data: xpData } = useXpSheet();
   const { series: bossHuntSeries } = useBossHuntSheet();
+  const { events: tibiaEvents } = useTibiaEvents();
 
   const now = new Date();
   const [view, setView] = useState({ year: now.getFullYear(), month: now.getMonth() });
@@ -68,6 +83,10 @@ export function CalendarioPage() {
   const activityByDate = useMemo(() => groupActivityByDate(hunts, drops), [hunts, drops]);
   const cells = useMemo(() => buildMonthCells(viewYear, viewMonth), [viewYear, viewMonth]);
 
+  /** Eventos oficiais fixos (rapid respawn/XP/poção — ver useTibiaEvents) que caem
+   * nesse dia do mês em exibição, independente do ano (a data é recorrente). */
+  const eventsForDay = (day: number) => tibiaEvents.filter((ev) => isDayInTibiaEvent(viewMonth + 1, day, ev));
+
   /** XP de cada membro numa data específica (DD/MM/YYYY) — busca no histórico completo
    * da planilha (useXpSheet), não só nos últimos 30 dias, já que o calendário pode
    * navegar pra qualquer mês. */
@@ -83,6 +102,11 @@ export function CalendarioPage() {
   const selectedActivity = selectedDateKey ? activityByDate.get(selectedDateKey) : undefined;
   const selectedXp = selectedDateKey ? xpForDate(selectedDateKey) : [];
   const selectedBossHunt = selectedDateKey ? bossHuntSeries.find((e) => e.date === selectedDateKey) : undefined;
+  const selectedEvents = useMemo(() => {
+    if (!selectedDateKey) return [];
+    const [day, month] = selectedDateKey.split('/').map(Number);
+    return tibiaEvents.filter((ev) => isDayInTibiaEvent(month, day, ev));
+  }, [selectedDateKey, tibiaEvents]);
 
   const goToPrevMonth = () => {
     setView((v) => {
@@ -125,6 +149,7 @@ export function CalendarioPage() {
           <span className="calendar-legend-item"><span className="calendar-dot boss" /> Boss</span>
           <span className="calendar-legend-item"><span className="calendar-dot hunt" /> Hunt</span>
           <span className="calendar-legend-item"><span className="calendar-dot drop" /> Item — 1 bolinha por drop no dia</span>
+          <span className="calendar-legend-item"><span className="calendar-swatch event" /> Evento oficial (Rapid Respawn / XP / Poção)</span>
         </div>
 
         <div className="calendar-grid" style={{ marginBottom: '6px' }}>
@@ -150,14 +175,16 @@ export function CalendarioPage() {
             const hasBoss = bossHuntEntry !== undefined && bossHuntEntry.boss !== 0;
             const hasHunt = bossHuntEntry !== undefined;
             const hasActivity = !!activity && (activity.hunts.length > 0 || activity.drops.length > 0);
-            const hasAnyIndicator = hasActivity || hasBoss || hasHunt;
+            const dayEvents = eventsForDay(cell.day);
+            const hasEvent = dayEvents.length > 0;
+            const hasAnyIndicator = hasActivity || hasBoss || hasHunt || hasEvent;
 
             return (
               <div
                 key={idx}
                 onClick={() => setSelectedDateKey(cell.dateKey)}
                 title="Clique para ver os detalhes do dia"
-                className={`calendar-day${hasAnyIndicator ? ' has-activity' : ''}${cell.dateKey === todayKey ? ' today' : ''}`}
+                className={`calendar-day${hasAnyIndicator ? ' has-activity' : ''}${hasEvent ? ' has-event' : ''}${cell.dateKey === todayKey ? ' today' : ''}`}
                 style={{ cursor: 'pointer' }}
               >
                 <span className="calendar-day-number">{cell.day}</span>
@@ -175,6 +202,14 @@ export function CalendarioPage() {
                 {hasAnyIndicator && (
                   <div className="calendar-tooltip">
                     <div className="calendar-tooltip-title">{cell.dateKey}</div>
+
+                    {hasEvent && dayEvents.map((ev) => (
+                      <div key={ev.id} className="calendar-tooltip-item">
+                        🚩 <strong style={{ color: 'var(--color-warning)' }}>{ev.name}</strong>
+                        <br />
+                        {ev.categories.map((cat) => `${EVENT_CATEGORY_ICON[cat]} ${EVENT_CATEGORY_LABEL[cat]}`).join(' · ')}
+                      </div>
+                    ))}
 
                     {(hasBoss || hasHunt) && (
                       <div className="calendar-tooltip-item">
@@ -209,6 +244,23 @@ export function CalendarioPage() {
       {selectedDateKey && (
         <Modal title={`Detalhes de ${selectedDateKey}`} onClose={() => setSelectedDateKey(null)}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '13px' }}>
+            {selectedEvents.length > 0 && (
+              <div>
+                <h4 style={{ margin: '0 0 8px 0', fontSize: '13px', color: 'var(--color-warning)' }}>🚩 Evento oficial</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {selectedEvents.map((ev) => (
+                    <div key={ev.id} style={{ background: 'var(--color-warning-soft)', border: '1px solid var(--color-warning)', borderRadius: 'var(--radius-sm)', padding: '10px' }}>
+                      <strong style={{ color: 'var(--color-warning)' }}>{ev.name}</strong>
+                      <div className="texto-mudo" style={{ fontSize: '12px', margin: '4px 0' }}>
+                        {ev.categories.map((cat) => `${EVENT_CATEGORY_ICON[cat]} ${EVENT_CATEGORY_LABEL[cat]}`).join(' · ')}
+                      </div>
+                      <div style={{ fontSize: '12px', color: 'var(--color-text)' }}>{ev.description}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Boss/Hunt: profit individual do dia, lido da aba "Boss hunt" da planilha
                 (já vem dividido — /4 hunt, /5 boss — ver useBossHuntSheet). */}
             <div className="grid-2col" style={{ gap: '10px' }}>

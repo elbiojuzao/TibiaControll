@@ -139,14 +139,15 @@
       "routes": ["/calendario"],
       "purpose": "Calendário mensal — hover mostra resumo rápido (Boss/Hunt+Drops do dia), clique abre modal completo com Boss/Hunt (planilha), XP por jogador (planilha) e Drops daquele dia.",
       "keyFiles": {
-        "CalendarioPage.tsx": "~290 linhas. Ao carregar, pula pro mês com atividade mais recente (findLatestActivityDate). Todo dia é clicável, não só os com atividade (pode ter XP sem drop/hunt)."
+        "CalendarioPage.tsx": "~290 linhas. Ao carregar, pula pro mês com atividade mais recente (findLatestActivityDate). Todo dia é clicável, não só os com atividade (pode ter XP sem drop/hunt). Ganhou faixa/flag de evento oficial (2026-08-17) — ver dayIndicators.event."
       },
-      "dataSource": "LootDrop (real via useLootDrops) pros dots/hover de item; useXpSheet + useBossHuntSheet (planilha) pros dots de Boss/Hunt, pro modal de clique e pro resumo do hover.",
+      "dataSource": "LootDrop (real via useLootDrops) pros dots/hover de item; useXpSheet + useBossHuntSheet (planilha) pros dots de Boss/Hunt, pro modal de clique e pro resumo do hover; useTibiaEvents (tabela tibia_events) pra faixa de evento oficial.",
       "dayIndicators": {
         "description": "3 tipos de bolinha por dia no grid do calendário, com legenda acima do grid explicando as cores (2026-08-10, pedido do usuário).",
         "boss": { "color": "#38bdf8 (azul)", "rule": "1 bolinha se existe entrada em useBossHuntSheet pra esse dia E boss !== 0. Aproximação: o fetch (api/_lib/boss-hunt-sheet.ts) só filtra linha em branco pela coluna Hunt, não pela de Boss — uma célula de Boss vazia vira 0 igual um lucro genuinamente zerado, então não dá pra distinguir os dois casos com 100% de precisão hoje." },
         "hunt": { "color": "#f59e0b (âmbar)", "rule": "1 bolinha se existe entrada em useBossHuntSheet pra esse dia (o fetch já filtra por Hunt não-vazio, então a existência da entrada é suficiente e precisa). Substitui a bolinha antiga baseada na entidade Hunt mock — não coexistem, teria 2 'bolinhas de Hunt' com fontes diferentes." },
-        "item": { "color": "#a29bfe (lavanda)", "rule": "1 bolinha POR drop do dia (não é mais uma bolinha combinada única) — ex: 3 drops nesse dia = 3 bolinhas lavanda." }
+        "item": { "color": "var(--cat-1), roxo/lavanda", "rule": "1 bolinha POR drop do dia (não é mais uma bolinha combinada única) — ex: 3 drops nesse dia = 3 bolinhas lavanda. Bug corrigido em 2026-08-17: o CSS (.calendar-dot.drop) usava var(--color-accent), a MESMA cor do Boss, apesar da cor lavanda já estar documentada aqui como intenção original — nunca tinha sido aplicada de fato. Usuário reportou confusão visual entre os dois dots." },
+        "event": { "color": "borda superior var(--color-warning) no card do dia", "rule": "2026-08-17, pedido do usuário ('uma bandeira uma faixa algo para identificar que aquele dia foi um dia de evento'). 1 faixa se o dia (mês/dia, comparado sem ano — ver isDayInTibiaEvent) cai dentro de algum evento oficial fixo em tibia_events. Tooltip e modal de clique mostram nome + categorias (🐇 rapid_respawn / ⭐ xp_boost / 🧪 potion_boost) + descrição completa — o emoji 🚩 fica só no tooltip/modal, NÃO no grid do dia nem na legenda (1ª versão colocava 🚩 solto em cada dia e na legenda; usuário pediu pra tirar dos dois — grid ficou só com a borda, legenda ganhou um quadradinho amarelo `.calendar-swatch.event` consistente com os dots de Boss/Hunt/Item). Ver módulo dedicado nas notas gerais sobre 'Eventos oficiais do Tibia' (dataModels.TibiaEvent)." }
       },
       "note": "A lista de 'Hunts' do mock ainda existe no HOVER (bloco de texto separado, abaixo do resumo real de Boss/Hunt) e alimenta `findLatestActivityDate`, mas foi REMOVIDA do modal de clique (ficava redundante com o campo real de Boss/Hunt individual — ver knownIssuesAndGotchas sobre a entidade Hunt mock). A bolinha de dia baseada nessa entidade mock foi removida em 2026-08-10 (ver dayIndicators.hunt acima) — a lista em si (texto no hover) permanece."
     },
@@ -215,6 +216,7 @@
     "PartySettings": { "file": "src/types/party-settings.ts", "fields": { "tcGoldRate": "number" } },
     "XpCharacterStats / XpDailyEntry": { "file": "src/types/xp-sheet.ts", "fields": { "xpOntem": "number", "xp30Dias": "number", "xp90Dias": "number (desde 2026-08-10, usado só pra Previsão fim de ano)", "series": "{date, value}[] (histórico completo)" }, "note": "Vem da planilha, não do Supabase." },
     "BossHuntDailyEntry": { "file": "src/hooks/useBossHuntSheet.ts", "fields": { "date": "DD/MM/YYYY", "hunt": "number (profit individual, já /4)", "boss": "number (profit individual, já /5)" }, "note": "Vem da planilha, não do Supabase." },
+    "TibiaEvent": { "file": "src/types/tibia-event.ts", "fields": { "id": "string", "name": "string", "startMonth/startDay/endMonth/endDay": "number (SEM ano, recorrente)", "categories": "TibiaEventCategory[] ('rapid_respawn'|'xp_boost'|'potion_boost')", "description": "string" }, "supabaseTable": "tibia_events (dado universal do jogo, sem account_id)", "note": "Evento oficial anual fixo da CipSoft. isDayInTibiaEvent(month, day, event) em useTibiaEvents.ts compara mês/dia (ignora ano) pra saber se um dia do calendário cai dentro do evento." },
     "removed_DashboardKpis": {
       "status": "REMOVIDO em 2026-08-08 — não recriar",
       "note": "Existia como tipo mock (kksPlunderInd, qtdBags, qtdPlunders, kksBagsInd, totalInd). Todos os 5 campos viraram cálculo ao vivo em cima de LootDrop/planilha — ver modules.dashboard.kpiFormulas. Se uma tarefa futura pedir 'adicionar um KPI ao Dashboard', o padrão agora é computar via useMemo no DashboardPage, não reintroduzir um repositório mock pra isso."
@@ -265,7 +267,9 @@
         "20260814020000_create_xp_levels_table.sql — cria tabela xp_levels (referência de XP total por nível, de 50 em 50 até o 4000, fórmula oficial do Tibia) + RLS de leitura pública, sem account_id (dado universal do jogo, não de conta). Plugada na Meta XP Diária do Dashboard no mesmo dia — ver modules.dashboard.metaXpDiaria.",
         "20260814030000_soft_delete_serviceiros.sql — adiciona serviceiros.hidden (soft delete, default false) — ver knownIssuesAndGotchas.delete-serviceiro-vira-soft-delete.",
         "20260814040000_create_boss_quests_table.sql — cria tabela boss_quests (26 bosses individuais -> quest), RLS de leitura pública, sem account_id. Usada pro filtro de quest no DropFormModal — ver businessLogic.bossQuestFilter.",
-        "20260814050000_create_boss_items_table.sql — cria tabela boss_items (404 linhas boss->item, FK pra boss_quests), RLS de leitura pública. Substitui BOSS_ITEMS pro dropdown de Item; inclui a correção de que 'Grand Sanguine *' só cai do Bakra — ver businessLogic.bossItemsMigration."
+        "20260814050000_create_boss_items_table.sql — cria tabela boss_items (404 linhas boss->item, FK pra boss_quests), RLS de leitura pública. Substitui BOSS_ITEMS pro dropdown de Item; inclui a correção de que 'Grand Sanguine *' só cai do Bakra — ver businessLogic.bossItemsMigration.",
+        "20260816000000_add_default_seller_to_members.sql — adiciona members.is_default_seller (Vendedor Padrão, índice único parcial) — ver modules.settings.defaultSeller.",
+        "20260817010000_create_tibia_events_table.sql — cria tabela tibia_events (11 linhas seed, eventos oficiais anuais fixos com bônus de rapid respawn/XP/poção), RLS de leitura pública, sem account_id (dado universal do jogo, recorrente por mês/dia sem ano). Plugada na faixa de evento do Histórico — ver modules.calendar-historico.dayIndicators.event e dataModels.TibiaEvent."
       ],
       "tables": {
         "accounts": { "columns": ["id (uuid pk)", "party_name", "type ('party'|'solo')", "created_at", "user_id (uuid, unique, fk auth.users — desde 2026-08-14, liga a conta ao login que pode acessá-la)"] },
@@ -288,6 +292,10 @@
           "columns": ["boss (text, fk boss_quests.boss, on delete cascade)", "item (text not null)"],
           "constraint": "primary key (boss, item)",
           "note": "Sem account_id — dado universal do jogo. RLS de leitura pública. 404 linhas, migration 20260814050000 (2026-08-14) — substitui BOSS_ITEMS (services/lootdrop/boss-items-data.ts) pro dropdown de Item no DropFormModal. Inclui correção de dado pedida pelo usuário: 'Grand Sanguine *' (11 itens) só pro Bakra, não pros outros 4 bosses de Rotten Blood — ver businessLogic.bossItemsMigration. Consumida via useBossItems()."
+        },
+        "tibia_events": {
+          "columns": ["id (uuid pk)", "name (text)", "start_month/start_day/end_month/end_day (int, SEM ano — data recorrente todo ano)", "categories (text[]: rapid_respawn|xp_boost|potion_boost)", "description (text)", "created_at"],
+          "note": "Sem account_id — dado universal do jogo. RLS de leitura pública. 11 linhas seed, migration 20260817010000 (2026-08-17) — eventos oficiais anuais fixos da CipSoft (levantados manualmente em tibiawiki.com.br, scraping automático do calendário oficial bloqueado por Cloudflare Managed Challenge tanto em tibia.com quanto em tibia.fandom.com — ver knownIssuesAndGotchas). Colours of Magic e The Great Expedition têm resultado variável por edição (mundo vota entre opções) — categories cobre TODO o pool de possibilidades, não uma garantia do ano específico. Consumida via useTibiaEvents() pra faixa de evento no Histórico — ver modules.calendar-historico.dayIndicators.event."
         }
       },
       "envVars": ["VITE_SUPABASE_URL", "VITE_SUPABASE_PUBLISHABLE_KEY"],
@@ -403,6 +411,20 @@
   },
 
   "knownIssuesAndGotchas": [
+    {
+      "id": "tibia-com-e-fandom-bloqueados-por-cloudflare-managed-challenge",
+      "severity": "info (não é bug do projeto, é limitação externa confirmada por teste)",
+      "area": "Pesquisa/integração externa",
+      "description": "Testado em 2026-08-17 (não é suposição): tanto https://www.tibia.com/news/?subtopic=eventcalendar quanto https://tibia.fandom.com/wiki/Upcoming_Events estão atrás de Cloudflare Managed Challenge — um `fetch()` de servidor (Node, mesmo com User-Agent de navegador real) recebe a página de desafio JS ('Just a moment...', HTTP 403), nunca o conteúdo real. Isso vale pra QUALQUER scraper simples, independente de linguagem — inclusive a lib Python `Tibia.py` (`fetch_event_schedule()`), que faz o mesmo tipo de request HTTP comum. Só um navegador real executando JS (headless completo tipo Playwright/Puppeteer, ou uma sessão de browser interativa) consegue passar pelo desafio. Isso inviabiliza rodar esse scraping dentro de uma Vercel Function no fluxo 'buscar toda vez que o usuário loga' sem adicionar um headless browser pesado/frágil ao projeto. Decisão do usuário: deixar a automação disso pra pensar depois — ver [[integracao-eventos-tibia]] na memória do projeto. NÃO tentar de novo com fetch simples achando que foi falta de header, já foi testado com header de navegador completo e continuou bloqueado.",
+      "howToVerify": "curl/fetch pra qualquer uma dessas 2 URLs — resposta sempre é a página de challenge Cloudflare (título 'Just a moment...'), não o HTML de verdade."
+    },
+    {
+      "id": "tibia-events-precisa-de-migration-antes-da-faixa-aparecer",
+      "severity": "médio (a faixa de evento no Histórico fica invisível até rodar)",
+      "area": "Supabase / módulo calendar-historico",
+      "description": "A tabela tibia_events (migration supabase/migrations/20260817010000_create_tibia_events_table.sql, 2026-08-17) ainda não foi rodada no SQL Editor até a última verificação. Enquanto isso, useTibiaEvents() cai no catch (tabela não existe), events fica [] e o Histórico simplesmente não mostra nenhuma faixa/🚩 — degrada bem, não quebra nada, só fica sem o recurso.",
+      "howToVerify": "Acessar /calendario num mês com evento conhecido (ex: agosto, The Great Expedition dia 5-18) — se não aparecer nenhuma faixa laranja/🚩, a migration não rodou ainda."
+    },
     {
       "id": "members-precisa-migration-e-flag-antes-de-ir-pro-ar",
       "severity": "alto (bloqueia Dashboard/Histórico/Histórico de XP mostrarem membros em produção)",
