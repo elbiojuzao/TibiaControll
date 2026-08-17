@@ -106,6 +106,15 @@ export function DashboardPage() {
 
   const { drops, loading, error } = useLootDrops(accountId, filters);
 
+  // Ordem de exibição da tabela "Drops no mês" (2026-08-17, pedido do usuário): vendidos
+  // primeiro, depois pendentes; dentro de cada grupo, maior Valor Total primeiro. Vem do
+  // banco só por data — a ordenação é só de exibição, não muda `drops` em si (usado em
+  // stats/KPIs acima, que não dependem de ordem).
+  const sortedDrops = useMemo(
+    () => [...drops].sort((a, b) => Number(b.sold) - Number(a.sold) || b.totalValue - a.totalValue),
+    [drops],
+  );
+
   // KKs Hunt/KKs Boss = soma do profit individual (aba "Boss hunt" da planilha, já
   // dividido por 4/5) dos dias dentro do Mês/Ano selecionado ao lado — mesmo range
   // usado pra filtrar "Drops no mês".
@@ -254,7 +263,7 @@ export function DashboardPage() {
               {!loading && !error && drops.length > 0 && (
                 <table className="tabela-simples">
                   <tbody>
-                    {drops.map((drop, idx) => {
+                    {sortedDrops.map((drop, idx) => {
                       const isSold = drop.sold;
                       const rowBg = isSold ? 'var(--color-success-soft)' : 'var(--color-danger-soft)';
                       return (
