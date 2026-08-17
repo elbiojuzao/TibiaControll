@@ -155,7 +155,7 @@
       "path": "src/modules/xp-historico/",
       "routes": ["/historico-xp"],
       "purpose": "Página própria (não é aba do Calendário — decisão explícita do usuário) com tabela dos últimos 30 dias de XP por personagem + total do período.",
-      "keyFiles": { "XpHistoricoPage.tsx": "112 linhas." },
+      "keyFiles": { "XpHistoricoPage.tsx": "Seletor de janela 30/60/90/120/365 dias (2026-08-17, filtro client-side sobre o `series` completo que useXpSheet já trazia — nenhuma mudança no servidor) + 2 PÓDIOS lado a lado (componente `Podium` genérico, degraus decrescentes por posição — não por valor, medalha 🥇🥈🥉 pros 3 primeiros): 'Recorde de XP num dia — últimos 365 dias' (maior XP num único dia, mostra a data) e 'Melhor mês de XP' (soma por MÊS CALENDÁRIO real — dia 1 ao último dia do mês, não janela corrida de 30 dias — mostra qual mês foi; independente do seletor de janela da tabela abaixo)." },
       "dataSource": "useXpSheet (planilha, cacheada 1x/dia — ver businessLogic.xpSheetCache)."
     },
 
