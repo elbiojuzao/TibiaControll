@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Modal } from '@/components/common/Modal';
 import { useBossQuests } from '@/hooks/useBossQuests';
 import { useQuestFilter } from '@/hooks/useQuestFilter';
@@ -153,6 +153,61 @@ function computeTransferInstructions(
   return { instructions, missingCharacterShares };
 }
 
+interface ShareEntry {
+  name: string;
+  amount: number;
+}
+
+/** Mesma quebra de cota 50/50 de computeTransferInstructions, mas pra montar a
+ * mensagem de aviso de venda (2026-08-16, pedido do usuário) — SEM excluir quem paga
+ * (ele também tem uma cota, só não recebe comando `transfer` pra si mesmo) e sempre com
+ * o nome real (nunca o boneco, que só serve pro comando de transferência em si). */
+function computeShareBreakdown(
+  party: { ek: string; ed: string; ms: string; rp: string; fifthPlayer: string },
+  services: ServiceDraft[],
+  serviceiros: Serviceiro[],
+  unitValue: number,
+): { playerShares: ShareEntry[]; serviceiroShares: ShareEntry[] } {
+  const slots = [party.ek, party.ed, party.ms, party.rp, party.fifthPlayer].filter(Boolean);
+  const playerShares: ShareEntry[] = [];
+  const serviceiroShares: ShareEntry[] = [];
+
+  for (const slotName of slots) {
+    const servants = services.filter((s) => s.serviceiroId && s.servedCharacterName === slotName);
+    if (servants.length === 0) {
+      if (unitValue > 0) playerShares.push({ name: slotName, amount: unitValue });
+      continue;
+    }
+    const servantPool = Math.round(unitValue * 0.5);
+    const perServant = Math.round(servantPool / servants.length);
+    const ownerShare = unitValue - servantPool;
+    if (ownerShare > 0) playerShares.push({ name: slotName, amount: ownerShare });
+    for (const servant of servants) {
+      const serviceiro = serviceiros.find((s) => s.id === servant.serviceiroId);
+      if (serviceiro && perServant > 0) serviceiroShares.push({ name: serviceiro.name, amount: perServant });
+    }
+  }
+
+  return { playerShares, serviceiroShares };
+}
+
+/** Mensagem pronta pra avisar a party da venda no WhatsApp — formato exato pedido pelo
+ * usuário em 2026-08-16 (item/boss em negrito, valor da venda, lista de cada um com sua
+ * parte, total no fim). */
+function buildSaleMessage(itemName: string, bossName: string, totalValue: number, playerShares: ShareEntry[], serviceiroShares: ShareEntry[]): string {
+  const lines = [
+    `*${itemName} — ${bossName}*`,
+    `💰 Venda: *${formatTibiaGold(totalValue)}*`,
+    '',
+    '',
+    ...playerShares.map((p) => `* ${p.name} — ${formatTibiaGold(p.amount)}`),
+    ...serviceiroShares.map((s) => `* ${s.name} — ${formatTibiaGold(s.amount)}`),
+    '',
+    `*Total: ${formatTibiaGold(totalValue)}*`,
+  ];
+  return lines.join('\n');
+}
+
 export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSubmit }: DropFormModalProps) {
   const byVocation = (v: Vocation) => members.find((m) => m.vocation === v)?.characterName ?? '';
   const wasSold = mode === 'edit' ? drop!.sold : false;
@@ -179,7 +234,13 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
   const [sold, setSold] = useState(wasSold);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  // Uma vez copiado, o botão fica marcado como pago permanentemente (não reverte
+  // sozinho) — pedido do usuário em 2026-08-16, pra saber visualmente quais
+  // transferências já foram feitas no jogo. Clicar de novo no botão marcado copia de
+  // novo (útil se precisar colar outra vez), só não desmarca.
+  const [doneIndices, setDoneIndices] = useState<Set<number>>(new Set());
+  const [waMessage, setWaMessage] = useState('');
+  const [waCopied, setWaCopied] = useState(false);
 
   const { bosses: allBosses, bossToQuest, quests, error: bossQuestsError } = useBossQuests();
   const { isQuestChecked, toggleQuest } = useQuestFilter();
@@ -251,10 +312,36 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
     [sold, ek, ed, ms, rp, fifthPlayer, serviceDrafts, serviceiros, unitValue, defaultSeller],
   );
 
+  // Quebra de cota por pessoa (inclui quem paga, diferente de transferInstructions) só
+  // pra montar a mensagem de aviso de venda — ver buildSaleMessage.
+  const { playerShares, serviceiroShares } = useMemo(
+    () => (sold
+      ? computeShareBreakdown({ ek, ed, ms, rp, fifthPlayer }, serviceDrafts, serviceiros, unitValue)
+      : { playerShares: [], serviceiroShares: [] }),
+    [sold, ek, ed, ms, rp, fifthPlayer, serviceDrafts, serviceiros, unitValue],
+  );
+
+  const defaultSaleMessage = useMemo(
+    () => buildSaleMessage(itemName, bossName, totalNumber, playerShares, serviceiroShares),
+    [itemName, bossName, totalNumber, playerShares, serviceiroShares],
+  );
+
+  // Mensagem editável — sincroniza com o texto gerado automaticamente sempre que os
+  // dados do drop mudam; depois disso o usuário pode ajustar livremente antes de copiar.
+  // Reseta o "copiado" junto, já que uma mensagem nova precisa ser copiada de novo.
+  useEffect(() => {
+    setWaMessage(defaultSaleMessage);
+    setWaCopied(false);
+  }, [defaultSaleMessage]);
+
   const handleCopyCommand = (commandText: string, index: number) => {
     navigator.clipboard.writeText(commandText);
-    setCopiedIndex(index);
-    setTimeout(() => setCopiedIndex(null), 2000);
+    setDoneIndices((prev) => new Set(prev).add(index));
+  };
+
+  const handleCopyMessage = () => {
+    navigator.clipboard.writeText(waMessage);
+    setWaCopied(true);
   };
 
   const handleBossChange = (value: string) => {
@@ -563,9 +650,10 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
                   <button
                     type="button"
                     onClick={() => handleCopyCommand(t.tibiaCommand, idx)}
+                    title={doneIndices.has(idx) ? 'Já copiado — clique pra copiar de novo' : 'Copiar comando'}
                     style={{
-                      background: copiedIndex === idx ? 'var(--color-success)' : 'var(--color-border)',
-                      color: 'var(--color-text)',
+                      background: doneIndices.has(idx) ? 'var(--color-success)' : 'var(--color-border)',
+                      color: doneIndices.has(idx) ? 'var(--color-bg)' : 'var(--color-text)',
                       border: 'none',
                       padding: '6px 12px',
                       borderRadius: 'var(--radius-sm)',
@@ -576,7 +664,7 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
                       minWidth: '65px',
                     }}
                   >
-                    {copiedIndex === idx ? 'Copiado!' : 'Copiar'}
+                    {doneIndices.has(idx) ? '✓ Pago' : 'Copiar'}
                   </button>
                 </div>
               ))}
@@ -620,6 +708,30 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {mode === 'edit' && sold && (playerShares.length > 0 || serviceiroShares.length > 0) && (
+          <div className="card-compacto">
+            <h4 style={{ fontSize: '13px', margin: '0 0 10px 0', color: 'var(--color-text)' }}>Avisar a venda no WhatsApp:</h4>
+            <textarea
+              rows={8}
+              value={waMessage}
+              onChange={(e) => {
+                setWaMessage(e.target.value);
+                setWaCopied(false);
+              }}
+              className="campo-input texto-mono"
+              style={{ marginTop: 0, fontSize: '12px', resize: 'vertical' }}
+            />
+            <button
+              type="button"
+              onClick={handleCopyMessage}
+              className="botao-primario"
+              style={{ marginTop: '8px', background: waCopied ? 'var(--color-success)' : undefined }}
+            >
+              {waCopied ? '✓ Copiado' : '📋 Copiar Mensagem'}
+            </button>
           </div>
         )}
 
