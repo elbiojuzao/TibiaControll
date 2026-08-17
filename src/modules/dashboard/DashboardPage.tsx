@@ -42,7 +42,7 @@ function getMetaCellStyle(val: string) {
 }
 
 export function DashboardPage() {
-  const { account, accountId, loading: accountLoading } = useAccount();
+  const { accountId, loading: accountLoading } = useAccount();
   const { members } = useMembers(accountId);
   const liveStats = useMemberLiveStats(members);
   const { statsByName } = useMemberXpStats(accountId);
@@ -211,14 +211,6 @@ export function DashboardPage() {
 
   return (
     <div className="dashboard-container" style={{ padding: '20px', maxWidth: '1700px', margin: '0 auto', color: 'var(--color-text)' }}>
-
-      {/* CABEÇALHO */}
-      <header className="page-header" style={{ marginBottom: '20px', borderBottom: '1px solid var(--color-border)', paddingBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <h2 style={{ margin: 0, fontSize: '20px' }}>Dashboard — {account?.partyName}</h2>
-          <p className="subtitulo-pagina">Painel geral de controle de indicadores, XP e histórico da party</p>
-        </div>
-      </header>
 
       {/* LAYOUT EM GRID: 3 COLUNAS */}
       <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 2.1fr 1.1fr', gap: '20px' }}>
