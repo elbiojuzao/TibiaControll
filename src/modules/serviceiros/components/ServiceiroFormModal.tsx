@@ -16,13 +16,16 @@ interface ServiceiroFormModalProps {
 }
 
 /** Formulário de criar/editar Serviceiro — antes vivia inline na página (2026-08-16:
- * virou modal, mesmo padrão de DropFormModal.tsx/MemberFormModal.tsx). O telefone nunca
- * é preenchido automaticamente ao editar (número não é exibido em lugar nenhum da UI,
- * ver [[modulo_serviceiros]]) — campo em branco = mantém o telefone atual. */
+ * virou modal, mesmo padrão de DropFormModal.tsx/MemberFormModal.tsx). O telefone
+ * aparece pré-preenchido no modo edição (2026-08-17, pedido do usuário — antes ficava
+ * sempre em branco de propósito, ver [[modulo_serviceiros]]): dá pra ver o número atual,
+ * editar, ou apagar o campo pra remover o telefone (fica '' — a coluna é NOT NULL mas
+ * aceita string vazia, sem precisar de migration). Continua não aparecendo em nenhum
+ * outro lugar da UI (cards, hover) — só dentro deste modal. */
 export function ServiceiroFormModal({ mode, serviceiro, onClose, onSubmit }: ServiceiroFormModalProps) {
   const [formName, setFormName] = useState(mode === 'edit' ? serviceiro!.name : '');
   const [formCharacterName, setFormCharacterName] = useState(mode === 'edit' ? serviceiro!.characterName : '');
-  const [formPhone, setFormPhone] = useState('');
+  const [formPhone, setFormPhone] = useState(mode === 'edit' ? serviceiro!.phoneNumber : '');
   const [formVocations, setFormVocations] = useState<Vocation[]>(mode === 'edit' ? serviceiro!.vocations : []);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -43,6 +46,10 @@ export function ServiceiroFormModal({ mode, serviceiro, onClose, onSubmit }: Ser
       setFormError('Informe o nome do boneco usado para pagamento.');
       return;
     }
+    // No create, telefone é obrigatório. No edit, o campo já vem preenchido com o
+    // número atual (2026-08-17) — deixar em branco agora significa "remover o
+    // telefone", não mais "manter o atual" (esse comportamento antigo só fazia
+    // sentido quando o campo escondia o valor salvo).
     if (mode === 'create' && digitsOnly.length < 10) {
       setFormError('Informe um telefone válido, com DDI e DDD (ex: 5511999998888).');
       return;
@@ -58,21 +65,12 @@ export function ServiceiroFormModal({ mode, serviceiro, onClose, onSubmit }: Ser
 
     setSaving(true);
     try {
-      if (mode === 'edit') {
-        await onSubmit({
-          name: trimmedName,
-          characterName: trimmedCharacterName,
-          vocations: formVocations,
-          ...(digitsOnly ? { phoneNumber: digitsOnly } : {}),
-        });
-      } else {
-        await onSubmit({
-          name: trimmedName,
-          characterName: trimmedCharacterName,
-          phoneNumber: digitsOnly,
-          vocations: formVocations,
-        });
-      }
+      await onSubmit({
+        name: trimmedName,
+        characterName: trimmedCharacterName,
+        phoneNumber: digitsOnly,
+        vocations: formVocations,
+      });
       onClose();
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'Erro ao salvar serviceiro.');
@@ -113,7 +111,7 @@ export function ServiceiroFormModal({ mode, serviceiro, onClose, onSubmit }: Ser
             type="text"
             value={formPhone}
             onChange={(e) => setFormPhone(e.target.value)}
-            placeholder={mode === 'edit' ? 'Deixe em branco pra manter o atual' : 'Ex: 5511999998888'}
+            placeholder="Ex: 5511999998888"
             className="campo-input"
           />
         </label>

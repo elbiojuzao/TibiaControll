@@ -69,6 +69,7 @@ export function ServiceirosPage() {
 
       {modalMode && (
         <ServiceiroFormModal
+          key={editingServiceiro?.id ?? 'create'}
           mode={modalMode}
           serviceiro={editingServiceiro ?? undefined}
           onClose={closeModal}

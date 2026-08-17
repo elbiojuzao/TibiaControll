@@ -118,6 +118,7 @@ export function SettingsPage() {
 
       {modalMode && (
         <MemberFormModal
+          key={editingMember?.id ?? 'create'}
           mode={modalMode}
           member={editingMember ?? undefined}
           onClose={closeModal}
