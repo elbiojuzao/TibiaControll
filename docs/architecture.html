@@ -598,7 +598,7 @@
           <dl class="kv-list">
             <dt>Rota</dt><dd><code>/serviceiros</code></dd>
             <dt>Dado</dt><dd><code>Serviceiro</code> via <code>IServiceiroRepository</code> — Mock ou Http/Supabase por <code>VITE_SERVICEIROS_USE_SUPABASE</code>.</dd>
-            <dt>Atenção</dt><dd>Telefone nunca é exibido na UI — só usado pra montar o link <code>wa.me</code>. "Excluir" é soft delete (<code>serviceiros.hidden</code>, 2026-08-14) — nunca apaga de verdade, só esconde; cadastrar de novo com o mesmo telefone reativa em vez de duplicar (ver Problemas conhecidos).</dd>
+            <dt>Atenção</dt><dd>Telefone não aparece nos cards/hover da listagem — só usado pra montar o link <code>wa.me</code>. <b>Exceção (2026-08-17)</b>: dentro do modal de edição o telefone atual vem pré-preenchido, editável ou removível (campo vazio = telefone removido). "Excluir" é soft delete (<code>serviceiros.hidden</code>, 2026-08-14) — nunca apaga de verdade, só esconde; cadastrar de novo com o mesmo telefone reativa em vez de duplicar (ver Problemas conhecidos).</dd>
             <dt>UI (2026-08-16)</dt><dd>Criar/editar abre em <code>ServiceiroFormModal.tsx</code> (não mais form inline — ver Convenções). Lista virou <b>grid de cards pequenos/quadrados</b> ("como cartas", pedido do usuário) em vez de linhas horizontais: <code>grid-template-columns: repeat(auto-fill, minmax(150px, 1fr))</code>.</dd>
           </dl>
         </div>
