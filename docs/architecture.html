@@ -571,9 +571,12 @@
           <p>Calendário mensal — hover mostra resumo rápido, clique abre modal completo com Boss/Hunt (planilha), XP por jogador (planilha) e Drops daquele dia.</p>
           <dl class="kv-list">
             <dt>Rota</dt><dd><code>/calendario</code></dd>
-            <dt>Dado</dt><dd><code>LootDrop</code> (real) pros dots/hover de item; <code>useXpSheet</code> + <code>useBossHuntSheet</code> (planilha) pros dots de Boss/Hunt, hover e modal de clique.</dd>
+            <dt>Dado</dt><dd><code>LootDrop</code> (real) pros dots/hover de item; <code>useXpSheet</code> + <code>useBossHuntSheet</code> (planilha) pros dots de Boss/Hunt, hover e modal de clique; <code>useTibiaEvents</code> (tabela <code>tibia_events</code>) pra faixa de evento oficial.</dd>
             <dt>Bolinhas do dia</dt><dd>
-              Legenda acima do grid (2026-08-10). <span style="color:#38bdf8">●</span> <b>Boss</b> = existe valor de boss na planilha nesse dia · <span style="color:#f59e0b">●</span> <b>Hunt</b> = existe valor de hunt na planilha nesse dia (substituiu a bolinha antiga baseada no <code>Hunt</code> mock) · <span style="color:#a29bfe">●</span> <b>Item</b> = 1 bolinha por drop do dia, não mais combinada.
+              Legenda acima do grid (2026-08-10). <span style="color:#38bdf8">●</span> <b>Boss</b> = existe valor de boss na planilha nesse dia · <span style="color:#f59e0b">●</span> <b>Hunt</b> = existe valor de hunt na planilha nesse dia (substituiu a bolinha antiga baseada no <code>Hunt</code> mock) · <span style="color:#a29bfe">●</span> <b>Item</b> = 1 bolinha por drop do dia, não mais combinada (2026-08-17: cor corrigida pra roxo/lavanda de verdade — o CSS usava a mesma cor do Boss por engano, apesar da lavanda já ser a intenção documentada desde o início).
+            </dd>
+            <dt>Faixa de evento (2026-08-17)</dt><dd>
+              Borda superior colorida no card do dia — pedido do usuário: "uma bandeira uma faixa algo para identificar que aquele dia foi um dia de evento". 1 faixa se o dia (mês/dia, sem ano) cai dentro de algum evento oficial fixo em <code>tibia_events</code>. Tooltip e modal mostram nome + categorias (🐇 rapid_respawn / ⭐ xp_boost / 🧪 potion_boost) + descrição completa do bônus. O emoji 🚩 fica só no tooltip/modal — a 1ª versão também colocava 🚩 solto em cada dia do grid e na legenda, mas o usuário pediu pra tirar dos dois: grid ficou só com a borda ("achei que a bandeira ficou muito poluido somente ter a borda amarela ja ficou bem melhor"), e a legenda ganhou um quadradinho amarelo (<code>.calendar-swatch.event</code>) consistente com os dots de Boss/Hunt/Item.
             </dd>
             <dt>Atenção</dt><dd>A <i>lista de texto</i> de Hunts mock (não a bolinha) ainda existe no hover e alimenta <code>findLatestActivityDate</code>, mas foi <b>removida do modal</b> de clique (redundante com Boss/Hunt real).</dd>
           </dl>
@@ -707,6 +710,17 @@
           </table>
           <div class="schema-note"><code>previsaoFimAno</code> (2026-08-10) e <code>metas</code> (2026-08-14) foram <b>removidos</b> daqui — nenhum dos dois é mock nem fica misturado nesse objeto, ambos são computados à parte no <code>DashboardPage.tsx</code> (ver módulo Dashboard).</div>
         </div>
+
+        <div class="schema-card">
+          <div class="schema-head"><span class="name">TibiaEvent</span><span class="src">src/types/tibia-event.ts</span></div>
+          <table class="fields">
+            <tr><td class="f-name">id, name</td><td class="f-type">string</td></tr>
+            <tr><td class="f-name">startMonth/startDay/endMonth/endDay</td><td class="f-type">number (SEM ano, recorrente)</td></tr>
+            <tr><td class="f-name">categories</td><td class="f-type">('rapid_respawn'|'xp_boost'|'potion_boost')[]</td></tr>
+            <tr><td class="f-name">description</td><td class="f-type">string</td></tr>
+          </table>
+          <div class="schema-note">Supabase: tabela <code>tibia_events</code> (dado universal do jogo, sem <code>account_id</code>). Evento oficial anual fixo da CipSoft. <code>isDayInTibiaEvent(month, day, event)</code> em <code>useTibiaEvents.ts</code> compara mês/dia (ignora ano) pra saber se um dia do calendário cai dentro do evento.</div>
+        </div>
       </div>
 
       <div class="card" style="margin-top:14px; border-color: var(--danger); background: var(--danger-soft);">
@@ -830,6 +844,17 @@
           </table>
           <div class="schema-note">Migration <code>20260814050000_create_boss_items_table.sql</code> (2026-08-14) — 404 linhas, <code>primary key (boss, item)</code>, <b>sem</b> <code>account_id</code>. Substitui <code>BOSS_ITEMS</code> (services/lootdrop/boss-items-data.ts, mantido no repo só como fonte pro script de ícones) pro dropdown de Item no <code>DropFormModal</code>. Inclui correção de dado pedida pelo usuário: "Grand Sanguine *" (11 itens) só aparecem pro <b>Bakra</b>, não pros outros 4 bosses de Rotten Blood — testado no browser (Bakra = 35 itens, Chagorz = 24). Consumida via <code>useBossItems()</code>.</div>
         </div>
+        <div class="schema-card">
+          <div class="schema-head"><span class="name">tibia_events</span><span class="chip chip-real" style="margin-left:6px">real</span></div>
+          <table class="fields">
+            <tr><td class="f-name">id</td><td class="f-type">uuid pk</td></tr>
+            <tr><td class="f-name">name</td><td class="f-type">text not null</td></tr>
+            <tr><td class="f-name">start_month/start_day/end_month/end_day</td><td class="f-type">int (SEM ano — recorrente)</td></tr>
+            <tr><td class="f-name">categories</td><td class="f-type">text[] (rapid_respawn|xp_boost|potion_boost)</td></tr>
+            <tr><td class="f-name">description</td><td class="f-type">text not null</td></tr>
+          </table>
+          <div class="schema-note">Migration <code>20260817010000_create_tibia_events_table.sql</code> (2026-08-17) — 11 linhas seed, <b>sem</b> <code>account_id</code>, dado universal do jogo. Eventos oficiais anuais fixos da CipSoft com os bônus reais que concedem, levantados manualmente em tibiawiki.com.br (scraping automático do calendário oficial bloqueado por Cloudflare — ver Problemas conhecidos). "The Colours of Magic" e "The Great Expedition" têm resultado variável por edição (mundo vota entre opções) — <code>categories</code> cobre todo o pool de possibilidades. Consumida via <code>useTibiaEvents()</code> pra faixa de evento no Histórico.</div>
+        </div>
       </div>
       <div class="callout" style="margin-top:6px; border-color: var(--accent); background: var(--accent-soft);">
         <span class="dot" style="color:var(--accent)">✓</span>
@@ -950,6 +975,22 @@
       <p class="section-intro">Coisas que já morderam nesta sessão — ler antes de reintroduzir o mesmo padrão.</p>
 
       <div class="card">
+        <div class="issue">
+          <span class="chip chip-issue-info">info</span>
+          <div>
+            <p class="issue-title">tibia.com e tibia.fandom.com bloqueados por Cloudflare Managed Challenge</p>
+            <p class="issue-area">Pesquisa/integração externa</p>
+            <p class="issue-desc">Testado em 2026-08-17 (não é suposição): tanto <code>tibia.com/news/?subtopic=eventcalendar</code> quanto <code>tibia.fandom.com/wiki/Upcoming_Events</code> devolvem a página de desafio JS do Cloudflare ("Just a moment...", HTTP 403) pra qualquer <code>fetch()</code> de servidor, mesmo com User-Agent de navegador real. Vale pra qualquer scraper simples, independente de linguagem — inclusive a lib Python <code>Tibia.py</code>. Só um navegador real executando JS passa pelo desafio. Inviabiliza rodar esse scraping numa Vercel Function no fluxo "buscar toda vez que o usuário loga" sem um headless browser pesado. Decisão do usuário: automação disso fica pra depois.</p>
+          </div>
+        </div>
+        <div class="issue">
+          <span class="chip chip-issue-medio">médio</span>
+          <div>
+            <p class="issue-title">tibia_events precisa da migration antes da faixa de evento aparecer</p>
+            <p class="issue-area">Supabase / módulo calendar-historico</p>
+            <p class="issue-desc">A tabela <code>tibia_events</code> (migration <code>20260817010000_create_tibia_events_table.sql</code>, 2026-08-17) precisa ser rodada no SQL Editor. Enquanto isso, <code>useTibiaEvents()</code> cai no catch, <code>events</code> fica vazio e o Histórico simplesmente não mostra faixa/🚩 nenhuma — degrada bem, não quebra nada.</p>
+          </div>
+        </div>
         <div class="issue">
           <span class="chip chip-issue-alto">alto</span>
           <div>

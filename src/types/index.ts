@@ -28,6 +28,7 @@ export type {
 export type { DayActivity } from './calendar';
 export type { Serviceiro, CreateServiceiroDto } from './serviceiro';
 export type { MemberXpStats } from './dashboard-stats';
+export type { TibiaEvent, TibiaEventCategory } from './tibia-event';
 export type { PartySettings } from './party-settings';
 export type { XpCharacterStats, XpDailyEntry } from './xp-sheet';
 

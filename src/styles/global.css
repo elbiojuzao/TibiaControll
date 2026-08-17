@@ -1016,6 +1016,13 @@ table {
   font-weight: 700;
 }
 
+/* Faixa de dia de evento oficial (2026-08-17, pedido do usuário: "uma bandeira uma
+   faixa algo para identificar que aquele dia foi um dia de evento") — borda superior
+   colorida, some junto com o resto do card quando não há evento nesse dia. */
+.calendar-day.has-event {
+  border-top: 3px solid var(--color-warning);
+}
+
 .calendar-day-number {
   font-size: 0.8rem;
   color: var(--color-text);
@@ -1033,9 +1040,26 @@ table {
   border-radius: 50%;
 }
 
+/* Quadradinho da legenda de "Evento oficial" (2026-08-17, pedido do usuário: "um
+   quadradinho amarelo na legenda em vez da bandeira") — mesma cor da borda usada no
+   card do dia (.calendar-day.has-event), só que quadrado em vez de bolinha, pra não
+   confundir com os dots de Boss/Hunt/Item que já são círculos. */
+.calendar-swatch {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.calendar-swatch.event { background: var(--color-warning); }
+
 .calendar-dot.hunt { background: var(--color-warning); }
 .calendar-dot.boss { background: var(--color-accent); }
-.calendar-dot.drop { background: var(--color-accent); }
+/* Item usava a MESMA cor do Boss (var(--color-accent)) por engano — confundia os dois
+   (pedido do usuário em 2026-08-17: "muito parecido com a cor do boss"). Roxo/lavanda
+   (--cat-1) já era a cor documentada como intenção original, só nunca tinha sido
+   aplicada de fato no CSS. */
+.calendar-dot.drop { background: var(--cat-1); }
 
 .calendar-legend {
   display: flex;
