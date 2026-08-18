@@ -654,6 +654,20 @@ table {
   font-size: 0.875rem;
 }
 
+/* Título de seção dentro de formulário longo (ex: DropFormModal) — divide o form em
+   blocos visuais em vez de uma parede única de campos (2026-08-18, pedido do usuário:
+   "esta meio esquisito, pode ajustar o layout"). */
+.form-section-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-faint);
+  margin: 4px 0 2px 0;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--color-border);
+}
+
 /* Estado vazio ("nenhum X cadastrado ainda") */
 .estado-vazio {
   font-size: 0.8125rem;

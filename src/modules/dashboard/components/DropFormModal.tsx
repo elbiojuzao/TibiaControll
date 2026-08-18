@@ -241,6 +241,9 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
   const [doneIndices, setDoneIndices] = useState<Set<number>>(new Set());
   const [waMessage, setWaMessage] = useState('');
   const [waCopied, setWaCopied] = useState(false);
+  // Filtro de quest fica escondido por padrão (2026-08-18, pedido do usuário: layout
+  // "esquisito" — a parede de 10 checkboxes sempre visível quebrava o fluxo do form).
+  const [showQuestFilter, setShowQuestFilter] = useState(false);
 
   const { bosses: allBosses, bossToQuest, quests, error: bossQuestsError } = useBossQuests();
   const { isQuestChecked, toggleQuest } = useQuestFilter();
@@ -410,14 +413,15 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
   };
 
   return (
-    <Modal title={mode === 'create' ? 'Registro de Drop' : 'Editar Drop'} onClose={onClose}>
+    <Modal title={mode === 'create' ? 'Registro de Drop' : 'Editar Drop'} onClose={onClose} maxWidth={720}>
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-        <label className="label-padrao">
-          Data:
-          <input type="date" value={brToIso(date)} onChange={(e) => setDate(isoToBr(e.target.value))} className="campo-input" />
-        </label>
+        <div className="form-section-title">Composição da party</div>
 
-        <div className="grid-2col">
+        <div className="grid-3col">
+          <label className="label-padrao">
+            Data:
+            <input type="date" value={brToIso(date)} onChange={(e) => setDate(isoToBr(e.target.value))} className="campo-input" />
+          </label>
           <label className="label-padrao">
             EK:
             <select value={ek} onChange={(e) => setEk(e.target.value)} className="campo-input">
@@ -454,32 +458,27 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
               ))}
             </select>
           </label>
+          <label className="label-padrao">
+            5º Player:
+            <select value={fifthPlayer} onChange={(e) => setFifthPlayer(e.target.value)} className="campo-input">
+              <option value={VAZIO}>-- Vazio --</option>
+              {fifthPlayerOptions(serviceiros, fifthPlayer).map((name) => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
+          </label>
         </div>
 
-        <label className="label-padrao">
-          5º Player:
-          <select value={fifthPlayer} onChange={(e) => setFifthPlayer(e.target.value)} className="campo-input">
-            <option value={VAZIO}>-- Vazio --</option>
-            {fifthPlayerOptions(serviceiros, fifthPlayer).map((name) => (
-              <option key={name} value={name}>{name}</option>
-            ))}
-          </select>
-        </label>
-
         <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-            <span className="label-padrao">Serviceiros nesse item</span>
-            <button
-              type="button"
-              onClick={addServiceRow}
-              style={{ background: 'transparent', color: 'var(--color-accent)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '4px 10px', fontSize: '12px', cursor: 'pointer' }}
-            >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <span className="form-section-title" style={{ margin: 0, padding: 0, border: 'none' }}>Serviceiros nesse item</span>
+            <button type="button" onClick={addServiceRow} className="botao-secundario" style={{ padding: '4px 10px', fontSize: '12px' }}>
               + Adicionar Serviceiro
             </button>
           </div>
 
           {serviceDrafts.length === 0 ? (
-            <p style={{ fontSize: '12px', color: 'var(--color-text-faint)', margin: '4px 0' }}>Nenhum serviceiro nesse item.</p>
+            <p className="estado-vazio" style={{ margin: '4px 0' }}>Nenhum serviceiro nesse item.</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {serviceDrafts.map((row, index) => {
@@ -512,12 +511,7 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
                       ))}
                     </select>
-                    <button
-                      type="button"
-                      onClick={() => removeServiceRow(index)}
-                      title="Remover serviceiro do item"
-                      style={{ background: 'transparent', color: 'var(--color-danger)', border: 'none', cursor: 'pointer', fontSize: '15px' }}
-                    >
+                    <button type="button" onClick={() => removeServiceRow(index)} title="Remover serviceiro do item" className="botao-icone-perigo">
                       🗑️
                     </button>
                   </div>
@@ -527,18 +521,7 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
           )}
         </div>
 
-        <div className="grid-2col">
-          <label className="label-padrao">
-            Valor Total:
-            <input type="number" min={0} value={totalValue} onChange={(e) => setTotalValue(e.target.value)} placeholder="0" className="campo-input" />
-          </label>
-          <label className="label-padrao">
-            Valor Cada (calculado):
-            <div className="campo-input" style={{ color: 'var(--color-text-muted)', cursor: 'default' }} title="Valor Total dividido pelo número de jogadores (EK/ED/MS/RP/5º) preenchidos">
-              {formatTibiaGold(unitValue)} {playerCount > 0 ? `(÷ ${playerCount})` : ''}
-            </div>
-          </label>
-        </div>
+        <div className="form-section-title">Boss & item</div>
 
         {bossQuestsError && (
           <span className="texto-perigo" style={{ fontSize: '12px' }}>
@@ -549,22 +532,6 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
           <span className="texto-perigo" style={{ fontSize: '12px' }}>
             Não foi possível carregar a lista de itens ({bossItemsError}).
           </span>
-        )}
-
-        {quests.length > 0 && (
-          <div>
-            <span className="label-padrao" style={{ marginBottom: '6px' }}>
-              Filtrar bosses por quest
-            </span>
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-              {quests.map((quest) => (
-                <label key={quest} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', color: 'var(--color-text-muted)', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={isQuestChecked(quest)} onChange={() => toggleQuest(quest)} />
-                  {quest}
-                </label>
-              ))}
-            </div>
-          </div>
         )}
 
         <div className="grid-2col">
@@ -588,15 +555,52 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
           </label>
         </div>
 
-        <label className="label-padrao">
-          Fragador:
-          <select value={looter} onChange={(e) => setLooter(e.target.value)} className="campo-input">
-            <option value={VAZIO}>-- Vazio --</option>
-            {looterOptions.map((name) => (
-              <option key={name} value={name}>{name}</option>
-            ))}
-          </select>
-        </label>
+        {quests.length > 0 && (
+          <div>
+            <button
+              type="button"
+              onClick={() => setShowQuestFilter((v) => !v)}
+              className="botao-secundario"
+              style={{ padding: '5px 10px', fontSize: '11px' }}
+            >
+              🔍 Filtrar bosses por quest {showQuestFilter ? '▲' : '▼'}
+            </button>
+            {showQuestFilter && (
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '8px' }}>
+                {quests.map((quest) => (
+                  <label key={quest} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', color: 'var(--color-text-muted)', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={isQuestChecked(quest)} onChange={() => toggleQuest(quest)} />
+                    {quest}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="form-section-title">Venda</div>
+
+        <div className="grid-3col">
+          <label className="label-padrao">
+            Valor Total:
+            <input type="number" min={0} value={totalValue} onChange={(e) => setTotalValue(e.target.value)} placeholder="0" className="campo-input" />
+          </label>
+          <label className="label-padrao">
+            Valor Cada (calculado):
+            <div className="campo-input" style={{ color: 'var(--color-text-muted)', cursor: 'default' }} title="Valor Total dividido pelo número de jogadores (EK/ED/MS/RP/5º) preenchidos">
+              {formatTibiaGold(unitValue)} {playerCount > 0 ? `(÷ ${playerCount})` : ''}
+            </div>
+          </label>
+          <label className="label-padrao">
+            Fragador:
+            <select value={looter} onChange={(e) => setLooter(e.target.value)} className="campo-input">
+              <option value={VAZIO}>-- Vazio --</option>
+              {looterOptions.map((name) => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
+          </label>
+        </div>
 
         {mode === 'edit' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
