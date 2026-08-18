@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Modal } from '@/components/common/Modal';
 import { SERVICEIRO_VOCATIONS, VOCATION_ICON, VOCATION_LABEL } from '@/services/vocation/vocation-display';
+import { fetchCharacterBasics, type CharacterBasics } from '@/services/tibiadata/tibiadata-client';
 import type { CreateServiceiroDto, Serviceiro, Vocation } from '@/types';
 
 function toggleVocation(list: Vocation[], vocation: Vocation): Vocation[] {
@@ -29,6 +30,23 @@ export function ServiceiroFormModal({ mode, serviceiro, onClose, onSubmit }: Ser
   const [formVocations, setFormVocations] = useState<Vocation[]>(mode === 'edit' ? serviceiro!.vocations : []);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
+  // undefined = ainda não checou; null = checou e não achou; objeto = achou
+  const [checkResult, setCheckResult] = useState<CharacterBasics | null | undefined>(undefined);
+
+  const handleCheckCharacter = async () => {
+    const name = formCharacterName.trim();
+    if (!name) return;
+    setChecking(true);
+    try {
+      const result = await fetchCharacterBasics(name);
+      setCheckResult(result);
+    } catch {
+      setCheckResult(null);
+    } finally {
+      setChecking(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,13 +113,38 @@ export function ServiceiroFormModal({ mode, serviceiro, onClose, onSubmit }: Ser
           </label>
           <label className="label-padrao">
             Nome do Boneco (pagamento)
-            <input
-              type="text"
-              value={formCharacterName}
-              onChange={(e) => setFormCharacterName(e.target.value)}
-              placeholder="Ex: Dedinho Knight"
-              className="campo-input"
-            />
+            <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
+              <input
+                type="text"
+                value={formCharacterName}
+                onChange={(e) => {
+                  setFormCharacterName(e.target.value);
+                  setCheckResult(undefined);
+                }}
+                placeholder="Ex: Dedinho Knight"
+                className="campo-input"
+                style={{ marginTop: 0, flex: 1 }}
+              />
+              <button
+                type="button"
+                onClick={handleCheckCharacter}
+                disabled={!formCharacterName.trim() || checking}
+                className="botao-secundario"
+                style={{ padding: '0 12px', whiteSpace: 'nowrap', fontSize: '12px' }}
+              >
+                {checking ? 'Checando...' : '🔍 Checar'}
+              </button>
+            </div>
+            {checkResult && (
+              <span className="texto-sucesso" style={{ display: 'block', fontSize: '11px', marginTop: '4px' }}>
+                ✓ Level {checkResult.level} · {checkResult.vocation} · {checkResult.world}
+              </span>
+            )}
+            {checkResult === null && (
+              <span className="texto-perigo" style={{ display: 'block', fontSize: '11px', marginTop: '4px' }}>
+                ✗ Personagem não encontrado — confira o nome
+              </span>
+            )}
           </label>
         </div>
 
