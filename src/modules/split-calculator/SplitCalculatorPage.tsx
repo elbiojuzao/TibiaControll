@@ -19,7 +19,10 @@ export function SplitCalculatorPage() {
   const [rawLog, setRawLog] = useState<string>('');
   const [tcRate, setTcRate] = useState<number>(45000);
   const [members, setMembers] = useState<PartyMember[]>([]);
-  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  // Igual ao DropFormModal (2026-08-16) — uma vez copiado, o botão fica marcado
+  // permanentemente em vez de reverter sozinho em 2s, pra saber visualmente quais
+  // transferências já foram feitas no jogo. Reseta ao reprocessar um log novo.
+  const [doneIndices, setDoneIndices] = useState<Set<number>>(new Set());
   const [parseError, setParseError] = useState<string | null>(null);
 
   // Cola sempre SUBSTITUI o conteúdo inteiro do campo, nunca insere no meio/fim do que
@@ -159,6 +162,7 @@ Zo Tis
     }
 
     setMembers(parsedMembers);
+    setDoneIndices(new Set());
   };
 
   const handleExtraChange = (index: number, field: 'extraTc' | 'extraGold', valueStr: string) => {
@@ -235,8 +239,7 @@ Zo Tis
 
   const handleCopyCommand = (commandText: string, index: number) => {
     navigator.clipboard.writeText(commandText);
-    setCopiedIndex(index);
-    setTimeout(() => setCopiedIndex(null), 2000);
+    setDoneIndices((prev) => new Set(prev).add(index));
   };
 
   return (
@@ -386,9 +389,10 @@ Zo Tis
                       </div>
                       <button
                         onClick={() => handleCopyCommand(t.commandText, idx)}
+                        title={doneIndices.has(idx) ? 'Já copiado — clique pra copiar de novo' : 'Copiar comando'}
                         style={{
-                          background: copiedIndex === idx ? 'var(--color-success)' : 'var(--color-border)',
-                          color: 'var(--color-text)',
+                          background: doneIndices.has(idx) ? 'var(--color-success)' : 'var(--color-border)',
+                          color: doneIndices.has(idx) ? 'var(--color-bg)' : 'var(--color-text)',
                           border: 'none',
                           padding: '6px 12px',
                           borderRadius: 'var(--radius-sm)',
@@ -399,7 +403,7 @@ Zo Tis
                           minWidth: '65px'
                         }}
                       >
-                        {copiedIndex === idx ? 'Copiado!' : 'Copiar'}
+                        {doneIndices.has(idx) ? '✓ Pago' : 'Copiar'}
                       </button>
                     </div>
                   ))}
