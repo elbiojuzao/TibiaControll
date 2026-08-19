@@ -485,7 +485,7 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
                 const serviceiro = serviceiros.find((s) => s.id === row.serviceiroId);
                 const playerOptions = servedPlayerOptions({ ek, ed, ms, rp, fifthPlayer }, row.servedCharacterName);
                 return (
-                  <div key={index} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '8px', alignItems: 'center' }}>
+                  <div key={index} className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '8px', alignItems: 'center' }}>
                     <select
                       value={row.serviceiroId}
                       onChange={(e) => updateServiceRow(index, { serviceiroId: e.target.value, vocation: '' })}

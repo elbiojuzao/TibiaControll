@@ -283,7 +283,7 @@ Zo Tis
         </p>
       </header>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '20px' }}>
+      <div className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '20px' }}>
 
         {/* COLUNA ESQUERDA: LOG E TABELA DE JOGADORES */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>

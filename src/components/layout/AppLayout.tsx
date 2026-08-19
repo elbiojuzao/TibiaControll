@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAccount } from '@/hooks/useAccount';
 import { useAuth } from '@/hooks/useAuth';
@@ -25,6 +26,10 @@ function partyInitial(partyName: string | undefined): string {
 export function AppLayout() {
   const { account, loading } = useAccount();
   const { isAuthenticated, logout } = useAuth();
+  // Menu hambúrguer (2026-08-19, pedido do usuário: "ajustar o sistema para a tela do
+  // celular") — a barra horizontal de navegação não cabe numa tela de celular, então
+  // abaixo de 768px ela vira um painel escondido, aberto/fechado por este botão.
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   if (loading) {
     return <div className="loading">Carregando...</div>;
@@ -33,6 +38,16 @@ export function AppLayout() {
   return (
     <div className="app-layout">
       <header className="topbar">
+        <button
+          type="button"
+          className="topbar-menu-btn"
+          onClick={() => setMobileMenuOpen((prev) => !prev)}
+          aria-label={mobileMenuOpen ? 'Fechar menu' : 'Abrir menu'}
+          aria-expanded={mobileMenuOpen}
+        >
+          {mobileMenuOpen ? '✕' : '☰'}
+        </button>
+
         <div className="topbar-brand">
           <span className="topbar-brand-icon">🐉</span>
           <div>
@@ -41,12 +56,13 @@ export function AppLayout() {
           </div>
         </div>
 
-        <nav className="topbar-nav">
+        <nav className={`topbar-nav${mobileMenuOpen ? ' open' : ''}`}>
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               end={item.to === '/'}
+              onClick={() => setMobileMenuOpen(false)}
               className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
             >
               <span className="nav-link-icon">
@@ -69,7 +85,7 @@ export function AppLayout() {
               {partyInitial(account?.partyName)}
             </button>
             <div className="avatar-panel">
-              <NavLink to="/configuracoes" className="avatar-panel-item">
+              <NavLink to="/configuracoes" className="avatar-panel-item" onClick={() => setMobileMenuOpen(false)}>
                 ⚙️ Configurações
               </NavLink>
               {isAuthenticated ? (
@@ -77,7 +93,7 @@ export function AppLayout() {
                   🚪 Sair
                 </button>
               ) : (
-                <NavLink to="/login" className="avatar-panel-item">
+                <NavLink to="/login" className="avatar-panel-item" onClick={() => setMobileMenuOpen(false)}>
                   🔑 Entrar
                 </NavLink>
               )}
