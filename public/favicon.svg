@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5b7fff"/>
+      <stop offset="1" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <linearGradient id="sack" x1="16" y1="18" x2="48" y2="58" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f2c675"/>
+      <stop offset="1" stop-color="#d89b3f"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="3" y="3" width="58" height="58" rx="14" fill="url(#bg)"/>
+
+  <!-- rope tie loop -->
+  <path d="M26 12 Q32 6 38 12" fill="none" stroke="#7a4a20" stroke-width="3.2" stroke-linecap="round"/>
+
+  <!-- sack body -->
+  <path d="M32 13
+           C 27 13, 23 17, 22 22
+           C 15 25, 9 33, 9 42
+           C 9 53, 19 59, 32 59
+           C 45 59, 55 53, 55 42
+           C 55 33, 49 25, 42 22
+           C 41 17, 37 13, 32 13 Z"
+        fill="url(#sack)" stroke="#7a4a20" stroke-width="2.6" stroke-linejoin="round"/>
+
+  <!-- neck band -->
+  <path d="M21 22 C 24 26, 40 26, 43 22 C 44 25, 44 27, 42 29 C 36 32, 28 32, 22 29 C 20 27, 20 25, 21 22 Z"
+        fill="#c17f2f" stroke="#7a4a20" stroke-width="1.6" stroke-linejoin="round"/>
+
+  <!-- shine -->
+  <ellipse cx="21" cy="34" rx="5" ry="8" fill="#ffffff" opacity="0.25"/>
+
+  <!-- dollar sign -->
+  <text x="32" y="49" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="24" fill="#7a4a20">$</text>
+</svg>

@@ -34,6 +34,7 @@ export function useAccount() {
 
     if (!isAuthenticated) {
       hasFetchedFreshThisSession = false; // próximo login busca de novo, garante dado fresco
+      setLoading(false);
       return;
     }
 

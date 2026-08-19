@@ -12,12 +12,40 @@ interface PartyMember {
   extraGold: number | '';
 }
 
+// Pedido do usuário (2026-08-19): a Cotação TC digitada aqui não pode se perder ao
+// recarregar a página — persiste no localStorage do navegador (não é dado de conta,
+// puramente local, igual ao padrão já usado em account-cache.ts).
+const TC_RATE_STORAGE_KEY = 'tibia-pts:tc-rate';
+
+function readCachedTcRate(): number | null {
+  try {
+    const raw = localStorage.getItem(TC_RATE_STORAGE_KEY);
+    if (!raw) return null;
+    const num = Number(raw);
+    return Number.isFinite(num) ? num : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedTcRate(value: number): void {
+  try {
+    localStorage.setItem(TC_RATE_STORAGE_KEY, String(value));
+  } catch {
+    // localStorage indisponível (aba anônima, quota cheia etc.) — segue sem persistir
+  }
+}
+
 export function SplitCalculatorPage() {
   const { accountId } = useAccount();
   const { settings } = usePartySettings(accountId);
 
   const [rawLog, setRawLog] = useState<string>('');
-  const [tcRate, setTcRate] = useState<number>(45000);
+  const [tcRate, setTcRateState] = useState<number>(() => readCachedTcRate() ?? 45000);
+  const setTcRate = (value: number) => {
+    setTcRateState(value);
+    writeCachedTcRate(value);
+  };
   const [members, setMembers] = useState<PartyMember[]>([]);
   // Igual ao DropFormModal (2026-08-16) — uma vez copiado, o botão fica marcado
   // permanentemente em vez de reverter sozinho em 2s, pra saber visualmente quais
@@ -36,9 +64,11 @@ export function SplitCalculatorPage() {
     setParseError(null);
   };
 
-  // Preenche a cotação de TC com o valor salvo da party assim que carregar (usuário pode editar livremente depois)
+  // Preenche a cotação de TC com o valor salvo da party assim que carregar — só quando
+  // ainda não há nada salvo no localStorage (senão isso sobrescreveria o valor que o
+  // próprio usuário já tinha digitado numa visita anterior).
   useEffect(() => {
-    if (settings) setTcRate(settings.tcGoldRate);
+    if (settings && readCachedTcRate() === null) setTcRateState(settings.tcGoldRate);
   }, [settings]);
 
   // Parser robusto para o formato real do Party Hunt Analyzer do Tibia
