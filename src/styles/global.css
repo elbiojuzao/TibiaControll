@@ -1379,3 +1379,253 @@ table {
 .w290 { width: 290px; }
 .h300 { height: 300px; }
 .w300 { width: 300px; }
+
+/* ============================================================================
+   Responsivo / mobile (2026-08-19, pedido do usuário: "ajustar o sistema para
+   a tela do celular"). Breakpoint único de 768px pra tudo (telefone e tablet
+   retrato) — o app não tinha NENHUMA media query antes disso.
+   ============================================================================ */
+
+/* Botão hambúrguer (AppLayout.tsx) — só existe/aparece abaixo do breakpoint;
+   em telas largas o menu já é a barra horizontal normal. */
+.topbar-menu-btn {
+  display: none;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text);
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.topbar-menu-btn:hover {
+  background: var(--color-bg-hover);
+}
+
+/* Utilitário de grid que "quebra" em menos colunas no mobile — usado nos
+   layouts principais das páginas (SplitCalculatorPage, DashboardPage,
+   TierCalculatorPage etc.) que definem gridTemplateColumns inline. O
+   !important é necessário pra vencer o style inline (é a única forma sem
+   reescrever cada inline style em cada página). */
+.responsive-grid,
+.responsive-grid-2 {
+  /* placeholder: as regras de verdade só existem dentro do media query abaixo,
+     aqui não muda nada em telas largas. */
+}
+
+@media (max-width: 768px) {
+  /* --- Topbar / navegação --- */
+  .topbar {
+    gap: 10px;
+    padding: 0 12px;
+  }
+
+  .topbar-brand {
+    padding-right: 10px;
+    gap: 6px;
+  }
+
+  .topbar-brand h1 {
+    font-size: 0.8rem;
+  }
+
+  .topbar-menu-btn {
+    display: flex;
+  }
+
+  /* Escondida por padrão no mobile — vira painel dropdown de largura cheia
+     quando `.open` (classe controlada pelo estado mobileMenuOpen). */
+  .topbar-nav {
+    display: none;
+  }
+
+  .topbar-nav.open {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--color-bg-elevated);
+    border-bottom: 1px solid var(--color-border);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+    padding: 6px;
+    gap: 2px;
+    z-index: 35;
+    overflow-x: visible;
+  }
+
+  .topbar-nav.open .nav-link {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    width: 100%;
+  }
+
+  .topbar-nav.open .nav-link.active::after {
+    content: none;
+  }
+
+  .topbar-nav.open .nav-link.active {
+    background: var(--color-accent-soft);
+    color: var(--color-accent);
+  }
+
+  .topbar-nav.open .nav-link-label {
+    font-size: 0.82rem;
+  }
+
+  .topbar-nav.open .nav-link-lock {
+    position: static;
+    margin-left: auto;
+  }
+
+  /* "Bostados hoje" ocupa espaço demais ao lado do avatar numa tela estreita —
+     encolhe os ícones em vez de sumir com o widget inteiro. */
+  .boosted-today-inline {
+    padding: 3px 6px;
+    gap: 5px;
+  }
+
+  .boosted-today-chip img {
+    width: 26px;
+    height: 26px;
+  }
+
+  /* --- Conteúdo das páginas --- */
+  .main-content {
+    padding: 0.75rem;
+  }
+
+  /* Todas as páginas usam essa classe como container principal, com padding
+     inline de 20px repetido em cada arquivo — !important pra vencer o inline
+     sem precisar editar as 10 páginas uma por uma. */
+  .dashboard-container {
+    padding: 0.75rem !important;
+  }
+
+  .page-header h2 {
+    font-size: 1.15rem;
+  }
+
+  /* Cabeçalhos que colocam um botão de ação ao lado do título (ex: "+ Cadastrar
+     Membro" em Configurações/Serviceiros, "+ Registrar Drop" em Log de Drops)
+     usam display:flex + justify-content:space-between inline — sem wrap, o
+     título espremia o botão numa coluna estreita. */
+  .page-header {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  /* Layouts de grid principais das páginas (2/3 colunas lado a lado) —
+     empilha em 1 coluna. Ver comentário acima sobre o !important. `min-width:
+     0` nos filhos é necessário porque, por padrão, um item de grid não
+     encolhe abaixo do min-content dos descendentes (ex: a tabela larga da
+     "planilha de membros" no Dashboard) — sem isso a coluna empilhada ainda
+     forçava um scroll horizontal enorme mesmo com 1 coluna só. */
+  .responsive-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .responsive-grid > * {
+    min-width: 0;
+  }
+
+  /* Grades de indicadores/ícones menores — 2 colunas em vez de empilhar tudo
+     (10 stat-boxes empilhados verticalmente ficaria longo demais). */
+  .responsive-grid-2 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Formulários (DropFormModal, ServiceiroFormModal, MemberFormModal etc.) —
+     campos lado a lado ficam apertados demais dentro de um modal de ~330px. */
+  .grid-2col,
+  .grid-3col {
+    grid-template-columns: 1fr;
+  }
+
+  /* --- Modais --- */
+  .modal-overlay {
+    padding: 10px;
+    align-items: flex-start;
+  }
+
+  .modal-card {
+    max-height: 95vh;
+  }
+
+  .modal-header {
+    padding: 14px 16px;
+  }
+
+  .modal-body {
+    padding: 14px;
+  }
+
+  /* --- Calendário --- */
+  /* Cabeçalho (Anterior / mês+Hoje / Próximo) não cabe numa linha só — o grupo do
+     meio (mês + botão "Hoje") vai pra linha de cima, os dois botões de navegação
+     ficam embaixo lado a lado. */
+  .calendar-header {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .calendar-header > div {
+    order: -1;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .calendar-title {
+    font-size: 0.95rem;
+  }
+
+  .calendar-grid {
+    gap: 3px;
+  }
+
+  .calendar-day {
+    min-height: 46px;
+    padding: 4px;
+  }
+
+  .calendar-day-number {
+    font-size: 0.7rem;
+  }
+
+  .calendar-dot {
+    width: 5px;
+    height: 5px;
+  }
+
+  .calendar-weekday {
+    font-size: 0.6rem;
+  }
+}
+
+/* Telefones bem estreitos (iPhone SE e similares, ~320-360px) — o breakpoint de
+   768px sozinho ainda deixava o avatar espremido/cortado na topbar. Some com o
+   nome da party (fica só o ícone + "Tibia PT Manager") pra sobrar espaço. */
+@media (max-width: 400px) {
+  .topbar {
+    gap: 6px;
+    padding: 0 8px;
+  }
+
+  .topbar-brand span {
+    display: none;
+  }
+
+  .topbar-actions {
+    gap: 6px;
+  }
+}

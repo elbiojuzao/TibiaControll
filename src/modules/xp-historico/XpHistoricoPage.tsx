@@ -158,7 +158,7 @@ export function XpHistoricoPage() {
         </p>
       </header>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+      <div className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
         <div className="card-compacto">
           <h3 style={{ fontSize: '14px', margin: '0 0 4px 0', color: 'var(--color-warning)' }}>🏆 Recorde de XP num dia — últimos 365 dias</h3>
           {loading ? <div className="loading">Carregando...</div> : error ? <div className="empty-state">{error}</div> : (

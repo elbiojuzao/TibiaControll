@@ -53,6 +53,7 @@ function RouteTable({ result, title, accentColor }: { result: TierRouteResult; t
           </div>
 
           <div
+            className="responsive-grid"
             style={{
               marginTop: '12px',
               paddingTop: '10px',
@@ -115,7 +116,7 @@ export function TierCalculatorPage() {
         </p>
       </header>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '20px', alignItems: 'start' }}>
+      <div className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '20px', alignItems: 'start' }}>
         <div className="card-compacto" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <h3 style={{ fontSize: '14px', margin: 0, color: 'var(--color-accent)' }}>Parâmetros</h3>
 

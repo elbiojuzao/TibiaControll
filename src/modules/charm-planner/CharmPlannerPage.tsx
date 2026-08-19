@@ -170,7 +170,7 @@ function CharmSection({
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+      <div className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
         <div className="stat-box" style={{ padding: '10px', borderRadius: 'var(--radius)' }}>
           <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'block', marginBottom: '4px' }}>{unitLabel} disponíveis</span>
           <input

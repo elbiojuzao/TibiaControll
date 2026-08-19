@@ -213,7 +213,7 @@ export function DashboardPage() {
     <div className="dashboard-container" style={{ padding: '20px', maxWidth: '1700px', margin: '0 auto', color: 'var(--color-text)' }}>
 
       {/* LAYOUT EM GRID: 3 COLUNAS */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 2.1fr 1.1fr', gap: '20px' }}>
+      <div className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1.2fr 2.1fr 1.1fr', gap: '20px' }}>
 
         {/* COLUNA 1: TABELA "DROPS NO MÊS" + SELETOR */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
@@ -287,7 +287,7 @@ export function DashboardPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
 
           {/* GRADE DE 10 INDICADORES */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px' }}>
+          <div className="responsive-grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px' }}>
             <div className="stat-box">
               <span className="stat-box-rotulo">Qtd Drops</span>
               <strong style={{ fontSize: '14px', color: 'var(--color-text)' }}>{stats.totalDrops}</strong>
