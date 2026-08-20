@@ -14,6 +14,7 @@ import { monthRangeAsBr } from '@/services/common/months';
 import { dateAsBr, todayAsBr } from '@/services/common/br-date';
 import { parseDateKey } from '@/services/calendar';
 import { getItemIconUrl } from '@/services/lootdrop/item-icons';
+import { UnsoldItemsShareModal } from './components/UnsoldItemsShareModal';
 import type { LootDropFilters, MemberXpStats } from '@/types';
 
 const MESES = [
@@ -94,6 +95,7 @@ export function DashboardPage() {
   const [selectedYear, setSelectedYear] = useState<string>(String(now.getFullYear()));
   const [bossFilter] = useState('');
   const [soldFilter] = useState<string>('all');
+  const [showUnsoldShareModal, setShowUnsoldShareModal] = useState(false);
 
   const filters: LootDropFilters = useMemo(() => {
     const { from, to } = monthRangeAsBr(Number(selectedMonth), Number(selectedYear));
@@ -138,12 +140,15 @@ export function DashboardPage() {
   const { drops: allUnsoldDrops, loading: unsoldLoading, error: unsoldError } = useLootDrops(accountId, { sold: false });
 
   const unsoldGrouped = useMemo(() => {
-    const byItem = new Map<string, number>();
+    const byItem = new Map<string, { count: number; totalValue: number }>();
     for (const d of allUnsoldDrops) {
-      byItem.set(d.itemName, (byItem.get(d.itemName) ?? 0) + 1);
+      const existing = byItem.get(d.itemName) ?? { count: 0, totalValue: 0 };
+      existing.count += 1;
+      existing.totalValue += d.totalValue;
+      byItem.set(d.itemName, existing);
     }
     return Array.from(byItem.entries())
-      .map(([itemName, count]) => ({ itemName, count }))
+      .map(([itemName, { count, totalValue }]) => ({ itemName, count, totalValue }))
       .sort((a, b) => b.count - a.count || a.itemName.localeCompare(b.itemName));
   }, [allUnsoldDrops]);
 
@@ -449,9 +454,28 @@ export function DashboardPage() {
           <div className="card-compacto">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1px solid var(--color-border)', paddingBottom: '8px' }}>
               <h3 style={{ fontSize: '14px', margin: 0, color: 'var(--color-warning)' }}>TODOS os Itens não vendidos</h3>
-              <span style={{ fontSize: '12px', background: 'var(--color-bg-input)', padding: '2px 6px', borderRadius: 'var(--radius-sm)' }}>
-                Qtd: {allUnsoldDrops.length}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {unsoldGrouped.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowUnsoldShareModal(true)}
+                    title="Compartilhar itens à venda"
+                    className="botao-icone"
+                    style={{ display: 'flex', alignItems: 'center' }}
+                  >
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="18" cy="5" r="3" fill="currentColor" stroke="none" />
+                      <circle cx="6" cy="12" r="3" fill="currentColor" stroke="none" />
+                      <circle cx="18" cy="19" r="3" fill="currentColor" stroke="none" />
+                      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                    </svg>
+                  </button>
+                )}
+                <span style={{ fontSize: '12px', background: 'var(--color-bg-input)', padding: '2px 6px', borderRadius: 'var(--radius-sm)' }}>
+                  Qtd: {allUnsoldDrops.length}
+                </span>
+              </div>
             </div>
 
             <div style={{ maxHeight: '320px', overflowY: 'auto' }}>
@@ -519,6 +543,10 @@ export function DashboardPage() {
         </div>
 
       </div>
+
+      {showUnsoldShareModal && (
+        <UnsoldItemsShareModal items={unsoldGrouped} onClose={() => setShowUnsoldShareModal(false)} />
+      )}
     </div>
   );
 }
