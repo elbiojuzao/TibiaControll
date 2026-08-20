@@ -170,7 +170,7 @@ export function CalendarioPage() {
         <div className="calendar-legend">
           <span className="calendar-legend-item"><span className="calendar-dot boss" /> Boss</span>
           <span className="calendar-legend-item"><span className="calendar-dot hunt" /> Hunt</span>
-          <span className="calendar-legend-item"><span className="calendar-dot drop" /> Item — 1 bolinha por drop no dia</span>
+          <span className="calendar-legend-item">💎 Item</span>
           <span className="calendar-legend-item"><span className="calendar-swatch event" /> Evento oficial (Rapid Respawn / XP / Poção)</span>
         </div>
 
@@ -214,7 +214,10 @@ export function CalendarioPage() {
                     {hasBoss && <span className="calendar-dot boss" title="Boss" />}
                     {hasHunt && <span className="calendar-dot hunt" title="Hunt" />}
                     {activity?.drops.map((drop) => (
-                      <span key={drop.id} className="calendar-dot drop" title={drop.itemName} />
+                      // 2026-08-20, pedido do usuário: trocar a bolinha roxa (.calendar-dot.drop,
+                      // removida do CSS) pelo mesmo emoji 💎 já usado na lista de Drops do modal
+                      // de detalhes — testado e aprovado antes de virar definitivo.
+                      <span key={drop.id} title={drop.itemName} style={{ fontSize: '8px', lineHeight: 1 }}>💎</span>
                     ))}
                   </div>
                 )}

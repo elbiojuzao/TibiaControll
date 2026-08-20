@@ -1069,11 +1069,9 @@ table {
 
 .calendar-dot.hunt { background: var(--color-warning); }
 .calendar-dot.boss { background: var(--color-accent); }
-/* Item usava a MESMA cor do Boss (var(--color-accent)) por engano — confundia os dois
-   (pedido do usuário em 2026-08-17: "muito parecido com a cor do boss"). Roxo/lavanda
-   (--cat-1) já era a cor documentada como intenção original, só nunca tinha sido
-   aplicada de fato no CSS. */
-.calendar-dot.drop { background: var(--cat-1); }
+/* .calendar-dot.drop (bolinha roxa) foi REMOVIDA em 2026-08-20 — o indicador de item no
+   grid/legenda do calendário virou o emoji 💎 (mesmo já usado na lista de Drops do modal
+   de detalhes), pedido do usuário depois de testar e gostar do resultado. */
 
 .calendar-legend {
   display: flex;
