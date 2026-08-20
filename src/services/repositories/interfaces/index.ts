@@ -53,3 +53,14 @@ export interface IDashboardRepository {
 export interface ISettingsRepository {
   getSettings(accountId: string): Promise<import('@/types').PartySettings>;
 }
+
+/** Splits salvos da Calculadora de Split Loot (2026-08-19) — não confundir com o
+ * ISplitRepository acima (IndividualSplit/huntId), scaffolding antiga do planejamento
+ * original que nunca foi ligada a nenhuma tela real. */
+export interface ISplitLogRepository {
+  create(accountId: string, dto: import('@/types').CreateSplitLogDto): Promise<import('@/types').SplitLog>;
+  findByAccount(accountId: string): Promise<import('@/types').SplitLog[]>;
+  /** Soft delete — esconde TODOS os splits daquele tipo salvos naquele dia (o dia pode
+   * ter mais de um, ver conventions em split_logs). Nunca apaga de verdade. */
+  hide(accountId: string, date: string, type: import('@/types').SplitLogType): Promise<void>;
+}

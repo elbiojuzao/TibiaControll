@@ -9,6 +9,7 @@ import type {
   IHuntRepository,
   IBossRepository,
   ISplitRepository,
+  ISplitLogRepository,
   IServiceiroRepository,
   IDashboardRepository,
   ISettingsRepository,
@@ -20,11 +21,13 @@ import { MockLootDropRepository } from './mock/mock-loot-drop-repository';
 import { MockHuntRepository } from './mock/mock-hunt-repository';
 import { MockBossRepository } from './mock/mock-boss-repository';
 import { MockSplitRepository } from './mock/mock-split-repository';
+import { MockSplitLogRepository } from './mock/mock-split-log-repository';
 import { MockServiceiroRepository } from './mock/mock-serviceiro-repository';
 import { MockDashboardRepository } from './mock/mock-dashboard-repository';
 import { MockSettingsRepository } from './mock/mock-settings-repository';
 import { HttpServiceiroRepository } from './http/http-serviceiro-repository';
 import { HttpLootDropRepository } from './http/http-loot-drop-repository';
+import { HttpSplitLogRepository } from './http/http-split-log-repository';
 import { HttpAccountRepository } from './http/http-account-repository';
 import { HttpMemberRepository } from './http/http-member-repository';
 
@@ -35,6 +38,7 @@ export interface RepositoryContainer {
   hunt: IHuntRepository;
   boss: IBossRepository;
   split: ISplitRepository;
+  splitLog: ISplitLogRepository;
   serviceiro: IServiceiroRepository;
   dashboard: IDashboardRepository;
   settings: ISettingsRepository;
@@ -63,6 +67,10 @@ export const ACCOUNT_USE_SUPABASE = import.meta.env.VITE_ACCOUNT_USE_SUPABASE ==
  * (módulo Configurações), ver migration 20260814010000_create_members_table.sql. */
 export const MEMBER_USE_SUPABASE = import.meta.env.VITE_MEMBER_USE_SUPABASE === 'true';
 
+/** Mesma ideia, mas para os Splits salvos da Calculadora de Split Loot (2026-08-19) — ver
+ * migration 20260819000000_create_split_logs_table.sql. */
+export const SPLIT_LOGS_USE_SUPABASE = import.meta.env.VITE_SPLIT_LOGS_USE_SUPABASE === 'true';
+
 function createRepositories(): RepositoryContainer {
   if (USE_MOCK) {
     return {
@@ -72,6 +80,7 @@ function createRepositories(): RepositoryContainer {
       hunt: new MockHuntRepository(),
       boss: new MockBossRepository(),
       split: new MockSplitRepository(),
+      splitLog: SPLIT_LOGS_USE_SUPABASE ? new HttpSplitLogRepository() : new MockSplitLogRepository(),
       serviceiro: SERVICEIROS_USE_SUPABASE ? new HttpServiceiroRepository() : new MockServiceiroRepository(),
       dashboard: new MockDashboardRepository(),
       settings: new MockSettingsRepository(),

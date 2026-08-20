@@ -1,7 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useAccount } from '@/hooks/useAccount';
 import { usePartySettings } from '@/hooks/usePartySettings';
+import { useSplitLogs } from '@/hooks/useSplitLogs';
 import { formatTibiaGold } from '@/services/split';
+import { extractSplitSessionDate } from '@/services/split/session-date';
+import type { SplitLogType } from '@/types';
 
 interface PartyMember {
   name: string;
@@ -39,6 +42,7 @@ function writeCachedTcRate(value: number): void {
 export function SplitCalculatorPage() {
   const { accountId } = useAccount();
   const { settings } = usePartySettings(accountId);
+  const { createSplitLog } = useSplitLogs(accountId);
 
   const [rawLog, setRawLog] = useState<string>('');
   const [tcRate, setTcRateState] = useState<number>(() => readCachedTcRate() ?? 45000);
@@ -52,6 +56,17 @@ export function SplitCalculatorPage() {
   // transferências já foram feitas no jogo. Reseta ao reprocessar um log novo.
   const [doneIndices, setDoneIndices] = useState<Set<number>>(new Set());
   const [parseError, setParseError] = useState<string | null>(null);
+  // Data da sessão (extraída do log, já com a regra de corte de 1h aplicada — ver
+  // session-date.ts) e estado de "Salvar Split Boss/Hunt" (2026-08-19, pedido do
+  // usuário: salvar o split calculado no banco em vez de só na planilha externa).
+  const [sessionDate, setSessionDate] = useState<string | null>(null);
+  // Texto de fato usado no último processamento — pode ser diferente de `rawLog` quando o
+  // campo está vazio e o log de exemplo é usado (ver handleParseLog). É esse texto que
+  // precisa ser salvo junto do split, pra bater com a data/membros calculados.
+  const [parsedRawLog, setParsedRawLog] = useState<string>('');
+  const [savedTypes, setSavedTypes] = useState<Set<SplitLogType>>(new Set());
+  const [savingType, setSavingType] = useState<SplitLogType | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Cola sempre SUBSTITUI o conteúdo inteiro do campo, nunca insere no meio/fim do que
   // já estava digitado — evita o caso real reportado pelo usuário: um caractere solto
@@ -193,6 +208,10 @@ Zo Tis
 
     setMembers(parsedMembers);
     setDoneIndices(new Set());
+    setSessionDate(extractSplitSessionDate(text));
+    setParsedRawLog(text);
+    setSavedTypes(new Set());
+    setSaveError(null);
   };
 
   const handleExtraChange = (index: number, field: 'extraTc' | 'extraGold', valueStr: string) => {
@@ -212,7 +231,7 @@ Zo Tis
 
   // Cálculo correto baseado em somar o Balance total e dividir igualmente pelo número de membros
   const calculation = useMemo(() => {
-    if (members.length === 0) return { totalBalance: 0, equalShare: 0, transfers: [] };
+    if (members.length === 0) return { totalBalance: 0, equalShare: 0, transfers: [], adjustedMembers: [] };
 
     const adjustedMembers = members.map((m) => {
       const tcVal = typeof m.extraTc === 'number' ? m.extraTc : 0;
@@ -264,12 +283,57 @@ Zo Tis
       if (credor.diff < 0.01) j++;
     }
 
-    return { totalBalance, equalShare, transfers };
+    return { totalBalance, equalShare, transfers, adjustedMembers };
   }, [members, tcRate]);
 
   const handleCopyCommand = (commandText: string, index: number) => {
     navigator.clipboard.writeText(commandText);
     setDoneIndices((prev) => new Set(prev).add(index));
+  };
+
+  // "Salvar Split Boss"/"Salvar Split Hunt" (2026-08-19, pedido do usuário) — grava o
+  // split calculado no banco (log bruto + membros + transferências), consolidando o que
+  // hoje fica numa planilha à parte. `type` só marca se foi split de Boss ou de Hunt — a
+  // própria calculadora não tem como saber isso sozinha, é o usuário quem indica clicando
+  // no botão certo.
+  const handleSaveSplit = async (type: SplitLogType) => {
+    if (!sessionDate) {
+      setSaveError('Não consegui identificar a data da sessão no log colado — confira se o log tem a linha "Session data: From ... to ...".');
+      return;
+    }
+    setSaveError(null);
+    setSavingType(type);
+    try {
+      await createSplitLog({
+        date: sessionDate,
+        type,
+        rawLog: parsedRawLog,
+        members: calculation.adjustedMembers.map((m) => ({
+          name: m.name,
+          loot: m.loot,
+          supplies: m.supplies,
+          balance: m.balance,
+          extraTc: typeof m.extraTc === 'number' ? m.extraTc : 0,
+          extraGold: typeof m.extraGold === 'number' ? m.extraGold : 0,
+          // Gold do Tibia é sempre inteiro — adjustedBalance normalmente já é (balance e
+          // tcRate/extraTc/extraGold são inteiros), mas arredonda por segurança.
+          adjustedBalance: Math.round(m.adjustedBalance),
+        })),
+        transfers: calculation.transfers,
+        // totalBalance/tcRate já são inteiros na prática, mas equalShare é totalBalance ÷
+        // nº de membros de propósito SEM arredondar (mantém precisão pro cálculo de
+        // diferenças exatas nas transferências, ver `calculation` acima) — as 3 colunas do
+        // banco são bigint, arredonda só aqui na hora de salvar, sem afetar o cálculo em si.
+        totalBalance: Math.round(calculation.totalBalance),
+        equalShare: Math.round(calculation.equalShare),
+        tcRate: Math.round(tcRate),
+      });
+      setSavedTypes((prev) => new Set(prev).add(type));
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Erro ao salvar split.');
+    } finally {
+      setSavingType(null);
+    }
   };
 
   return (
@@ -388,6 +452,42 @@ Zo Tis
                 <strong style={{ fontSize: '15px', color: 'var(--color-accent)' }}>{formatTibiaGold(Math.round(calculation.equalShare))}</strong>
               </div>
             </div>
+
+            {members.length > 0 && (
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  {(['boss', 'hunt'] as const).map((type) => {
+                    const saved = savedTypes.has(type);
+                    const saving = savingType === type;
+                    return (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => handleSaveSplit(type)}
+                        disabled={saving}
+                        className="botao-secundario"
+                        style={{
+                          flex: 1, padding: '10px', fontWeight: 'bold',
+                          borderColor: saved ? 'var(--color-success)' : undefined,
+                          color: saved ? 'var(--color-success)' : undefined,
+                          background: saved ? 'var(--color-success-soft)' : undefined,
+                        }}
+                      >
+                        {saving ? 'Salvando...' : saved ? `✓ Split ${type === 'boss' ? 'Boss' : 'Hunt'} salvo` : `💾 Salvar Split ${type === 'boss' ? 'Boss' : 'Hunt'}`}
+                      </button>
+                    );
+                  })}
+                </div>
+                {sessionDate && (
+                  <p className="texto-fraco" style={{ fontSize: '11px', margin: '6px 0 0 0' }}>
+                    Data da sessão: {sessionDate}
+                  </p>
+                )}
+                {saveError && (
+                  <p className="texto-perigo" style={{ fontSize: '12px', margin: '6px 0 0 0' }}>⚠ {saveError}</p>
+                )}
+              </div>
+            )}
 
             <h4 style={{ fontSize: '13px', margin: '0 0 10px 0', color: 'var(--color-text)' }}>Copiar Comandos de Transferência:</h4>
 
