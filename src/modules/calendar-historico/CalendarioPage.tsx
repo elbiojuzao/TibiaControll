@@ -4,7 +4,7 @@ import { useHunts } from '@/hooks/useHunts';
 import { useLootDrops } from '@/hooks/useLootDrops';
 import { useMembers } from '@/hooks/useMembers';
 import { useXpSheet } from '@/hooks/useXpSheet';
-import { useBossHuntSheet } from '@/hooks/useBossHuntSheet';
+import { useSplitLogsDaily } from '@/hooks/useSplitLogsDaily';
 import { useTibiaEvents, isDayInTibiaEvent } from '@/hooks/useTibiaEvents';
 import { Modal } from '@/components/common/Modal';
 import { formatTibiaGold } from '@/services/split';
@@ -58,7 +58,11 @@ export function CalendarioPage() {
   const { drops, loading: dropsLoading } = useLootDrops(accountId);
   const { members } = useMembers(accountId);
   const { data: xpData } = useXpSheet();
-  const { series: bossHuntSeries } = useBossHuntSheet();
+  // Perfil individual de Hunt/Boss do dia (2026-08-19, pedido do usuário: puxar direto de
+  // split_logs em vez da planilha externa) — ver useSplitLogsDaily.
+  const { series: splitDailySeries, hideDay } = useSplitLogsDaily(accountId);
+  const [hidingType, setHidingType] = useState<'hunt' | 'boss' | null>(null);
+  const [hideError, setHideError] = useState<string | null>(null);
   const { events: tibiaEvents } = useTibiaEvents();
 
   const now = new Date();
@@ -101,7 +105,7 @@ export function CalendarioPage() {
 
   const selectedActivity = selectedDateKey ? activityByDate.get(selectedDateKey) : undefined;
   const selectedXp = selectedDateKey ? xpForDate(selectedDateKey) : [];
-  const selectedBossHunt = selectedDateKey ? bossHuntSeries.find((e) => e.date === selectedDateKey) : undefined;
+  const selectedSplitDaily = selectedDateKey ? splitDailySeries.find((e) => e.date === selectedDateKey) : undefined;
   const selectedEvents = useMemo(() => {
     if (!selectedDateKey) return [];
     const [day, month] = selectedDateKey.split('/').map(Number);
@@ -124,6 +128,24 @@ export function CalendarioPage() {
 
   const goToToday = () => {
     setView({ year: now.getFullYear(), month: now.getMonth() });
+  };
+
+  // Excluir split de Boss/Hunt do dia (2026-08-19/20, pedido do usuário) — sempre com
+  // confirmação, soft delete (ver useSplitLogsDaily/hide() no repository, nunca apaga de
+  // verdade). Mesmo padrão do resto do app (confirmação + botão 🗑️, ver ServiceirosPage).
+  const handleHideSplit = async (type: 'hunt' | 'boss') => {
+    if (!selectedDateKey) return;
+    const label = type === 'boss' ? 'Boss' : 'Hunt';
+    if (!window.confirm(`Excluir o split de ${label} do dia ${selectedDateKey}? Essa ação não pode ser desfeita por aqui.`)) return;
+    setHideError(null);
+    setHidingType(type);
+    try {
+      await hideDay(selectedDateKey, type);
+    } catch (err) {
+      setHideError(err instanceof Error ? err.message : `Erro ao excluir o split de ${label}.`);
+    } finally {
+      setHidingType(null);
+    }
   };
 
   return (
@@ -165,15 +187,13 @@ export function CalendarioPage() {
             }
 
             const activity = activityByDate.get(cell.dateKey!);
-            // "Teve valor adicionado nesse dia" — a leitura da planilha (useBossHuntSheet) só
-            // inclui uma linha se a célula de Hunt daquele dia não estiver em branco, então a
-            // simples existência da entrada já basta pro dot de Hunt. Pra Boss não tem esse
-            // mesmo filtro no fetch (ver api/_lib/boss-hunt-sheet.ts), então uma célula de Boss
-            // em branco vira 0 igual um lucro genuinamente zerado — usamos "!== 0" como
-            // aproximação (não distingue perfeitamente "sem dado" de "zerado de verdade").
-            const bossHuntEntry = bossHuntSeries.find((e) => e.date === cell.dateKey);
-            const hasBoss = bossHuntEntry !== undefined && bossHuntEntry.boss !== 0;
-            const hasHunt = bossHuntEntry !== undefined;
+            // Existência de split salvo naquele dia (split_logs) — cada tipo (hunt/boss) é
+            // independente e null quando não há split daquele tipo salvo nesse dia, sem
+            // ambiguidade com "lucro genuinamente zerado" (diferente da leitura antiga da
+            // planilha, que não distinguia os dois casos pro Boss).
+            const splitDailyEntry = splitDailySeries.find((e) => e.date === cell.dateKey);
+            const hasBoss = splitDailyEntry?.boss != null;
+            const hasHunt = splitDailyEntry?.hunt != null;
             const hasActivity = !!activity && (activity.hunts.length > 0 || activity.drops.length > 0);
             const dayEvents = eventsForDay(cell.day);
             const hasEvent = dayEvents.length > 0;
@@ -182,7 +202,7 @@ export function CalendarioPage() {
             return (
               <div
                 key={idx}
-                onClick={() => setSelectedDateKey(cell.dateKey)}
+                onClick={() => { setSelectedDateKey(cell.dateKey); setHideError(null); }}
                 title="Clique para ver os detalhes do dia"
                 className={`calendar-day${hasAnyIndicator ? ' has-activity' : ''}${hasEvent ? ' has-event' : ''}${cell.dateKey === todayKey ? ' today' : ''}`}
                 style={{ cursor: 'pointer' }}
@@ -213,8 +233,8 @@ export function CalendarioPage() {
 
                     {(hasBoss || hasHunt) && (
                       <div className="calendar-tooltip-item">
-                        {hasBoss && <>🐲 Boss: <strong style={{ color: 'var(--color-accent)' }}>{formatXp(bossHuntEntry!.boss)}</strong><br /></>}
-                        {hasHunt && <>🗡️ Hunt: <strong style={{ color: 'var(--color-warning)' }}>{formatXp(bossHuntEntry!.hunt)}</strong></>}
+                        {hasBoss && <>🐲 Boss: <strong style={{ color: 'var(--color-accent)' }}>{formatXp(splitDailyEntry!.boss!)}</strong><br /></>}
+                        {hasHunt && <>🗡️ Hunt: <strong style={{ color: 'var(--color-warning)' }}>{formatXp(splitDailyEntry!.hunt!)}</strong></>}
                       </div>
                     )}
 
@@ -261,22 +281,53 @@ export function CalendarioPage() {
               </div>
             )}
 
-            {/* Boss/Hunt: profit individual do dia, lido da aba "Boss hunt" da planilha
-                (já vem dividido — /4 hunt, /5 boss — ver useBossHuntSheet). */}
+            {/* Boss/Hunt: soma de "Cota por Membro" dos splits salvos nesse dia
+                (split_logs, ver useSplitLogsDaily) — cada caixa checa o próprio campo
+                (null == nenhum split desse tipo salvo nesse dia), independente uma da outra
+                (um dia pode ter só Hunt salvo, só Boss, os dois, ou nenhum). */}
             <div className="grid-2col" style={{ gap: '10px' }}>
               <div style={{ background: 'var(--color-bg-input)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '10px' }}>
-                <span style={{ fontSize: '11px', color: 'var(--color-text-faint)', display: 'block' }}>Boss (individual)</span>
-                <strong style={{ color: selectedBossHunt ? (selectedBossHunt.boss < 0 ? 'var(--color-danger)' : 'var(--color-success)') : 'var(--color-text-faint)' }}>
-                  {selectedBossHunt ? formatXp(selectedBossHunt.boss) : 'Sem dado'}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--color-text-faint)', display: 'block' }}>Boss (individual)</span>
+                  {selectedSplitDaily?.boss != null && (
+                    <button
+                      type="button"
+                      onClick={() => handleHideSplit('boss')}
+                      disabled={hidingType === 'boss'}
+                      title="Excluir split de Boss desse dia"
+                      className="botao-icone-perigo"
+                      style={{ fontSize: '12px' }}
+                    >
+                      🗑️
+                    </button>
+                  )}
+                </div>
+                <strong style={{ color: selectedSplitDaily?.boss != null ? (selectedSplitDaily.boss < 0 ? 'var(--color-danger)' : 'var(--color-success)') : 'var(--color-text-faint)' }}>
+                  {selectedSplitDaily?.boss != null ? formatXp(selectedSplitDaily.boss) : 'Sem dado'}
                 </strong>
               </div>
               <div style={{ background: 'var(--color-bg-input)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '10px' }}>
-                <span style={{ fontSize: '11px', color: 'var(--color-text-faint)', display: 'block' }}>Hunt (individual)</span>
-                <strong style={{ color: selectedBossHunt ? (selectedBossHunt.hunt < 0 ? 'var(--color-danger)' : 'var(--color-success)') : 'var(--color-text-faint)' }}>
-                  {selectedBossHunt ? formatXp(selectedBossHunt.hunt) : 'Sem dado'}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--color-text-faint)', display: 'block' }}>Hunt (individual)</span>
+                  {selectedSplitDaily?.hunt != null && (
+                    <button
+                      type="button"
+                      onClick={() => handleHideSplit('hunt')}
+                      disabled={hidingType === 'hunt'}
+                      title="Excluir split de Hunt desse dia"
+                      className="botao-icone-perigo"
+                      style={{ fontSize: '12px' }}
+                    >
+                      🗑️
+                    </button>
+                  )}
+                </div>
+                <strong style={{ color: selectedSplitDaily?.hunt != null ? (selectedSplitDaily.hunt < 0 ? 'var(--color-danger)' : 'var(--color-success)') : 'var(--color-text-faint)' }}>
+                  {selectedSplitDaily?.hunt != null ? formatXp(selectedSplitDaily.hunt) : 'Sem dado'}
                 </strong>
               </div>
             </div>
+            {hideError && <span className="texto-perigo" style={{ fontSize: '12px' }}>⚠ {hideError}</span>}
 
             <div>
               <h4 style={{ margin: '0 0 8px 0', fontSize: '13px', color: 'var(--color-accent)' }}>XP do dia</h4>
