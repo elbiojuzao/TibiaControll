@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Modal } from '@/components/common/Modal';
 import { getItemIconUrl } from '@/services/lootdrop/item-icons';
+import { formatGoldKK } from '@/services/common/gold-format';
 import { guessItemIcon } from '../utils/loot-visuals';
 
 interface UnsoldItem {
@@ -55,21 +56,11 @@ function writeStoredFormat(format: MessageFormat): void {
 
 /** Notação "kk" da comunidade Tibia pro preço na mensagem (2026-08-19, pedido do usuário:
  * "trabalhar com kks a cada mil trocar os 3 zeros por 1 K, exemplo 500000000 seriam 500kk
- * e 1000000 seria 1kk") — SÓ usada aqui, é a mensagem de anúncio pro WhatsApp; o resto do
- * app (Split Loot, comandos `transfer`, KPIs) continua usando formatTibiaGold() com o
- * valor por extenso, onde precisão exata importa. Cada grupo de 3 zeros vira um "k" a
- * mais (1.000→1k, 1.000.000→1kk, 1.000.000.000→1kkk), até sobrar um número menor que mil. */
-function formatGoldKK(value: number): string {
-  const sign = value < 0 ? '-' : '+';
-  let abs = Math.abs(value);
-  let suffix = '';
-  while (abs >= 1000) {
-    abs /= 1000;
-    suffix += 'k';
-  }
-  const rounded = Math.round(abs * 100) / 100;
-  return `${sign}${rounded}${suffix}`;
-}
+ * e 1000000 seria 1kk") — usada aqui na mensagem de anúncio pro WhatsApp e no gráfico de
+ * tendência mensal do Dashboard (MonthlyTrendModal, 2026-08-21); o resto do app (Split
+ * Loot, comandos `transfer`, os próprios cards de KPI) continua usando formatTibiaGold()
+ * com o valor por extenso, onde precisão exata importa. Implementação compartilhada em
+ * services/common/gold-format.ts. */
 
 function formatItemLine(item: UnsoldItem, fmt: MessageFormat): string {
   let name = item.itemName || 'Item Raro';

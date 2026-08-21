@@ -646,6 +646,18 @@ table {
   margin-bottom: 4px;
 }
 
+/* Modificador pros KPIs financeiros/contagem clicáveis do Dashboard (2026-08-21) — abrem
+   MonthlyTrendModal com o gráfico dos últimos 12 meses. Só esses 10 boxes usam; os outros
+   .stat-box do app (Timers, Tier Calculator) continuam sem cursor/hover. */
+.stat-box-clicavel {
+  cursor: pointer;
+}
+
+.stat-box-clicavel:hover {
+  background: var(--color-bg-hover);
+  border-color: var(--color-accent);
+}
+
 /* Cabeçalho de página — título + subtítulo logo abaixo (a cor do título varia
    por módulo de propósito, então só o subtítulo vira classe). */
 .subtitulo-pagina {

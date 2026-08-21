@@ -4,7 +4,7 @@ import { useLootDrops } from '@/hooks/useLootDrops';
 import { useMembers } from '@/hooks/useMembers';
 import { useMemberLiveStats } from '@/hooks/useMemberLiveStats';
 import { useMemberXpStats } from '@/hooks/useMemberXpStats';
-import { useBossHuntSheet } from '@/hooks/useBossHuntSheet';
+import { useSplitLogsDaily } from '@/hooks/useSplitLogsDaily';
 import { useXpSheet } from '@/hooks/useXpSheet';
 import { useXpLevels } from '@/hooks/useXpLevels';
 import { formatTibiaGold } from '@/services/split';
@@ -14,8 +14,25 @@ import { monthRangeAsBr } from '@/services/common/months';
 import { dateAsBr, todayAsBr } from '@/services/common/br-date';
 import { parseDateKey } from '@/services/calendar';
 import { getItemIconUrl } from '@/services/lootdrop/item-icons';
+import { buildLast12Months, computeMonthlyTrends, type DashboardMetricKey } from '@/services/dashboard/monthly-trend';
 import { UnsoldItemsShareModal } from './components/UnsoldItemsShareModal';
+import { MonthlyTrendModal } from './components/MonthlyTrendModal';
 import type { LootDropFilters, MemberXpStats } from '@/types';
+
+/** Rótulo + tipo de valor (gold vs contagem) de cada KPI clicável do grid — usado pra
+ * título/formatação da modal de tendência mensal (MonthlyTrendModal, 2026-08-21). */
+const METRIC_META: Record<DashboardMetricKey, { label: string; isCurrency: boolean }> = {
+  qtdDrops: { label: 'Qtd Drops', isCurrency: false },
+  qtdNVendido: { label: 'Qtd N Vendido', isCurrency: false },
+  qtdServiceiro: { label: 'Qtd Serviceiro', isCurrency: false },
+  kksPlunderInd: { label: 'KKs Plunder(ind)', isCurrency: true },
+  kksHunt: { label: 'KKs Hunt', isCurrency: true },
+  qtdBags: { label: 'Qtd Bags', isCurrency: false },
+  qtdPlunders: { label: 'Qtd Plunders', isCurrency: false },
+  totalInd: { label: 'Total (ind)', isCurrency: true },
+  kksBagsInd: { label: 'KKs Bags(ind)', isCurrency: true },
+  kksBoss: { label: 'KKs Boss', isCurrency: true },
+};
 
 const MESES = [
   { value: '1', label: 'Janeiro' }, { value: '2', label: 'Fevereiro' },
@@ -47,7 +64,7 @@ export function DashboardPage() {
   const { members } = useMembers(accountId);
   const liveStats = useMemberLiveStats(members);
   const { statsByName } = useMemberXpStats(accountId);
-  const { series: bossHuntSeries } = useBossHuntSheet();
+  const { series: splitDailySeries } = useSplitLogsDaily(accountId);
   const { data: xpSheetData } = useXpSheet();
   const { levels: xpLevelsTable } = useXpLevels();
 
@@ -96,6 +113,7 @@ export function DashboardPage() {
   const [bossFilter] = useState('');
   const [soldFilter] = useState<string>('all');
   const [showUnsoldShareModal, setShowUnsoldShareModal] = useState(false);
+  const [activeTrendMetric, setActiveTrendMetric] = useState<DashboardMetricKey | null>(null);
 
   const filters: LootDropFilters = useMemo(() => {
     const { from, to } = monthRangeAsBr(Number(selectedMonth), Number(selectedYear));
@@ -117,23 +135,27 @@ export function DashboardPage() {
     [drops],
   );
 
-  // KKs Hunt/KKs Boss = soma do profit individual (aba "Boss hunt" da planilha, já
-  // dividido por 4/5) dos dias dentro do Mês/Ano selecionado ao lado — mesmo range
-  // usado pra filtrar "Drops no mês".
+  // KKs Hunt/KKs Boss = soma de cota_por_membro (equalShare) dos splits salvos em
+  // split_logs dentro do Mês/Ano selecionado ao lado — mesmo range usado pra filtrar
+  // "Drops no mês". Migrado da planilha Google Sheets (useBossHuntSheet) pro banco em
+  // 2026-08-20, pedido do usuário ("os kks hunt e boss tambem vem pelo banco de dados
+  // agora"), já que o Calendário fez essa mesma migração em 2026-08-19 (useSplitLogsDaily)
+  // e a planilha deixou de ser a fonte de verdade. Dias sem split salvo daquele tipo
+  // (hunt/boss null) não somam nada.
   const bossHuntTotals = useMemo(() => {
     const fromTs = filters.dateFrom ? parseDateKey(filters.dateFrom) : -Infinity;
     const toTs = filters.dateTo ? parseDateKey(filters.dateTo) : Infinity;
     let hunt = 0;
     let boss = 0;
-    for (const entry of bossHuntSeries) {
+    for (const entry of splitDailySeries) {
       const ts = parseDateKey(entry.date);
       if (ts >= fromTs && ts <= toTs) {
-        hunt += entry.hunt;
-        boss += entry.boss;
+        hunt += entry.hunt ?? 0;
+        boss += entry.boss ?? 0;
       }
     }
     return { hunt, boss };
-  }, [bossHuntSeries, filters.dateFrom, filters.dateTo]);
+  }, [splitDailySeries, filters.dateFrom, filters.dateTo]);
 
   // Independente do mês selecionado — "todos os itens não vendidos" é de todos os meses,
   // não só do mês em exibição na tabela "Drops no mês".
@@ -152,8 +174,9 @@ export function DashboardPage() {
       .sort((a, b) => b.count - a.count || a.itemName.localeCompare(b.itemName));
   }, [allUnsoldDrops]);
 
-  // KKs Plunder(ind) / Qtd Plunders = soma do Valor Total (e contagem) dos drops do
-  // mês/ano selecionado cujo boss é "Plunder" (baú compartilhado, sem fragador único —
+  // KKs Plunder(ind) / Qtd Plunders = soma do Valor CADA (unitValue — "(ind)" é individual,
+  // não o valor total do drop inteiro, ver fix de 2026-08-20 abaixo) e contagem dos drops
+  // do mês/ano selecionado cujo boss é "Plunder" (baú compartilhado, sem fragador único —
   // ver comentário no ranking Top Drop mais abaixo).
   // KKs Bags(ind) / Qtd Bags = mesma ideia, só que pros "outros" bosses — todo drop cujo
   // boss não seja "Plunder" nem "SoulCore" (esse último também é um baú compartilhado por
@@ -163,11 +186,22 @@ export function DashboardPage() {
     const totalValue = drops.reduce((s, d) => s + d.totalValue, 0);
     const soldCount = drops.filter((d) => d.sold).length;
     const pendingCount = drops.filter((d) => !d.sold).length;
-    const serviceiroDropsCount = drops.filter((d) => d.party.service).length;
+    // "Qtd Serviceiro" = quantidade de VEZES que um serviceiro aparece nos drops do mês
+    // (soma de party.services.length, não d.party.service — esse é o campo legado de
+    // string única, sempre vazio nos drops criados pelo form atual, que usa o array
+    // `services`; ver types/loot-drop.ts). Bug real reportado pelo usuário em 2026-08-21
+    // ("o campo qtd serviceiro é a quantidade de vezes que aparece serviceiro em itens
+    // dropados") — antes contava d.party.service (legado), sempre 0 pros dados reais.
+    // Um drop com 2 serviceiros conta 2 (é "vezes que aparece", não "drops com serviceiro").
+    const serviceiroDropsCount = drops.reduce((s, d) => s + d.party.services.length, 0);
+    // "(ind)" = individual — soma o Valor CADA (unitValue, já dividido pelos jogadores da
+    // vaga), não o Valor Total do drop inteiro. Bug real reportado pelo usuário em
+    // 2026-08-20 ("kks plunder não é a soma total do valor é o valor cada") — o código
+    // somava d.totalValue por engano, mesmo com o rótulo já dizendo "(ind)".
     const plunderDrops = drops.filter((d) => d.bossName === 'Plunder');
-    const plunderTotal = plunderDrops.reduce((s, d) => s + d.totalValue, 0);
+    const plunderTotal = plunderDrops.reduce((s, d) => s + d.unitValue, 0);
     const bagsDrops = drops.filter((d) => d.bossName !== 'Plunder' && d.bossName !== 'SoulCore');
-    const bagsTotal = bagsDrops.reduce((s, d) => s + d.totalValue, 0);
+    const bagsTotal = bagsDrops.reduce((s, d) => s + d.unitValue, 0);
     return {
       totalValue, soldCount, pendingCount, totalDrops: drops.length, serviceiroDropsCount,
       plunderTotal, plunderCount: plunderDrops.length,
@@ -211,6 +245,18 @@ export function DashboardPage() {
       .sort((a, b) => b.totalValue - a.totalValue)
       .slice(0, 5);
   }, [last365Drops]);
+
+  // Gráfico de tendência mensal (2026-08-21, pedido do usuário: "ao clicar nos campos
+  // centrais da dashboard, abrir uma modal com gráfico dos últimos 12 meses") — reusa
+  // last365Drops (já buscado pro Top Drop) e splitDailySeries (já buscado pro KKs
+  // Hunt/Boss), sem fetch novo. Só os KPIs financeiros/contagem entram nesse escopo —
+  // confirmado com o usuário: a tabela de membros (Lvl/Skill/XP) não tem snapshot diário
+  // guardado, ficaria de fora até existir uma tabela própria pra isso.
+  const trendMonths = useMemo(() => buildLast12Months(), []);
+  const monthlyTrends = useMemo(
+    () => computeMonthlyTrends(trendMonths, last365Drops, splitDailySeries),
+    [trendMonths, last365Drops, splitDailySeries],
+  );
 
   if (accountLoading) return <div className="loading">Carregando...</div>;
 
@@ -293,44 +339,44 @@ export function DashboardPage() {
 
           {/* GRADE DE 10 INDICADORES */}
           <div className="responsive-grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px' }}>
-            <div className="stat-box">
+            <div className="stat-box stat-box-clicavel" onClick={() => setActiveTrendMetric('qtdDrops')} title="Ver últimos 12 meses">
               <span className="stat-box-rotulo">Qtd Drops</span>
               <strong style={{ fontSize: '14px', color: 'var(--color-text)' }}>{stats.totalDrops}</strong>
             </div>
-            <div className="stat-box">
+            <div className="stat-box stat-box-clicavel" onClick={() => setActiveTrendMetric('qtdNVendido')} title="Ver últimos 12 meses">
               <span className="stat-box-rotulo">Qtd N Vendido</span>
               <strong style={{ fontSize: '14px', color: 'var(--color-warning)' }}>{stats.pendingCount}</strong>
             </div>
-            <div className="stat-box">
+            <div className="stat-box stat-box-clicavel" onClick={() => setActiveTrendMetric('qtdServiceiro')} title="Ver últimos 12 meses">
               <span className="stat-box-rotulo">Qtd Serviceiro</span>
               <strong style={{ fontSize: '14px', color: 'var(--color-accent)' }}>{stats.serviceiroDropsCount}</strong>
             </div>
-            <div className="stat-box">
+            <div className="stat-box stat-box-clicavel" onClick={() => setActiveTrendMetric('kksPlunderInd')} title="Ver últimos 12 meses">
               <span className="stat-box-rotulo">KKs Plunder(ind)</span>
               <strong className="texto-sucesso" style={{ fontSize: '11px' }}>{formatTibiaGold(stats.plunderTotal)}</strong>
             </div>
-            <div className="stat-box">
+            <div className="stat-box stat-box-clicavel" onClick={() => setActiveTrendMetric('kksHunt')} title="Ver últimos 12 meses">
               <span className="stat-box-rotulo">KKs Hunt</span>
               <strong style={{ fontSize: '11px', color: 'var(--color-text)' }}>{formatTibiaGold(bossHuntTotals.hunt)}</strong>
             </div>
 
-            <div className="stat-box">
+            <div className="stat-box stat-box-clicavel" onClick={() => setActiveTrendMetric('qtdBags')} title="Ver últimos 12 meses">
               <span className="stat-box-rotulo">Qtd Bags</span>
               <strong style={{ fontSize: '14px', color: 'var(--color-text)' }}>{stats.bagsCount}</strong>
             </div>
-            <div className="stat-box">
+            <div className="stat-box stat-box-clicavel" onClick={() => setActiveTrendMetric('qtdPlunders')} title="Ver últimos 12 meses">
               <span className="stat-box-rotulo">Qtd Plunders</span>
               <strong style={{ fontSize: '14px', color: 'var(--color-text)' }}>{stats.plunderCount}</strong>
             </div>
-            <div className="stat-box">
+            <div className="stat-box stat-box-clicavel" onClick={() => setActiveTrendMetric('totalInd')} title="Ver últimos 12 meses">
               <span className="stat-box-rotulo">Total (ind)</span>
               <strong className="texto-sucesso" style={{ fontSize: '11px' }}>{formatTibiaGold(totalInd)}</strong>
             </div>
-            <div className="stat-box">
+            <div className="stat-box stat-box-clicavel" onClick={() => setActiveTrendMetric('kksBagsInd')} title="Ver últimos 12 meses">
               <span className="stat-box-rotulo">KKs Bags(ind)</span>
               <strong className="texto-sucesso" style={{ fontSize: '11px' }}>{formatTibiaGold(stats.bagsTotal)}</strong>
             </div>
-            <div className="stat-box">
+            <div className="stat-box stat-box-clicavel" onClick={() => setActiveTrendMetric('kksBoss')} title="Ver últimos 12 meses">
               <span className="stat-box-rotulo">KKs Boss</span>
               <strong style={{ fontSize: '11px', color: 'var(--color-accent)' }}>{formatTibiaGold(bossHuntTotals.boss)}</strong>
             </div>
@@ -546,6 +592,15 @@ export function DashboardPage() {
 
       {showUnsoldShareModal && (
         <UnsoldItemsShareModal items={unsoldGrouped} onClose={() => setShowUnsoldShareModal(false)} />
+      )}
+      {activeTrendMetric && (
+        <MonthlyTrendModal
+          title={METRIC_META[activeTrendMetric].label}
+          isCurrency={METRIC_META[activeTrendMetric].isCurrency}
+          months={trendMonths}
+          values={monthlyTrends[activeTrendMetric]}
+          onClose={() => setActiveTrendMetric(null)}
+        />
       )}
     </div>
   );
