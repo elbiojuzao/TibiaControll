@@ -16,10 +16,11 @@ export interface SplitLogDailyEntry {
 /** Resumo diário de "Cota por Membro" (Hunt/Boss) a partir dos splits salvos em
  * split_logs — usado no Histórico (Calendário), 2026-08-19, pedido do usuário: "no
  * historico (calendario) deve puxar o cota_por_membro do dia em questão tanto do boss
- * quanto do hunt". Substitui a leitura da planilha Google Sheets (useBossHuntSheet) só
- * no Calendário — o Dashboard (KKs Hunt/KKs Boss) continua na planilha por enquanto,
- * fora do escopo desse pedido. Pode ter mais de um split do mesmo tipo no mesmo dia
- * (cada "Salvar Split" vira uma linha nova, sem sobrescrever) — os valores são somados. */
+ * quanto do hunt". Substituiu a leitura da planilha Google Sheets (useBossHuntSheet) no
+ * Calendário; em 2026-08-20 o Dashboard (KKs Hunt/KKs Boss) migrou pra cá também —
+ * useBossHuntSheet/api/boss-hunt-sheet ficaram sem nenhum consumidor e foram removidos.
+ * Pode ter mais de um split do mesmo tipo no mesmo dia (cada "Salvar Split" vira uma
+ * linha nova, sem sobrescrever) — os valores são somados. */
 export function useSplitLogsDaily(accountId: string) {
   const [series, setSeries] = useState<SplitLogDailyEntry[]>([]);
   const [loading, setLoading] = useState(true);

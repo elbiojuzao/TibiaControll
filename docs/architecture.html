@@ -401,7 +401,7 @@
       <p class="section-intro">Três mecanismos coexistem, e cada um se comporta diferente. Este é o fato mais importante do projeto pra qualquer sessão futura: <b>nem todo hook segue o padrão repository/mock</b>, e cache não é uniforme entre eles.</p>
       <figure class="diagram">
         <div class="diagram-frame">
-          <svg viewBox="0 0 950 560" role="img" aria-label="Três formas de buscar dado: Drops/Serviceiros via repository trocável por flag e Supabase; TibiaData sempre ao vivo sem repository; planilha do usuário via Vercel Function, com XP cacheado 1x por dia e Boss/Hunt sempre buscado de novo.">
+          <svg viewBox="0 0 950 560" role="img" aria-label="Três formas de buscar dado: Drops/Serviceiros/Split Logs via repository trocável por flag e Supabase; TibiaData sempre ao vivo sem repository; planilha do usuário via Vercel Function, com XP cacheado 1x por dia.">
             <defs>
               <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
                 <path d="M0,0 L10,5 L0,10 z" fill="currentColor" />
@@ -436,7 +436,7 @@
             <text x="835" y="127" text-anchor="middle" class="diag-label" font-size="9.5">Postgres</text>
             <text x="527" y="18" text-anchor="middle" class="diag-label" font-size="9.5">flag = false</text>
             <text x="527" y="150" text-anchor="middle" class="diag-label" font-size="9.5">VITE_*_USE_SUPABASE = true</text>
-            <text x="65" y="163" class="diag-label" font-size="10.5">única lane com escrita — e trocável mock↔real, por env flag, decidido 1x no boot</text>
+            <text x="65" y="163" class="diag-label" font-size="10.5">única lane com escrita — e trocável mock↔real, por env flag, decidido 1x no boot. split_logs (KKs Hunt/Boss, 2026-08-19/20) segue o mesmo padrão (ISplitLogRepository/useSplitLogsDaily), não desenhado aqui por espaço.</text>
 
             <!-- LANE B: TibiaData -->
             <text x="10" y="205" class="diag-lane-title" font-size="11">TIBIADATA — NÍVEL, SKILL, BOSTADOS</text>
@@ -459,7 +459,7 @@
             <text x="65" y="317" class="diag-label" font-size="10.5">único lane sem repository nem mock — sempre ao vivo, sem cache, direto no hook</text>
 
             <!-- LANE C: Planilha -->
-            <text x="10" y="358" class="diag-lane-title" font-size="11">PLANILHA DO USUÁRIO — XP · BOSS/HUNT</text>
+            <text x="10" y="358" class="diag-lane-title" font-size="11">PLANILHA DO USUÁRIO — XP</text>
             <g class="diag-line" color="var(--text-faint)">
               <rect class="diag-box" x="10" y="388" width="110" height="50" rx="6"/>
               <line x1="120" y1="413" x2="180" y2="413" marker-end="url(#arrow)"/>
@@ -473,19 +473,18 @@
             <text x="65" y="408" text-anchor="middle" class="diag-text" font-size="12">Componente</text>
             <text x="65" y="423" text-anchor="middle" class="diag-label" font-size="9.5">Dashboard / Calendário</text>
             <text x="260" y="408" text-anchor="middle" class="diag-text" font-size="12">Hook</text>
-            <text x="260" y="423" text-anchor="middle" class="diag-label" font-size="9.5">useXpSheet / useBossHuntSheet</text>
+            <text x="260" y="423" text-anchor="middle" class="diag-label" font-size="9.5">useXpSheet</text>
             <text x="515" y="403" text-anchor="middle" class="diag-text" font-size="11.5">Vercel Function</text>
             <text x="515" y="418" text-anchor="middle" class="diag-label" font-size="9.5">/api/xp-sheet</text>
-            <text x="515" y="431" text-anchor="middle" class="diag-label" font-size="9.5">/api/boss-hunt-sheet</text>
             <text x="780" y="408" text-anchor="middle" class="diag-text" font-size="12">Google Sheets</text>
             <text x="780" y="423" text-anchor="middle" class="diag-label" font-size="9.5">export CSV (gviz)</text>
             <rect class="diag-box-warn" x="150" y="470" width="230" height="46" rx="6"/>
             <text x="265" y="490" text-anchor="middle" class="diag-text" font-size="11">cache localStorage — só XP</text>
             <text x="265" y="504" text-anchor="middle" class="diag-label" font-size="9.5">1×/dia, válido após 7h15</text>
-            <text x="65" y="545" class="diag-label" font-size="10.5">único lane com proxy server-side (contorna CORS do Sheets) — Boss/Hunt nunca cacheia, sempre busca de novo</text>
+            <text x="65" y="545" class="diag-label" font-size="10.5">único lane com proxy server-side (contorna CORS do Sheets). Até 2026-08-20 tinha uma 2ª rota irmã, /api/boss-hunt-sheet (KKs Hunt/Boss) — removida quando Dashboard/Calendário migraram esse dado pra Lane A (split_logs/Supabase).</text>
           </svg>
         </div>
-        <figcaption>As três formas de buscar dado no app. Drops/Serviceiros passam pelo padrão repository e podem ser trocados entre mock e Supabase por env flag; TibiaData é sempre ao vivo, direto do hook, sem repository; a planilha do usuário passa por uma Vercel Function (contorna CORS) e só a série de XP é cacheada localmente — Boss/Hunt é sempre buscado de novo a cada entrada no sistema.</figcaption>
+        <figcaption>As três formas de buscar dado no app. Drops/Serviceiros/Split Logs passam pelo padrão repository e podem ser trocados entre mock e Supabase por env flag; TibiaData é sempre ao vivo, direto do hook, sem repository; a planilha do usuário passa por uma Vercel Function (contorna CORS) e a série de XP é cacheada localmente — Boss/Hunt saiu dessa lane em 2026-08-20 e passou a vir do banco (Lane A), junto com Drops/Serviceiros.</figcaption>
       </figure>
     </section>
 
@@ -499,12 +498,13 @@
           <p>Painel central: KPIs financeiros do mês, tabela de membros com Lvl/Skill/XP, log completo de drops com registro/edição.</p>
           <dl class="kv-list">
             <dt>Rotas</dt><dd><code>/</code>, <code>/loot-log</code></dd>
-            <dt>DashboardPage.tsx</dt><dd>~480 linhas — todos os KPIs (Plunder/Bags/Hunt/Boss/Total) derivados <b>ao vivo</b> de <code>drops</code> (filtrado por mês) + <code>bossHuntSeries</code>; nenhum vem de mock. Tabela "Drops no mês" (2026-08-17) exibida via <code>sortedDrops</code> — vendido primeiro, depois Valor Total decrescente; a lista original não ordenada continua usada pelos KPIs. Cabeçalho "Dashboard — {partyName}" + subtítulo <b>removidos</b> (2026-08-17, pedido do usuário — topbar já mostra o nome da party).</dd>
+            <dt>DashboardPage.tsx</dt><dd>~480 linhas — todos os KPIs (Plunder/Bags/Hunt/Boss/Total) derivados <b>ao vivo</b> de <code>drops</code> (filtrado por mês) + <code>splitDailySeries</code> (tabela <code>split_logs</code>, via <code>useSplitLogsDaily</code>); nenhum vem de mock nem de planilha. <b>KKs Plunder/Bags(ind) corrigidos em 2026-08-20</b>: somavam <code>totalValue</code> (valor total do drop) em vez de <code>unitValue</code> ("Valor Cada"), apesar do rótulo "(ind)" já dizer individual — bug real reportado pelo usuário, verificado contra o banco. <b>KKs Hunt/Boss migrados da planilha (useBossHuntSheet) pro banco no mesmo dia</b>, pedido do usuário ("os kks hunt e boss tambem vem pelo banco de dados agora") — useBossHuntSheet/api/boss-hunt-sheet foram deletados, sem consumidor restante. Tabela "Drops no mês" (2026-08-17) exibida via <code>sortedDrops</code> — vendido primeiro, depois Valor Total decrescente; a lista original não ordenada continua usada pelos KPIs. Cabeçalho "Dashboard — {partyName}" + subtítulo <b>removidos</b> (2026-08-17, pedido do usuário — topbar já mostra o nome da party).</dd>
             <dt>DropFormModal.tsx</dt><dd>Modal único create+edit — EK/ED/MS/RP/5º, N serviceiros por drop (cada um com "jogador servido"), Boss→Item em cascata, Valor Cada calculado. Dropdown de Boss (2026-08-14) lista os 26 bosses individuais da tabela real <code>boss_quests</code>, filtrável por checkboxes de quest persistidos em localStorage. Dropdown de Item vem da tabela real <code>boss_items</code> (mesmo dia) — inclui a correção de que "Grand Sanguine *" só cai do Bakra, não de qualquer boss de Rotten Blood. "5º Player" (2026-08-15) virou select de serviceiros em vez de texto livre. <b>Corrigido em 2026-08-16</b>: listava o boneco (<code>characterName</code>) em vez do nome real do serviceiro — bug real reportado ("o nome do boneco é usado apenas para pagamentos"). <code>resolvePaymentTarget()</code> resolve o nome real de volta pro boneco só na hora de montar o comando <code>transfer</code>; em qualquer lugar de identificação (campo, coluna da tabela, dropdown de Fragador) usa-se o nome real. Valor Total (2026-08-15) só é obrigatório quando "Vendido" está marcado (<code>requireValue = sold</code>) — antes também exigia valor no create, mas um drop recém-registrado normalmente ainda não foi vendido. "Copiar Comandos de Transferência" (2026-08-15, mesmo padrão visual do Split Loot Calculator) aparece quando "Vendido" está marcado — <code>computeTransferInstructions()</code> quebra o Valor Cada em comandos <code>transfer X to Y</code> por pessoa (vaga sem Serviceiro recebe cota cheia; vaga com Serviceiro divide 50/50 entre dono e Serviceiro; quem paga nunca recebe comando pra si mesmo). Serviceiro sem "Boneco" cadastrado vira um card à parte (valor devido + badge "⚠ Sem Boneco") em vez de sumir com a cota dele silenciosamente. <b>Botão "Copiar" vira "✓ Pago" permanente (2026-08-16)</b>: antes revertia sozinho em 2s, agora fica marcado (não desmarca sozinho) pro usuário saber quais transferências já fez no jogo — clicar de novo copia outra vez sem desmarcar. <b>Mensagem de aviso de venda pro WhatsApp (2026-08-16)</b>: card novo com textarea editável pré-preenchida (item/boss em negrito, valor da venda, lista "* nome — valor" de cada jogador/serviceiro sempre com o nome real nunca o boneco, total no fim) + botão "Copiar Mensagem" (não "Enviar" — decisão do usuário) que copia pra área de transferência e vira "✓ Copiado". <b>Quem paga (2026-08-16, corrigido)</b>: o Vendedor Padrão configurado em Configurações (<code>Member.isDefaultSeller</code>), NÃO o Fragador — bug real reportado ("quem vende é o thanatos", não quem looted). Sem Vendedor Padrão configurado, mostra aviso em vez de comandos com destinatário errado. <b>Layout reorganizado em seções (2026-08-18)</b>: modal abre com <code>maxWidth={720}</code> (prop nova em <code>Modal.tsx</code>, só esse form usa) e o form virou blocos com título (<code>.form-section-title</code>) em vez de parede única de campos. Filtro de quest virou colapsável (botão toggle, fechado por padrão) em vez de sempre visível. Ver seção Regras de negócio.</dd>
             <dt>UnsoldItemsShareModal.tsx</dt><dd>Modal aberta pelo botão "📋 Copiar" no card "TODOS os Itens não vendidos" (2026-08-19, pedido do usuário: anunciar itens à venda escolhendo quais entram na mensagem — depois refinado no mesmo dia: "botões para personalizar a mensagem... mostrar ou não a quantidade... icone ou não bold italico preço"). Lista de checkboxes por item (todos marcados por padrão, "Marcar/Desmarcar todos") + painel "Personalizar mensagem" com 5 toggles tipo pill — <b>Quantidade</b> (só aparece se count&gt;1), <b>Ícone</b> (emoji por TIPO de item — reaproveita <code>guessItemIcon()</code> de <code>loot-visuals.ts</code>, o mesmo mapa palavra-chave→emoji já usado como fallback na coluna Ícone da tabela de drops: anel 💍, elmo/máscara 🎩, arma ⚔️, calça 👖 etc.; não é o sprite real, texto puro do WhatsApp não carrega imagem), <b>Negrito</b>/<b>Itálico</b> (`*texto*`/`_texto_`, formatação nativa do WhatsApp, combináveis), <b>Preço</b> (só aparece se a soma do Valor Total daquele item pendente for &gt;0; usa <code>formatGoldKK()</code> — notação "kk" da comunidade Tibia, 500.000.000→"500kk", 1.000.000→"1kk" — só nesta mensagem, o resto do app continua com <code>formatTibiaGold()</code> por extenso onde precisão exata importa). Textarea editável resincroniza sempre que SELEÇÃO ou FORMATO mudam (editar o texto à mão não é sobrescrito até um dos dois mudar de novo). Botão "Copiar Mensagem" vira "✓ Copiado" permanente, mesmo padrão do resto do app; desabilitado com 0 itens marcados. Formato persiste em <code>localStorage</code> (<code>tibia-pts:unsold-share-format</code>, mesmo padrão do <code>tibia-pts:tc-rate</code> do Split Loot) — cada navegador guarda sua própria preferência. Botão de abrir a modal virou um ícone SVG de "compartilhar" (3 círculos ligados por 2 linhas, inline) no lugar do emoji 📋, posicionado antes do badge "Qtd: N".</dd>
             <dt>LootLogPage.tsx / LootTable.tsx</dt><dd>Busca &amp; ordenação (2026-08-19, pedido do usuário: "um único campo que filtra tudo pesquisando qualquer campo... teremos filtro avançado que vai ter fragador/service/item/boss"). Só mês/ano vão pro banco (<code>useLootDrops(accountId, {dateFrom,dateTo})</code>) — resto filtra no CLIENT sobre o lote do mês: campo de busca rápida (fora do toggle, filtra a cada tecla, sem debounce) casa contra item+boss+fragador+EK/ED/MS/RP/5º+serviceiros concatenados em minúsculo; botão "⚙️ Filtro avançado" abre 4 campos (Fragador/Serviceiro/Item/Boss) + status Vendido/Pendente + "Limpar". Cabeçalho da tabela agora é clicável — cada coluna (exceto Ícone) alterna ordenação ▲/▼ ao clicar (clicar de novo inverte, clicar noutra coluna reseta pra ascendente); datas convertidas pra ISO antes de comparar (senão o formato DD/MM/YYYY ordenaria errado, dia vem primeiro).</dd>
+            <dt>MonthlyTrendModal.tsx</dt><dd>Gráfico de tendência mensal (2026-08-21, ideia do usuário: "ao clicar nos campos centrais da dashboard, abrir uma modal com gráfico dos últimos 12 meses"). Os 10 <code>.stat-box</code> do grid de KPIs (classe extra <code>stat-box-clicavel</code>, cursor + hover) chamam <code>setActiveTrendMetric(key)</code> ao clicar. Barra SVG feita à mão (sem lib de gráfico, projeto não tem nenhuma instalada) — 12 retângulos escalados pelo valor máximo do período; rótulo acima de cada barra em <code>formatGoldKK()</code> (métricas de gold) ou contagem simples; rodapé com Total no período + Média/mês. Dado vem de <code>computeMonthlyTrends()</code> (<code>services/dashboard/monthly-trend.ts</code>), que reagrupa por mês os mesmos <code>last365Drops</code>/<code>splitDailySeries</code> já buscados pro Top Drop e pro KKs Hunt/Boss — <b>zero fetch novo</b>. <b>Escopo confirmado com o usuário antes de implementar</b> (pergunta direta): só os 10 KPIs financeiros/contagem ficaram clicáveis — a tabela de Lvl/Skill/XP dos membros ficou de fora, porque só existe o valor "de hoje" (TibiaData/planilha ao vivo), sem snapshot diário guardado pra desenhar 12 meses de histórico. <code>formatGoldKK()</code> foi extraída de <code>UnsoldItemsShareModal.tsx</code> pra <code>services/common/gold-format.ts</code> nesse mesmo commit, pra reuso nos dois lugares.</dd>
             <dt>Fórmulas KPI</dt><dd>
-              <code>kksPlunderInd</code> = Σ totalValue onde boss=<code>'Plunder'</code> · <code>kksBagsInd</code> = Σ onde boss ∉ {Plunder, SoulCore} · <code>kksHunt/kksBoss</code> = soma da planilha no mês · <code>totalInd</code> = soma dos 4 acima
+              <code>kksPlunderInd</code> = Σ <code>unitValue</code> ("Valor Cada") onde boss=<code>'Plunder'</code> · <code>kksBagsInd</code> = Σ <code>unitValue</code> onde boss ∉ {Plunder, SoulCore} · <code>kksHunt/kksBoss</code> = soma de <code>equalShare</code> (cota_por_membro) dos <code>split_logs</code> tipo hunt/boss salvos no mês, via <code>useSplitLogsDaily</code> · <code>qtdServiceiro</code> = soma de <code>party.services.length</code> (vezes que um serviceiro aparece, não "drops com serviceiro" — um drop com 2 conta 2) · <code>totalInd</code> = soma dos 4 KKs. <b style="color:var(--danger)">Corrigido em 2026-08-20:</b> Plunder/Bags antes somavam <code>totalValue</code> (valor total do drop, não individual) — bug real reportado pelo usuário, rótulo "(ind)" exigia o valor por pessoa. Verificado contra o banco (ago/2026): Plunder R$3.250.000, Bags R$160.000.000, bateu exato. <b style="color:var(--danger)">No mesmo dia, Hunt/Boss migraram da planilha (<code>useBossHuntSheet</code>) pro banco</b> — pedido do usuário ("os kks hunt e boss tambem vem pelo banco de dados agora"); verificado: hunt=R$130.157.656, boss=R$85.397.998, bateu exato com <code>sum(cota_por_membro)</code> no Supabase. <b style="color:var(--danger)">Corrigido em 2026-08-21:</b> Qtd Serviceiro contava <code>party.service</code> (campo legado de string única, sempre vazio nos drops atuais — o form usa o array <code>services</code> desde 2026-08-06) — sempre mostrava 0. Verificado: 14 (bateu com <code>count(*)</code> em <code>drop_services</code> do mês no Supabase).
             </dd>
             <dt>Previsão fim de ano</dt><dd>
               <b>Real desde 2026-08-10</b> (antes era um script no Google Apps Script do usuário) — computada em <code>previsaoPorMembro</code> (useMemo), combinando level+XP total ao vivo (Highscores "experience" do TibiaData) com <code>xp90Dias</code> da planilha. Fórmula em <code>services/xp-sheet/level-prediction.ts</code>, ver seção Regras de negócio.
@@ -575,7 +575,7 @@
           <p>Calendário mensal — hover mostra resumo rápido, clique abre modal completo com Boss/Hunt (<code>split_logs</code>), XP por jogador (planilha) e Drops daquele dia.</p>
           <dl class="kv-list">
             <dt>Rota</dt><dd><code>/calendario</code></dd>
-            <dt>Dado</dt><dd><code>LootDrop</code> (real) pros dots/hover de item; <code>useXpSheet</code> (planilha) pro XP por jogador; <code>useSplitLogsDaily</code> (tabela <code>split_logs</code>, 2026-08-19 — <b>substituiu</b> <code>useBossHuntSheet</code>/planilha só nesse módulo) pros dots/hover/modal de Boss e Hunt; <code>useTibiaEvents</code> (tabela <code>tibia_events</code>) pra faixa de evento oficial. O Dashboard continua com <code>useBossHuntSheet</code> — não foi migrado, fora do escopo do pedido.</dd>
+            <dt>Dado</dt><dd><code>LootDrop</code> (real) pros dots/hover de item; <code>useXpSheet</code> (planilha) pro XP por jogador; <code>useSplitLogsDaily</code> (tabela <code>split_logs</code>, 2026-08-19 — <b>substituiu</b> <code>useBossHuntSheet</code>/planilha nesse módulo) pros dots/hover/modal de Boss e Hunt; <code>useTibiaEvents</code> (tabela <code>tibia_events</code>) pra faixa de evento oficial. Em 2026-08-20 o Dashboard migrou pro mesmo hook — <code>useBossHuntSheet</code> foi deletado, sem consumidor restante em nenhum módulo.</dd>
             <dt>Bolinhas do dia</dt><dd>
               Legenda acima do grid (2026-08-10). <span style="color:#38bdf8">●</span> <b>Boss</b> = existe split_log tipo boss não-escondido nesse dia · <span style="color:#f59e0b">●</span> <b>Hunt</b> = existe split_log tipo hunt não-escondido nesse dia (2026-08-19: agora exato — antes, lendo da planilha, não dava pra distinguir "sem dado" de "lucro zerado" com 100% de precisão) · 💎 <b>Item</b> = 1 💎 por drop do dia (2026-08-20: trocou de bolinha roxa pra emoji — usuário achou o 💎 já usado na lista de Drops do modal "muito bonito" e pediu pra testar; aprovou depois de ver, e pediu pra encurtar a legenda pra só "💎 Item" sem descrição extra. <code>.calendar-dot.drop</code> foi removida do CSS, não é mais usada).
             </dd>
@@ -905,13 +905,17 @@
 
       <div class="callout" style="margin-bottom:16px">
         <span class="dot">⚠</span>
-        <span>Como o compartilhamento é "qualquer um com o link", o ID da planilha sozinho já dá acesso de leitura total a ela — por isso <b>não fica em texto neste documento nem no código</b>. Desde 2026-08-10 vive em env vars server-only (<code>XP_SHEET_ID</code>, <code>XP_SHEET_XP_REALIZADA_GID</code>, <code>XP_SHEET_BOSS_HUNT_GID</code> — sem prefixo <code>VITE_</code>, nunca vão pro bundle do client). O repo é público no GitHub e o ID ficou exposto em 2 commits antes desse fix — decisão do usuário foi só fechar a exposição daqui pra frente, sem reescrever histórico.</span>
+        <span>Como o compartilhamento é "qualquer um com o link", o ID da planilha sozinho já dá acesso de leitura total a ela — por isso <b>não fica em texto neste documento nem no código</b>. Desde 2026-08-10 vive em env vars server-only (<code>XP_SHEET_ID</code>, <code>XP_SHEET_XP_REALIZADA_GID</code> — sem prefixo <code>VITE_</code>, nunca vão pro bundle do client). O repo é público no GitHub e o ID ficou exposto em 2 commits antes desse fix — decisão do usuário foi só fechar a exposição daqui pra frente, sem reescrever histórico.</span>
+      </div>
+
+      <div class="callout" style="margin-bottom:16px">
+        <span class="dot">ℹ</span>
+        <span>A aba "Boss hunt" (gid <code>XP_SHEET_BOSS_HUNT_GID</code>) foi lida pelo app até 2026-08-19/20 — <b>removida</b> quando Dashboard e Calendário migraram KKs Hunt/Boss pra ler direto da tabela <code>split_logs</code> no Supabase (pedido do usuário: "os kks hunt e boss tambem vem pelo banco de dados agora"). <code>useBossHuntSheet</code>, <code>api/boss-hunt-sheet.ts</code> e <code>api/_lib/boss-hunt-sheet.ts</code> foram deletados por completo, sem consumidor restante. Só a aba "Xp Realizada" continua em uso.</span>
       </div>
 
       <table class="flag-table">
         <tr><th>Aba</th><th>gid (env var)</th><th>Conteúdo</th></tr>
         <tr><td>Xp Realizada</td><td class="mono-cell">XP_SHEET_XP_REALIZADA_GID</td><td>XP ganha no dia (já subtraída), 1 coluna/personagem. Linhas futuras pré-preenchidas <i>vazias</i> até 2027 — filtrar por célula não-vazia, nunca pegar "última linha" direto.</td></tr>
-        <tr><td>Boss hunt</td><td class="mono-cell">XP_SHEET_BOSS_HUNT_GID</td><td>Data / profit·ind hunt / profit·ind Boss — já <b>individual</b> (hunt÷4, boss÷5).</td></tr>
         <tr><td>PT</td><td class="mono-cell">não documentado (não usada pelo app)</td><td>XP acumulada por dia (fonte primária, não lida diretamente pelo app).</td></tr>
       </table>
 
@@ -922,12 +926,11 @@
           <code style="display:block; font-size:11.5px">localStorage['tibia-pts:xp-sheet-cache-v1']</code>
         </div>
         <div class="card">
-          <h3>useBossHuntSheet</h3>
-          <p style="color:var(--text-muted); font-size:13px; margin:0 0 8px">Sem cache — busca de novo a cada mount.</p>
-          <code style="display:block; font-size:11.5px">fetch(url, {cache: 'no-store'})</code>
+          <h3>useBossHuntSheet <span style="color:var(--danger); font-size:11px; font-weight:normal">removido 2026-08-20</span></h3>
+          <p style="color:var(--text-muted); font-size:13px; margin:0 0 8px">Não recriar — substituído por <code>useSplitLogsDaily</code> (tabela <code>split_logs</code>), usado por Dashboard e Calendário.</p>
         </div>
       </div>
-      <p style="font-size:13px; color:var(--text-muted); margin-top:14px">CSV export não tem <code>Access-Control-Allow-Origin</code> — resolvido com Vercel Functions como proxy (<code>api/xp-sheet.ts</code>, <code>api/boss-hunt-sheet.ts</code>), espelhadas em <code>npm run dev</code> por um plugin do Vite (<code>vite.config.ts</code>) pra dar pra testar sem publicar.</p>
+      <p style="font-size:13px; color:var(--text-muted); margin-top:14px">CSV export não tem <code>Access-Control-Allow-Origin</code> — resolvido com uma Vercel Function como proxy (<code>api/xp-sheet.ts</code>), espelhada em <code>npm run dev</code> por um plugin do Vite (<code>vite.config.ts</code>) pra dar pra testar sem publicar.</p>
     </section>
 
     <section id="business">
@@ -1092,7 +1095,7 @@
           <div>
             <p class="issue-title">Entidade <code>Hunt</code> mock parcialmente deprecada</p>
             <p class="issue-area">Calendário</p>
-            <p class="issue-desc">Removida do modal de clique (2026-08-08) e da bolinha de dia (2026-08-10, virou bolinha real via <code>useBossHuntSheet</code>) — ainda usada só na lista de texto do hover e em <code>findLatestActivityDate</code>. Não é dado morto no app inteiro, mas o espaço onde aparece encolheu de novo.</p>
+            <p class="issue-desc">Removida do modal de clique (2026-08-08) e da bolinha de dia (2026-08-10, virou bolinha real via a extinta <code>useBossHuntSheet</code>; desde 2026-08-19 via <code>useSplitLogsDaily</code>) — ainda usada só na lista de texto do hover e em <code>findLatestActivityDate</code>. Não é dado morto no app inteiro, mas o espaço onde aparece encolheu de novo.</p>
           </div>
         </div>
         <div class="issue">
@@ -1150,9 +1153,8 @@
             <tr><td class="mono-cell">VITE_SPLIT_LOGS_USE_SUPABASE</td><td style="font-size:12px">liga Supabase pros splits salvos do Split Loot</td></tr>
             <tr><td class="mono-cell">XP_SHEET_ID</td><td style="font-size:12px">ID da planilha — <b>server-only</b>, sem prefixo VITE_ (segredo, ver seção Planilha)</td></tr>
             <tr><td class="mono-cell">XP_SHEET_XP_REALIZADA_GID</td><td style="font-size:12px">gid da aba de XP — server-only</td></tr>
-            <tr><td class="mono-cell">XP_SHEET_BOSS_HUNT_GID</td><td style="font-size:12px">gid da aba de Boss/Hunt — server-only</td></tr>
           </table>
-          <p style="font-size:11.5px; color:var(--text-faint); margin:10px 0 0">Vivem em <code>.env.local</code> (gitignored) — não propagam pro Vercel automaticamente, precisam ser configuradas manualmente no dashboard do projeto.</p>
+          <p style="font-size:11.5px; color:var(--text-faint); margin:10px 0 0">Vivem em <code>.env.local</code> (gitignored) — não propagam pro Vercel automaticamente, precisam ser configuradas manualmente no dashboard do projeto. <code>XP_SHEET_BOSS_HUNT_GID</code> existiu até 2026-08-20 (gid da aba "Boss hunt") — removida junto com <code>api/_lib/boss-hunt-sheet.ts</code>, ver seção Planilha.</p>
         </div>
       </div>
     </section>
