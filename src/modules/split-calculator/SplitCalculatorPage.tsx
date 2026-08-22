@@ -11,6 +11,9 @@ interface PartyMember {
   loot: number;
   supplies: number;
   balance: number;
+  /** Dano causado na sessão (linha "Damage:" do log) — não entra no cálculo de split,
+   * só é usado pro "Damage Split" da mensagem de resumo (ver buildPartySplitMessage). */
+  damage: number;
   extraTc: number | '';
   extraGold: number | '';
 }
@@ -37,6 +40,57 @@ function writeCachedTcRate(value: number): void {
   } catch {
     // localStorage indisponível (aba anônima, quota cheia etc.) — segue sem persistir
   }
+}
+
+/** Notação compacta pra mensagem de resumo (2026-08-21) — diferente de formatGoldKK
+ * (services/common/gold-format.ts): valores na casa do milhão viram "X.XXkk" (2 casas),
+ * valores abaixo disso viram "Xk" arredondado SEM casa decimal (o usuário mandou um
+ * print de referência de outra ferramenta usando exatamente essa mistura — ex.:
+ * 1.058.794 → "1.06kk", mas 38.513 → "39k", não "38.51k"). Só usada aqui, nenhum sinal
+ * (+/-) porque os valores dessa mensagem são sempre positivos (pagamento/profit). */
+function formatAmountForMessage(value: number): string {
+  const abs = Math.abs(value);
+  if (abs >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}kk`;
+  return `${Math.round(value / 1000)}k`;
+}
+
+/** Mensagem única com todos os pagamentos + resumo, pronta pra colar num grupo (Discord/
+ * WhatsApp) — 2026-08-21, pedido do usuário: "eu precisava de um split pra mandar para
+ * todos pagarem", com um print de exemplo de outra ferramenta ("X to pay Y to Z (Bank:
+ * transfer N to Z)" + Total profit + Session duration + Damage Split). Formato replicado
+ * o mais próximo possível do exemplo. `sessionDurationHours`/`Label` vêm null quando o
+ * log colado não tem a linha "Session: HH:MMh" — nesse caso a linha de duração é omitida
+ * (nunca inventa um valor). `damageSplit` vazio (log sem "Damage:") omite a última linha. */
+function buildPartySplitMessage(
+  transfers: { from: string; to: string; amount: number }[],
+  totalBalance: number,
+  equalShare: number,
+  memberCount: number,
+  sessionDurationHours: number | null,
+  sessionDurationLabel: string | null,
+  damageSplit: { name: string; percent: number }[],
+): string {
+  if (memberCount === 0) return '';
+
+  const lines: string[] = ['Results:', ''];
+
+  for (const t of transfers) {
+    lines.push(`${t.from} to pay ${formatAmountForMessage(t.amount)} to ${t.to} (Bank: transfer ${t.amount} to ${t.to})`, '');
+  }
+
+  lines.push(`Total profit: ${formatAmountForMessage(totalBalance)}~ which is: ${formatAmountForMessage(equalShare)}~ for each player.`, '');
+
+  if (sessionDurationHours && sessionDurationHours > 0 && sessionDurationLabel) {
+    const perHour = equalShare / sessionDurationHours;
+    lines.push(`Session duration: ${sessionDurationLabel}, which is: ${formatAmountForMessage(perHour)}~ for each player per hour.`, '');
+  }
+
+  if (damageSplit.length > 0) {
+    const dmgText = damageSplit.map((d) => `${d.name} - ${d.percent.toFixed(1)}%`).join(', ');
+    lines.push(`Damage Split: ${dmgText}.`);
+  }
+
+  return lines.join('\n').trim();
 }
 
 export function SplitCalculatorPage() {
@@ -67,6 +121,16 @@ export function SplitCalculatorPage() {
   const [savedTypes, setSavedTypes] = useState<Set<SplitLogType>>(new Set());
   const [savingType, setSavingType] = useState<SplitLogType | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  // Duração da sessão ("Session: HH:MMh" no cabeçalho do log) — só usada pra calcular o
+  // "profit por jogador por hora" da mensagem de resumo (buildPartySplitMessage). null se
+  // o log não tiver essa linha (log corrompido/formato diferente) — a mensagem omite a
+  // linha de duração nesse caso, em vez de mostrar um valor inventado.
+  const [sessionDurationHours, setSessionDurationHours] = useState<number | null>(null);
+  const [sessionDurationLabel, setSessionDurationLabel] = useState<string | null>(null);
+  // Botão "Copiar tudo (Discord)" (2026-08-21, pedido do usuário: "eu precisava de um
+  // split pra mandar para todos pagarem") — mesmo padrão de botão-permanente já usado em
+  // doneIndices/savedTypes, reseta só ao reprocessar um log novo.
+  const [discordCopied, setDiscordCopied] = useState(false);
 
   // Cola sempre SUBSTITUI o conteúdo inteiro do campo, nunca insere no meio/fim do que
   // já estava digitado — evita o caso real reportado pelo usuário: um caractere solto
@@ -134,12 +198,14 @@ Zo Tis
     let currentLoot = 0;
     let currentSupplies = 0;
     let currentBalance = 0;
+    let currentDamage = 0;
 
     const cleanNumber = (str: string) => parseInt(str.replace(/[,.]/g, ''), 10) || 0;
 
     // Cabeçalho global (nunca é player, nem campo de player) e campos conhecidos de
-    // cada player (Damage/Healing existem no log real mas não entram no cálculo, só
-    // precisam ser reconhecidos pra não virarem "jogador fantasma" — ver abaixo).
+    // cada player. Damage entra no cálculo do "Damage Split" da mensagem de resumo (ver
+    // buildPartySplitMessage) — Healing continua só reconhecido pra não virar "jogador
+    // fantasma", sem uso no app.
     const HEADER_PREFIXES = ['Session', 'Loot Type'];
     const FIELD_PREFIXES = ['Loot:', 'Supplies:', 'Balance:', 'Damage:', 'Healing:'];
 
@@ -169,6 +235,7 @@ Zo Tis
             loot: currentLoot,
             supplies: currentSupplies,
             balance: currentBalance,
+            damage: currentDamage,
             extraTc: '',
             extraGold: '',
           });
@@ -178,6 +245,7 @@ Zo Tis
         currentLoot = 0;
         currentSupplies = 0;
         currentBalance = 0;
+        currentDamage = 0;
       } else if (currentName) {
         if (trimmed.startsWith('Loot:')) {
           const match = trimmed.match(/[\d,.]+/);
@@ -188,9 +256,11 @@ Zo Tis
         } else if (trimmed.startsWith('Balance:')) {
           const match = trimmed.match(/[\d,.]+/);
           if (match) currentBalance = cleanNumber(match[0]);
+        } else if (trimmed.startsWith('Damage:')) {
+          const match = trimmed.match(/[\d,.]+/);
+          if (match) currentDamage = cleanNumber(match[0]);
         }
-        // Damage:/Healing: são reconhecidos só pra não virarem jogador fantasma —
-        // não entram no cálculo de split, então não precisam de captura própria.
+        // Healing: reconhecido só pra não virar jogador fantasma, sem uso no app.
       }
     });
 
@@ -201,13 +271,22 @@ Zo Tis
         loot: currentLoot,
         supplies: currentSupplies,
         balance: currentBalance,
+        damage: currentDamage,
         extraTc: '',
         extraGold: '',
       });
     }
 
+    // "Session: HH:MMh" — linha de cabeçalho global com a duração da sessão, diferente de
+    // "Session data: From ... to ..." (que dá a data/hora de início-fim, usada só pra
+    // extractSplitSessionDate). Usada só na mensagem de resumo pro Discord (profit/hora).
+    const durationMatch = text.match(/^Session:\s*(\d{1,2}):(\d{2})h/im);
+    setSessionDurationHours(durationMatch ? Number(durationMatch[1]) + Number(durationMatch[2]) / 60 : null);
+    setSessionDurationLabel(durationMatch ? `${durationMatch[1].padStart(2, '0')}:${durationMatch[2]}h` : null);
+
     setMembers(parsedMembers);
     setDoneIndices(new Set());
+    setDiscordCopied(false);
     setSessionDate(extractSplitSessionDate(text));
     setParsedRawLog(text);
     setSavedTypes(new Set());
@@ -286,9 +365,28 @@ Zo Tis
     return { totalBalance, equalShare, transfers, adjustedMembers };
   }, [members, tcRate]);
 
+  // % de dano por membro sobre o dano total da sessão — dado bruto do log (não afetado
+  // por Gastos Extras/tcRate). [] se o log não tiver linhas "Damage:" (formato diferente,
+  // ou nenhum dano registrado) — a mensagem de resumo omite "Damage Split" nesse caso.
+  const damageSplit = useMemo(() => {
+    const totalDamage = members.reduce((s, m) => s + m.damage, 0);
+    if (totalDamage <= 0) return [];
+    return members.map((m) => ({ name: m.name, percent: (m.damage / totalDamage) * 100 }));
+  }, [members]);
+
+  const partyMessage = useMemo(
+    () => buildPartySplitMessage(calculation.transfers, calculation.totalBalance, calculation.equalShare, members.length, sessionDurationHours, sessionDurationLabel, damageSplit),
+    [calculation.transfers, calculation.totalBalance, calculation.equalShare, members.length, sessionDurationHours, sessionDurationLabel, damageSplit],
+  );
+
   const handleCopyCommand = (commandText: string, index: number) => {
     navigator.clipboard.writeText(commandText);
     setDoneIndices((prev) => new Set(prev).add(index));
+  };
+
+  const handleCopyPartyMessage = () => {
+    navigator.clipboard.writeText(partyMessage);
+    setDiscordCopied(true);
   };
 
   // "Salvar Split Boss"/"Salvar Split Hunt" (2026-08-19, pedido do usuário) — grava o
@@ -540,6 +638,35 @@ Zo Tis
                 </div>
               )}
             </div>
+
+            {members.length > 0 && (
+              <div style={{ marginTop: '20px', paddingTop: '15px', borderTop: '1px solid var(--color-border)' }}>
+                <h4 style={{ fontSize: '13px', margin: '0 0 10px 0', color: 'var(--color-text)' }}>Mensagem pra mandar pro grupo:</h4>
+                <pre
+                  className="texto-mono"
+                  style={{
+                    background: 'var(--color-bg-input)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)',
+                    padding: '12px', fontSize: '12px', color: 'var(--color-text)', whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                    maxHeight: '220px', overflowY: 'auto', margin: '0 0 10px 0',
+                  }}
+                >
+                  {partyMessage}
+                </pre>
+                <button
+                  type="button"
+                  onClick={handleCopyPartyMessage}
+                  className="botao-secundario"
+                  style={{
+                    width: '100%', padding: '10px', fontWeight: 'bold',
+                    borderColor: discordCopied ? 'var(--color-success)' : undefined,
+                    color: discordCopied ? 'var(--color-success)' : undefined,
+                    background: discordCopied ? 'var(--color-success-soft)' : undefined,
+                  }}
+                >
+                  {discordCopied ? '✓ Copiado' : '📋 Copiar tudo (Discord)'}
+                </button>
+              </div>
+            )}
 
           </div>
 
