@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useAccount } from '@/hooks/useAccount';
+import { useAuth } from '@/hooks/useAuth';
 import { usePartySettings } from '@/hooks/usePartySettings';
 import { useSplitLogs } from '@/hooks/useSplitLogs';
 import { formatTibiaGold } from '@/services/split';
@@ -95,6 +96,12 @@ function buildPartySplitMessage(
 
 export function SplitCalculatorPage() {
   const { accountId } = useAccount();
+  // Botões "Salvar Split" só aparecem logado (2026-08-21, pedido do usuário) — a rota
+  // /split fica aberta sem login de propósito (calculadora livre), mas salvar de verdade
+  // exige sessão (RLS "to authenticated" em split_logs); antes disso o botão aparecia
+  // pra qualquer um e só falhava com um banner de erro ao clicar. isAuthLoading evita
+  // mostrar o aviso "faça login" por um instante antes da sessão terminar de carregar.
+  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const { settings } = usePartySettings(accountId);
   const { createSplitLog } = useSplitLogs(accountId);
 
@@ -551,7 +558,7 @@ Zo Tis
               </div>
             </div>
 
-            {members.length > 0 && (
+            {members.length > 0 && !isAuthLoading && isAuthenticated && (
               <div style={{ marginBottom: '20px' }}>
                 <div style={{ display: 'flex', gap: '10px' }}>
                   {(['boss', 'hunt'] as const).map((type) => {
@@ -585,6 +592,11 @@ Zo Tis
                   <p className="texto-perigo" style={{ fontSize: '12px', margin: '6px 0 0 0' }}>⚠ {saveError}</p>
                 )}
               </div>
+            )}
+            {members.length > 0 && !isAuthLoading && !isAuthenticated && (
+              <p className="texto-fraco" style={{ fontSize: '12px', margin: '0 0 20px 0' }}>
+                🔒 Faça login pra salvar o split (Boss/Hunt).
+              </p>
             )}
 
             <h4 style={{ fontSize: '13px', margin: '0 0 10px 0', color: 'var(--color-text)' }}>Copiar Comandos de Transferência:</h4>
