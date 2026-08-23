@@ -16,6 +16,10 @@ export class MockSplitLogRepository implements ISplitLogRepository {
       id: crypto.randomUUID(),
       accountId,
       createdAt: new Date().toISOString(),
+      // Mock não tem colunas de banco de verdade — deriva playerSlots direto de members,
+      // mesma ideia (só) das colunas rígidas player1_*..player8_* que o HttpSplitLogRepository
+      // popula de verdade (migration 20260822000000).
+      playerSlots: dto.members.slice(0, 8).map((m) => ({ name: m.name, damage: m.damage, healing: m.healing })),
       ...dto,
     };
     const list = store.get(accountId) ?? [];

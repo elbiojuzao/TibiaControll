@@ -1,1 +1,1 @@
-export { CalendarioPage } from './CalendarioPage';
+export { HistoricoPage } from './HistoricoPage';

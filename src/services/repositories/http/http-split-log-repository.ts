@@ -1,7 +1,11 @@
 import { getSupabaseClient } from '@/services/supabase/supabase-client';
 import { brToIso, isoToBr } from '@/services/common/br-date';
-import type { CreateSplitLogDto, SplitLog, SplitLogMember, SplitLogTransfer, SplitLogType } from '@/types';
+import type { CreateSplitLogDto, SplitLog, SplitLogMember, SplitLogPlayerSlot, SplitLogTransfer, SplitLogType } from '@/types';
 import type { ISplitLogRepository } from '../interfaces';
+
+/** Até 8 colunas rígidas de player em split_logs (migration 20260822000000, pedido do
+ * usuário: "colocar até 8 colunas de player nunca vai ter mais que isso"). */
+const PLAYER_SLOT_COUNT = 8;
 
 interface SplitLogRow {
   id: string;
@@ -14,7 +18,40 @@ interface SplitLogRow {
   balance_total: number;
   cota_por_membro: number;
   cotacao_tc: number;
+  duracao_minutos: number | null;
   created_at: string;
+  // player1_nome/player1_dano/player1_cura ... player8_* — indexados dinamicamente abaixo
+  // via `row[\`player${i}_nome\`]`, não listados campo a campo aqui.
+  [key: `player${number}_nome`]: string | null;
+  [key: `player${number}_dano`]: number | null;
+  [key: `player${number}_cura`]: number | null;
+}
+
+/** Monta as colunas player1_nome/_dano/_cura ... player8_* pro INSERT, a partir dos
+ * primeiros 8 `members` — slots sem jogador ficam NULL (nunca omitidos, pra um insert
+ * futuro com menos membros não deixar lixo de um valor antigo caso vire update um dia). */
+function buildPlayerSlotColumns(members: SplitLogMember[]): Record<string, string | number | null> {
+  const cols: Record<string, string | number | null> = {};
+  for (let i = 1; i <= PLAYER_SLOT_COUNT; i++) {
+    const m = members[i - 1];
+    cols[`player${i}_nome`] = m?.name ?? null;
+    cols[`player${i}_dano`] = m ? m.damage : null;
+    cols[`player${i}_cura`] = m ? m.healing : null;
+  }
+  return cols;
+}
+
+/** Lê as colunas player1_*..player8_* de volta pro array `playerSlots` — pula slots vazios
+ * (nome null), tanto pra splits com menos de 8 membros quanto pra registros salvos antes da
+ * migration 20260822000000 (todas as colunas ficam NULL nesses casos). */
+function readPlayerSlots(row: SplitLogRow): SplitLogPlayerSlot[] {
+  const slots: SplitLogPlayerSlot[] = [];
+  for (let i = 1; i <= PLAYER_SLOT_COUNT; i++) {
+    const name = row[`player${i}_nome`];
+    if (!name) continue;
+    slots.push({ name, damage: row[`player${i}_dano`] ?? 0, healing: row[`player${i}_cura`] ?? 0 });
+  }
+  return slots;
 }
 
 function toDomain(row: SplitLogRow): SplitLog {
@@ -24,11 +61,17 @@ function toDomain(row: SplitLogRow): SplitLog {
     date: isoToBr(row.data),
     type: row.tipo,
     rawLog: row.log_bruto,
-    members: row.membros,
+    // damage/healing só existem no JSONB pra splits salvos a partir de 2026-08-21 —
+    // registros mais antigos (import de CSV, splits salvos antes disso) não têm essas
+    // chaves; default 0 aqui em vez de deixar undefined vazar pro domínio (que declara
+    // number, não number|undefined).
+    members: row.membros.map((m) => ({ ...m, damage: m.damage ?? 0, healing: m.healing ?? 0 })),
+    playerSlots: readPlayerSlots(row),
     transfers: row.transferencias,
     totalBalance: row.balance_total,
     equalShare: row.cota_por_membro,
     tcRate: row.cotacao_tc,
+    durationMinutes: row.duracao_minutos,
     createdAt: row.created_at,
   };
 }
@@ -47,6 +90,8 @@ export class HttpSplitLogRepository implements ISplitLogRepository {
         balance_total: dto.totalBalance,
         cota_por_membro: dto.equalShare,
         cotacao_tc: dto.tcRate,
+        duracao_minutos: dto.durationMinutes,
+        ...buildPlayerSlotColumns(dto.members),
       })
       .select()
       .single();

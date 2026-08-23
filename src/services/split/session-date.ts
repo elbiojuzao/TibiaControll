@@ -22,3 +22,15 @@ export function extractSplitSessionDate(rawLog: string): string | null {
 
   return dateAsBr(endDate);
 }
+
+/** Extrai a duração total da sessão a partir do cabeçalho "Session: HH:MMh" do Party Hunt
+ * Analyzer, em minutos — 2026-08-23, pedido do usuário: "o dano medio eu acho que esta
+ * errado pois a hunt ela pode durar 2 ou 3 horas tem que analisar isso antes". Usada pra
+ * normalizar as médias de dano/cura por HORA no Histórico de Splits (uma hunt de 3h tem
+ * mais dano bruto que uma de 1h só pela duração, comparar o total bruto distorce). Retorna
+ * null se o log não tiver essa linha (nunca inventa uma duração). */
+export function extractSplitDurationMinutes(rawLog: string): number | null {
+  const match = rawLog.match(/^Session:\s*(\d{1,2}):(\d{2})h/im);
+  if (!match) return null;
+  return Number(match[1]) * 60 + Number(match[2]);
+}

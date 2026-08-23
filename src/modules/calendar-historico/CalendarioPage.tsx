@@ -149,14 +149,7 @@ export function CalendarioPage() {
   };
 
   return (
-    <div className="dashboard-container" style={{ padding: '20px', maxWidth: '1100px', margin: '0 auto', color: 'var(--color-text)' }}>
-      <header className="page-header" style={{ marginBottom: '20px', borderBottom: '1px solid var(--color-border)', paddingBottom: '15px' }}>
-        <h2 style={{ margin: 0, fontSize: '20px', color: 'var(--color-success)' }}>Histórico — Calendário</h2>
-        <p className="subtitulo-pagina">
-          Passe o mouse num dia pra um resumo rápido, ou clique pra abrir os detalhes completos (drops, hunts e XP por jogador).
-        </p>
-      </header>
-
+    <>
       <div className="card">
         <div className="calendar-header">
           <button className="calendar-nav-btn" onClick={goToPrevMonth}>‹ Anterior</button>
@@ -367,6 +360,6 @@ export function CalendarioPage() {
           </div>
         </Modal>
       )}
-    </div>
+    </>
   );
 }

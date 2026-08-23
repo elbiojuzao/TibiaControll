@@ -150,14 +150,7 @@ export function XpHistoricoPage() {
   }, [columnNames, data]);
 
   return (
-    <div className="dashboard-container" style={{ padding: '20px', maxWidth: '1100px', margin: '0 auto', color: 'var(--color-text)' }}>
-      <header className="page-header" style={{ marginBottom: '20px', borderBottom: '1px solid var(--color-border)', paddingBottom: '15px' }}>
-        <h2 style={{ margin: 0, fontSize: '20px', color: 'var(--color-success)' }}>Histórico de XP</h2>
-        <p className="subtitulo-pagina">
-          XP feita por cada jogador, lido ao vivo da planilha.
-        </p>
-      </header>
-
+    <>
       <div className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
         <div className="card-compacto">
           <h3 style={{ fontSize: '14px', margin: '0 0 4px 0', color: 'var(--color-warning)' }}>🏆 Recorde de XP num dia — últimos 365 dias</h3>
@@ -248,6 +241,6 @@ export function XpHistoricoPage() {
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 }
