@@ -69,7 +69,7 @@ function sortValue(row: SplitRow, key: SortKey): string | number {
  * (bruto do log) já é o que importa aqui; o ajuste por Gastos Extras/Cotação TC só faz
  * sentido no contexto AO VIVO da Calculadora (onde o usuário está digitando os extras
  * daquele split específico), não numa tela de histórico read-only. */
-function SplitDetailModal({ log, onClose }: { log: SplitLog; onClose: () => void }) {
+function SplitDetailModal({ log, onClose, onDelete, deleteError }: { log: SplitLog; onClose: () => void; onDelete: () => void; deleteError: string | null }) {
   const [copiedIndices, setCopiedIndices] = useState<Set<number>>(new Set());
   const [showRawLog, setShowRawLog] = useState(false);
 
@@ -81,15 +81,21 @@ function SplitDetailModal({ log, onClose }: { log: SplitLog; onClose: () => void
   return (
     <Modal title={`${log.type === 'boss' ? '🐲 Boss' : '🗡️ Hunt'} — ${log.date}`} onClose={onClose} maxWidth={680}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '13px' }}>
-        <div className="grid-2col" style={{ gap: '10px' }}>
-          <div style={{ background: 'var(--color-bg-input)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '10px' }}>
-            <span style={{ fontSize: '11px', color: 'var(--color-text-faint)', display: 'block' }}>Balance Total</span>
-            <strong className="texto-sucesso">{formatTibiaGold(log.totalBalance)}</strong>
+        {deleteError && <span className="texto-perigo" style={{ fontSize: '12px' }}>⚠ {deleteError}</span>}
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'stretch' }}>
+          <div className="grid-2col" style={{ gap: '10px', flex: 1 }}>
+            <div style={{ background: 'var(--color-bg-input)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '10px' }}>
+              <span style={{ fontSize: '11px', color: 'var(--color-text-faint)', display: 'block' }}>Balance Total</span>
+              <strong className="texto-sucesso">{formatTibiaGold(log.totalBalance)}</strong>
+            </div>
+            <div style={{ background: 'var(--color-bg-input)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '10px' }}>
+              <span style={{ fontSize: '11px', color: 'var(--color-text-faint)', display: 'block' }}>Cota por Membro</span>
+              <strong style={{ color: 'var(--color-accent)' }}>{formatTibiaGold(log.equalShare)}</strong>
+            </div>
           </div>
-          <div style={{ background: 'var(--color-bg-input)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '10px' }}>
-            <span style={{ fontSize: '11px', color: 'var(--color-text-faint)', display: 'block' }}>Cota por Membro</span>
-            <strong style={{ color: 'var(--color-accent)' }}>{formatTibiaGold(log.equalShare)}</strong>
-          </div>
+          <button type="button" onClick={onDelete} title="Excluir este split (soft delete)" className="botao-icone">
+            🗑️
+          </button>
         </div>
 
         <div>
@@ -197,12 +203,28 @@ function SplitDetailModal({ log, onClose }: { log: SplitLog; onClose: () => void
  * boss têm perfis de dano bem diferentes, misturar não fazia sentido). */
 export function SplitsHistoricoPage() {
   const { accountId } = useAccount();
-  const { splitLogs, loading, error } = useSplitLogsList(accountId);
+  const { splitLogs, loading, error, hideSplit } = useSplitLogsList(accountId);
   const [windowDays, setWindowDays] = useState(30);
   const [selectedPlayer, setSelectedPlayer] = useState(TODOS_PLAYERS);
   const [sortKey, setSortKey] = useState<SortKey>('date');
   const [sortDir, setSortDir] = useState<SortDirection>('desc');
   const [selectedSplitId, setSelectedSplitId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  // Excluir 1 split (soft delete, 2026-08-23, pedido do usuário: "uma maneira para excluir
+  // um split caso o usuario tenha feito errado") — mesmo padrão de confirmação + 🗑️ já
+  // usado no resto do app (ver ServiceirosPage/CalendarioPage).
+  const handleDeleteSplit = async (log: SplitLog) => {
+    const label = `${log.type === 'boss' ? 'Boss' : 'Hunt'} de ${log.date}`;
+    if (!window.confirm(`Excluir o split ${label}? Essa ação não pode ser desfeita por aqui.`)) return;
+    setDeleteError(null);
+    try {
+      await hideSplit(log.id);
+      setSelectedSplitId(null);
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Erro ao excluir split.');
+    }
+  };
 
   const rows = useMemo<SplitRow[]>(() => {
     return splitLogs.map((log) => {
@@ -470,7 +492,14 @@ export function SplitsHistoricoPage() {
         </div>
       )}
 
-      {selectedSplit && <SplitDetailModal log={selectedSplit} onClose={() => setSelectedSplitId(null)} />}
+      {selectedSplit && (
+        <SplitDetailModal
+          log={selectedSplit}
+          onClose={() => { setSelectedSplitId(null); setDeleteError(null); }}
+          onDelete={() => handleDeleteSplit(selectedSplit)}
+          deleteError={deleteError}
+        />
+      )}
     </div>
   );
 }
