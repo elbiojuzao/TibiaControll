@@ -1,10 +1,11 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAccount } from '@/hooks/useAccount';
 import { useAuth } from '@/hooks/useAuth';
 import { usePartySettings } from '@/hooks/usePartySettings';
 import { useSplitLogs } from '@/hooks/useSplitLogs';
 import { formatTibiaGold } from '@/services/split';
-import { extractSplitSessionDate } from '@/services/split/session-date';
+import { extractSplitSessionDate, extractSplitDurationMinutes } from '@/services/split/session-date';
 import type { SplitLogType } from '@/types';
 
 interface PartyMember {
@@ -12,9 +13,12 @@ interface PartyMember {
   loot: number;
   supplies: number;
   balance: number;
-  /** Dano causado na sessão (linha "Damage:" do log) — não entra no cálculo de split,
-   * só é usado pro "Damage Split" da mensagem de resumo (ver buildPartySplitMessage). */
+  /** Dano/cura causados na sessão (linhas "Damage:"/"Healing:" do log) — não entram no
+   * cálculo de split, só são usados pro "Damage Split" da mensagem de resumo (ver
+   * buildPartySplitMessage) e, desde 2026-08-21, salvos junto do split pro Histórico de
+   * Splits (ordenação por maior dano/cura, separado por player). */
   damage: number;
+  healing: number;
   extraTc: number | '';
   extraGold: number | '';
 }
@@ -96,6 +100,7 @@ function buildPartySplitMessage(
 
 export function SplitCalculatorPage() {
   const { accountId } = useAccount();
+  const navigate = useNavigate();
   // Botões "Salvar Split" só aparecem logado (2026-08-21, pedido do usuário) — a rota
   // /split fica aberta sem login de propósito (calculadora livre), mas salvar de verdade
   // exige sessão (RLS "to authenticated" em split_logs); antes disso o botão aparecia
@@ -134,6 +139,9 @@ export function SplitCalculatorPage() {
   // linha de duração nesse caso, em vez de mostrar um valor inventado.
   const [sessionDurationHours, setSessionDurationHours] = useState<number | null>(null);
   const [sessionDurationLabel, setSessionDurationLabel] = useState<string | null>(null);
+  // Mesma duração, em minutos — salva junto do split (2026-08-23, ver types/split-log.ts)
+  // pra normalizar médias de dano/cura por hora no Histórico de Splits.
+  const [sessionDurationMinutes, setSessionDurationMinutes] = useState<number | null>(null);
   // Botão "Copiar tudo (Discord)" (2026-08-21, pedido do usuário: "eu precisava de um
   // split pra mandar para todos pagarem") — mesmo padrão de botão-permanente já usado em
   // doneIndices/savedTypes, reseta só ao reprocessar um log novo.
@@ -206,13 +214,15 @@ Zo Tis
     let currentSupplies = 0;
     let currentBalance = 0;
     let currentDamage = 0;
+    let currentHealing = 0;
 
     const cleanNumber = (str: string) => parseInt(str.replace(/[,.]/g, ''), 10) || 0;
 
     // Cabeçalho global (nunca é player, nem campo de player) e campos conhecidos de
-    // cada player. Damage entra no cálculo do "Damage Split" da mensagem de resumo (ver
-    // buildPartySplitMessage) — Healing continua só reconhecido pra não virar "jogador
-    // fantasma", sem uso no app.
+    // cada player. Damage/Healing entram no "Damage Split" da mensagem de resumo (ver
+    // buildPartySplitMessage) e no Histórico de Splits (ordenação por dano/cura,
+    // 2026-08-21) — antes só Damage era capturado, Healing era reconhecido só pra não
+    // virar "jogador fantasma", sem uso no app.
     const HEADER_PREFIXES = ['Session', 'Loot Type'];
     const FIELD_PREFIXES = ['Loot:', 'Supplies:', 'Balance:', 'Damage:', 'Healing:'];
 
@@ -243,6 +253,7 @@ Zo Tis
             supplies: currentSupplies,
             balance: currentBalance,
             damage: currentDamage,
+            healing: currentHealing,
             extraTc: '',
             extraGold: '',
           });
@@ -253,6 +264,7 @@ Zo Tis
         currentSupplies = 0;
         currentBalance = 0;
         currentDamage = 0;
+        currentHealing = 0;
       } else if (currentName) {
         if (trimmed.startsWith('Loot:')) {
           const match = trimmed.match(/[\d,.]+/);
@@ -266,8 +278,10 @@ Zo Tis
         } else if (trimmed.startsWith('Damage:')) {
           const match = trimmed.match(/[\d,.]+/);
           if (match) currentDamage = cleanNumber(match[0]);
+        } else if (trimmed.startsWith('Healing:')) {
+          const match = trimmed.match(/[\d,.]+/);
+          if (match) currentHealing = cleanNumber(match[0]);
         }
-        // Healing: reconhecido só pra não virar jogador fantasma, sem uso no app.
       }
     });
 
@@ -279,6 +293,7 @@ Zo Tis
         supplies: currentSupplies,
         balance: currentBalance,
         damage: currentDamage,
+        healing: currentHealing,
         extraTc: '',
         extraGold: '',
       });
@@ -286,10 +301,13 @@ Zo Tis
 
     // "Session: HH:MMh" — linha de cabeçalho global com a duração da sessão, diferente de
     // "Session data: From ... to ..." (que dá a data/hora de início-fim, usada só pra
-    // extractSplitSessionDate). Usada só na mensagem de resumo pro Discord (profit/hora).
-    const durationMatch = text.match(/^Session:\s*(\d{1,2}):(\d{2})h/im);
-    setSessionDurationHours(durationMatch ? Number(durationMatch[1]) + Number(durationMatch[2]) / 60 : null);
-    setSessionDurationLabel(durationMatch ? `${durationMatch[1].padStart(2, '0')}:${durationMatch[2]}h` : null);
+    // extractSplitSessionDate). Usada na mensagem de resumo pro Discord (profit/hora) e,
+    // desde 2026-08-23, salva junto do split (durationMinutes) pra normalizar as médias de
+    // dano/cura por hora no Histórico de Splits — ver extractSplitDurationMinutes.
+    const durationMinutes = extractSplitDurationMinutes(text);
+    setSessionDurationMinutes(durationMinutes);
+    setSessionDurationHours(durationMinutes != null ? durationMinutes / 60 : null);
+    setSessionDurationLabel(durationMinutes != null ? `${String(Math.floor(durationMinutes / 60)).padStart(2, '0')}:${String(durationMinutes % 60).padStart(2, '0')}h` : null);
 
     setMembers(parsedMembers);
     setDoneIndices(new Set());
@@ -418,6 +436,8 @@ Zo Tis
           loot: m.loot,
           supplies: m.supplies,
           balance: m.balance,
+          damage: m.damage,
+          healing: m.healing,
           extraTc: typeof m.extraTc === 'number' ? m.extraTc : 0,
           extraGold: typeof m.extraGold === 'number' ? m.extraGold : 0,
           // Gold do Tibia é sempre inteiro — adjustedBalance normalmente já é (balance e
@@ -432,6 +452,7 @@ Zo Tis
         totalBalance: Math.round(calculation.totalBalance),
         equalShare: Math.round(calculation.equalShare),
         tcRate: Math.round(tcRate),
+        durationMinutes: sessionDurationMinutes,
       });
       setSavedTypes((prev) => new Set(prev).add(type));
     } catch (err) {
@@ -445,11 +466,21 @@ Zo Tis
     <div className="dashboard-container" style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto', color: 'var(--color-text)' }}>
 
       {/* CABEÇALHO */}
-      <header className="page-header" style={{ marginBottom: '25px', borderBottom: '1px solid var(--color-border)', paddingBottom: '15px' }}>
-        <h2 style={{ margin: 0, fontSize: '20px', color: 'var(--color-accent)' }}>Calculadora de Split Loot</h2>
-        <p className="subtitulo-pagina">
-          Cole o log do Party Hunt Analyzer para calcular perfeitamente as transferências bancárias in-game.
-        </p>
+      <header className="page-header" style={{ marginBottom: '25px', borderBottom: '1px solid var(--color-border)', paddingBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '10px' }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: '20px', color: 'var(--color-accent)' }}>Calculadora de Split Loot</h2>
+          <p className="subtitulo-pagina">
+            Cole o log do Party Hunt Analyzer para calcular perfeitamente as transferências bancárias in-game.
+          </p>
+        </div>
+        {/* Botão "Histórico de Splits" (2026-08-21, pedido do usuário) — mesma regra dos
+            botões "Salvar Split": só aparece logado, já que a lista de splits salvos
+            também exige sessão pra ler (RLS to authenticated em split_logs). */}
+        {!isAuthLoading && isAuthenticated && (
+          <button type="button" onClick={() => navigate('/calendario?tab=splits')} className="botao-secundario">
+            🧾 Histórico de Splits
+          </button>
+        )}
       </header>
 
       <div className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '20px' }}>
