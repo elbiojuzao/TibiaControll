@@ -7,6 +7,7 @@ const store = new Map<string, SplitLog[]>();
 // Soft delete — mesma ideia de serviceiros.hidden, só que aqui como um Set à parte (SplitLog
 // não expõe `hidden` no tipo de domínio, ninguém fora do repository precisa saber disso).
 const hiddenKeys = new Set<string>();
+const hiddenIds = new Set<string>();
 const keyOf = (accountId: string, date: string, type: SplitLogType) => `${accountId}|${date}|${type}`;
 
 export class MockSplitLogRepository implements ISplitLogRepository {
@@ -31,11 +32,16 @@ export class MockSplitLogRepository implements ISplitLogRepository {
   async findByAccount(accountId: string): Promise<SplitLog[]> {
     await delay();
     const list = store.get(accountId) ?? [];
-    return list.filter((log) => !hiddenKeys.has(keyOf(accountId, log.date, log.type)));
+    return list.filter((log) => !hiddenKeys.has(keyOf(accountId, log.date, log.type)) && !hiddenIds.has(log.id));
   }
 
   async hide(accountId: string, date: string, type: SplitLogType): Promise<void> {
     await delay();
     hiddenKeys.add(keyOf(accountId, date, type));
+  }
+
+  async hideById(_accountId: string, id: string): Promise<void> {
+    await delay();
+    hiddenIds.add(id);
   }
 }

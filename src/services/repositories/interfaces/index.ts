@@ -63,4 +63,9 @@ export interface ISplitLogRepository {
   /** Soft delete — esconde TODOS os splits daquele tipo salvos naquele dia (o dia pode
    * ter mais de um, ver conventions em split_logs). Nunca apaga de verdade. */
   hide(accountId: string, date: string, type: import('@/types').SplitLogType): Promise<void>;
+  /** Soft delete de 1 split específico por id (2026-08-23, aba Splits do Histórico —
+   * diferente de `hide()` acima, que esconde TODOS os splits daquele tipo/dia; aqui o
+   * usuário escolhe exatamente qual split errado excluir, já que pode haver mais de um do
+   * mesmo tipo no mesmo dia). Nunca apaga de verdade. */
+  hideById(accountId: string, id: string): Promise<void>;
 }

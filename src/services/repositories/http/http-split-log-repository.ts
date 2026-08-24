@@ -123,4 +123,15 @@ export class HttpSplitLogRepository implements ISplitLogRepository {
       .eq('tipo', type);
     if (error) throw new Error(error.message);
   }
+
+  /** Soft delete de 1 split específico (2026-08-23, aba Splits do Histórico) — diferente de
+   * `hide()` acima, que esconde TODOS os splits daquele tipo/dia. */
+  async hideById(accountId: string, id: string): Promise<void> {
+    const { error } = await getSupabaseClient()
+      .from('split_logs')
+      .update({ hidden: true })
+      .eq('account_id', accountId)
+      .eq('id', id);
+    if (error) throw new Error(error.message);
+  }
 }

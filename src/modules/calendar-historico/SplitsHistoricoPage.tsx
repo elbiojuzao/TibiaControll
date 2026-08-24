@@ -69,7 +69,7 @@ function sortValue(row: SplitRow, key: SortKey): string | number {
  * (bruto do log) já é o que importa aqui; o ajuste por Gastos Extras/Cotação TC só faz
  * sentido no contexto AO VIVO da Calculadora (onde o usuário está digitando os extras
  * daquele split específico), não numa tela de histórico read-only. */
-function SplitDetailModal({ log, onClose }: { log: SplitLog; onClose: () => void }) {
+function SplitDetailModal({ log, onClose, onDelete, deleteError }: { log: SplitLog; onClose: () => void; onDelete: () => void; deleteError: string | null }) {
   const [copiedIndices, setCopiedIndices] = useState<Set<number>>(new Set());
   const [showRawLog, setShowRawLog] = useState(false);
 
@@ -81,15 +81,21 @@ function SplitDetailModal({ log, onClose }: { log: SplitLog; onClose: () => void
   return (
     <Modal title={`${log.type === 'boss' ? '🐲 Boss' : '🗡️ Hunt'} — ${log.date}`} onClose={onClose} maxWidth={680}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '13px' }}>
-        <div className="grid-2col" style={{ gap: '10px' }}>
-          <div style={{ background: 'var(--color-bg-input)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '10px' }}>
-            <span style={{ fontSize: '11px', color: 'var(--color-text-faint)', display: 'block' }}>Balance Total</span>
-            <strong className="texto-sucesso">{formatTibiaGold(log.totalBalance)}</strong>
+        {deleteError && <span className="texto-perigo" style={{ fontSize: '12px' }}>⚠ {deleteError}</span>}
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'stretch' }}>
+          <div className="grid-2col" style={{ gap: '10px', flex: 1 }}>
+            <div style={{ background: 'var(--color-bg-input)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '10px' }}>
+              <span style={{ fontSize: '11px', color: 'var(--color-text-faint)', display: 'block' }}>Balance Total</span>
+              <strong className="texto-sucesso">{formatTibiaGold(log.totalBalance)}</strong>
+            </div>
+            <div style={{ background: 'var(--color-bg-input)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '10px' }}>
+              <span style={{ fontSize: '11px', color: 'var(--color-text-faint)', display: 'block' }}>Cota por Membro</span>
+              <strong style={{ color: 'var(--color-accent)' }}>{formatTibiaGold(log.equalShare)}</strong>
+            </div>
           </div>
-          <div style={{ background: 'var(--color-bg-input)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '10px' }}>
-            <span style={{ fontSize: '11px', color: 'var(--color-text-faint)', display: 'block' }}>Cota por Membro</span>
-            <strong style={{ color: 'var(--color-accent)' }}>{formatTibiaGold(log.equalShare)}</strong>
-          </div>
+          <button type="button" onClick={onDelete} title="Excluir este split (soft delete)" className="botao-icone">
+            🗑️
+          </button>
         </div>
 
         <div>
@@ -197,12 +203,28 @@ function SplitDetailModal({ log, onClose }: { log: SplitLog; onClose: () => void
  * boss têm perfis de dano bem diferentes, misturar não fazia sentido). */
 export function SplitsHistoricoPage() {
   const { accountId } = useAccount();
-  const { splitLogs, loading, error } = useSplitLogsList(accountId);
+  const { splitLogs, loading, error, hideSplit } = useSplitLogsList(accountId);
   const [windowDays, setWindowDays] = useState(30);
   const [selectedPlayer, setSelectedPlayer] = useState(TODOS_PLAYERS);
   const [sortKey, setSortKey] = useState<SortKey>('date');
   const [sortDir, setSortDir] = useState<SortDirection>('desc');
   const [selectedSplitId, setSelectedSplitId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  // Excluir 1 split (soft delete, 2026-08-23, pedido do usuário: "uma maneira para excluir
+  // um split caso o usuario tenha feito errado") — mesmo padrão de confirmação + 🗑️ já
+  // usado no resto do app (ver ServiceirosPage/CalendarioPage).
+  const handleDeleteSplit = async (log: SplitLog) => {
+    const label = `${log.type === 'boss' ? 'Boss' : 'Hunt'} de ${log.date}`;
+    if (!window.confirm(`Excluir o split ${label}? Essa ação não pode ser desfeita por aqui.`)) return;
+    setDeleteError(null);
+    try {
+      await hideSplit(log.id);
+      setSelectedSplitId(null);
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Erro ao excluir split.');
+    }
+  };
 
   const rows = useMemo<SplitRow[]>(() => {
     return splitLogs.map((log) => {
@@ -250,13 +272,26 @@ export function SplitsHistoricoPage() {
   // pela duração de cada sessão, não uma média simples por split. Splits sem
   // `durationMinutes` (log sem a linha "Session: HH:MMh") ficam de fora desse cálculo
   // específico — nunca inventa uma duração — mas continuam na tabela normalmente.
+  //
+  // Hunt arredonda pra hora CHEIA abaixo (2026-08-23, refinamento — pedido do usuário: "a
+  // hunt geralmente tem uma pausa de 10 a 20 minutos hunts que terminam com 3hrs a 3hrs e
+  // 30minutos duraram apenas 3 hrs e hunts de 2hrs a 2hrs e 30 duraram apenas 2 hrs"). A
+  // linha "Session: HH:MMh" mede tempo de relógio do início ao fim do log, não tempo de
+  // caça ativa — os minutos que sobram depois da última hora completa costumam ser a pausa
+  // (abastecer poção/soul, etc.), não hunt de verdade. `Math.floor(minutos/60)` descarta
+  // esse resto pra qualquer hunt (não só as que caem exatamente em X:00-X:30 dos exemplos
+  // do usuário — o floor já cobre X:00 até X:59 igual). Hunts com MENOS de 1h completa
+  // ficam de fora do cálculo (floor viraria 0h, divisão por zero). **Só se aplica a Hunt**
+  // — Boss geralmente dura menos de 1h, então essa mesma regra zeraria a maioria dos boss
+  // splits; Boss continua usando a duração exata do log.
   const playerAveragesByType = useMemo(() => {
     function summarize(type: 'hunt' | 'boss') {
       const totals = new Map<string, { damage: number; healing: number; hours: number; splitCount: number }>();
       for (const row of filteredRows) {
         if (row.type !== type) continue;
         if (!row.durationMinutes) continue;
-        const hours = row.durationMinutes / 60;
+        const hours = type === 'hunt' ? Math.floor(row.durationMinutes / 60) : row.durationMinutes / 60;
+        if (hours <= 0) continue;
         for (const p of row.players) {
           const cur = totals.get(p.name) ?? { damage: 0, healing: 0, hours: 0, splitCount: 0 };
           cur.damage += p.damage;
@@ -470,7 +505,14 @@ export function SplitsHistoricoPage() {
         </div>
       )}
 
-      {selectedSplit && <SplitDetailModal log={selectedSplit} onClose={() => setSelectedSplitId(null)} />}
+      {selectedSplit && (
+        <SplitDetailModal
+          log={selectedSplit}
+          onClose={() => { setSelectedSplitId(null); setDeleteError(null); }}
+          onDelete={() => handleDeleteSplit(selectedSplit)}
+          deleteError={deleteError}
+        />
+      )}
     </div>
   );
 }

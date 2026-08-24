@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { repositories } from '@/services/repositories';
 import type { SplitLog } from '@/types';
 
@@ -31,5 +31,13 @@ export function useSplitLogsList(accountId: string) {
     return () => { cancelled = true; };
   }, [accountId]);
 
-  return { splitLogs, loading, error };
+  // Excluir 1 split específico (soft delete, 2026-08-23, pedido do usuário: "uma maneira
+  // para excluir um split caso o usuario tenha feito errado") — atualiza o estado local
+  // direto (sem refetch), mesmo padrão otimista de useSplitLogsDaily.hideDay.
+  const hideSplit = useCallback(async (id: string) => {
+    await repositories.splitLog.hideById(accountId, id);
+    setSplitLogs((prev) => prev.filter((log) => log.id !== id));
+  }, [accountId]);
+
+  return { splitLogs, loading, error, hideSplit };
 }
