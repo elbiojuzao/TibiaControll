@@ -14,8 +14,6 @@ interface SplitRow {
   totalBalance: number;
   equalShare: number;
   players: SplitLogPlayerSlot[];
-  totalDamage: number;
-  totalHealing: number;
   /** Minutos da sessão (linha "Session: HH:MMh" do log) — null se o split não tiver esse
    * dado (log num formato diferente). Usado só pra normalizar as médias por hora do card
    * de resumo; splits sem duração ficam de fora desse cálculo específico, mas continuam
@@ -23,8 +21,20 @@ interface SplitRow {
   durationMinutes: number | null;
 }
 
-type SortKey = 'date' | 'type' | 'equalShare' | 'totalDamage' | 'totalHealing';
+type SortKey = 'date' | 'type' | 'equalShare';
 type SortDirection = 'asc' | 'desc';
+
+/** 1 recorde de dano/cura de 1 jogador — o split ESPECÍFICO em que ele bateu o maior valor
+ * (não uma soma nem média), usado pelos botões "🎯 Maior Dano"/"💚 Maior Cura" (2026-08-24,
+ * ver PlayerRecord doc mais abaixo). Guarda dano E cura desse jogador nesse split (não só o
+ * campo que definiu o recorde) — pedido do usuário: "a tabela quando filtrada pelo maior
+ * dano ou cura tambem deve aparecer o dano / cura" (a tabela só mostrava o campo ativo). */
+interface PlayerRecord {
+  playerName: string;
+  row: SplitRow;
+  damage: number;
+  healing: number;
+}
 
 // Só as colunas essenciais pra um relance rápido (2026-08-23, pedido do usuário: "na tela
 // de split aparecer apenas 'cota membro' 'jogador dano e cura'") — Balance Total/Dano
@@ -54,8 +64,6 @@ function sortValue(row: SplitRow, key: SortKey): string | number {
     case 'date': return brToIso(row.date);
     case 'type': return row.type;
     case 'equalShare': return row.equalShare;
-    case 'totalDamage': return row.totalDamage;
-    case 'totalHealing': return row.totalHealing;
   }
 }
 
@@ -208,6 +216,7 @@ export function SplitsHistoricoPage() {
   const [selectedPlayer, setSelectedPlayer] = useState(TODOS_PLAYERS);
   const [sortKey, setSortKey] = useState<SortKey>('date');
   const [sortDir, setSortDir] = useState<SortDirection>('desc');
+  const [recordMode, setRecordMode] = useState<'damage' | 'healing' | null>(null);
   const [selectedSplitId, setSelectedSplitId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
@@ -236,8 +245,6 @@ export function SplitsHistoricoPage() {
         totalBalance: log.totalBalance,
         equalShare: log.equalShare,
         players,
-        totalDamage: players.reduce((s, p) => s + p.damage, 0),
-        totalHealing: players.reduce((s, p) => s + p.healing, 0),
         durationMinutes: log.durationMinutes,
       };
     });
@@ -317,28 +324,36 @@ export function SplitsHistoricoPage() {
     }
   };
 
-  const toggleDamageSort = () => {
-    if (sortKey === 'totalDamage' && sortDir === 'desc') {
-      setSortKey('date');
-      setSortDir('desc');
-    } else {
-      setSortKey('totalDamage');
-      setSortDir('desc');
-    }
-  };
+  // "🎯 Maior Dano"/"💚 Maior Cura" (2026-08-24, refinamento — pedido do usuário: "eu não
+  // quero uma lista com muitos splits eu quero o split que tem o maior dano do psiko... se
+  // eu colocar todos eu quero o split de maior dano de cada player"). Antes esses botões só
+  // reordenavam a tabela inteira pela SOMA de dano/cura do split — o usuário quer, em vez
+  // disso, o(s) RECORDE(S) individual(is): com 1 player selecionado, só o split em que ELE
+  // bateu o maior dano/cura; com "Todos os players", 1 linha por jogador, cada uma o split
+  // em que aquele jogador especificamente bateu o recorde dele (não o split com mais dano
+  // somado do grupo todo). Substitui a tabela normal enquanto ativo (ver render abaixo) —
+  // mutuamente exclusivos, mesmo padrão de antes.
+  const toggleDamageRecord = () => setRecordMode((m) => (m === 'damage' ? null : 'damage'));
+  const toggleHealingRecord = () => setRecordMode((m) => (m === 'healing' ? null : 'healing'));
+  const isDamageActive = recordMode === 'damage';
+  const isHealingActive = recordMode === 'healing';
 
-  const toggleHealingSort = () => {
-    if (sortKey === 'totalHealing' && sortDir === 'desc') {
-      setSortKey('date');
-      setSortDir('desc');
-    } else {
-      setSortKey('totalHealing');
-      setSortDir('desc');
+  const records = useMemo<PlayerRecord[] | null>(() => {
+    if (!recordMode) return null;
+    const best = new Map<string, PlayerRecord>();
+    for (const row of filteredRows) {
+      for (const p of row.players) {
+        if (selectedPlayer && p.name !== selectedPlayer) continue;
+        const value = recordMode === 'damage' ? p.damage : p.healing;
+        const current = best.get(p.name);
+        if (!current || value > (recordMode === 'damage' ? current.damage : current.healing)) {
+          best.set(p.name, { playerName: p.name, row, damage: p.damage, healing: p.healing });
+        }
+      }
     }
-  };
-
-  const isDamageActive = sortKey === 'totalDamage' && sortDir === 'desc';
-  const isHealingActive = sortKey === 'totalHealing' && sortDir === 'desc';
+    return Array.from(best.values()).sort((a, b) =>
+      (recordMode === 'damage' ? b.damage - a.damage : b.healing - a.healing));
+  }, [filteredRows, selectedPlayer, recordMode]);
 
   const sortedRows = useMemo(() => {
     const factor = sortDir === 'asc' ? 1 : -1;
@@ -395,7 +410,7 @@ export function SplitsHistoricoPage() {
 
         <button
           type="button"
-          onClick={toggleDamageSort}
+          onClick={toggleDamageRecord}
           style={{
             padding: '6px 14px', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold',
             border: isDamageActive ? '1px solid var(--color-danger)' : '1px solid var(--color-border)',
@@ -408,7 +423,7 @@ export function SplitsHistoricoPage() {
 
         <button
           type="button"
-          onClick={toggleHealingSort}
+          onClick={toggleHealingRecord}
           style={{
             padding: '6px 14px', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold',
             border: isHealingActive ? '1px solid var(--color-success)' : '1px solid var(--color-border)',
@@ -459,7 +474,38 @@ export function SplitsHistoricoPage() {
         </div>
       )}
 
-      {filteredRows.length === 0 ? (
+      {records ? (
+        records.length === 0 ? (
+          <p className="estado-vazio">Nenhum recorde encontrado com esses filtros.</p>
+        ) : (
+          <div className="loot-table-wrapper">
+            <table className="loot-table">
+              <thead>
+                <tr>
+                  <th>Player</th>
+                  <th>Data</th>
+                  <th>Tipo</th>
+                  <th>Cota por Membro</th>
+                  <th>Dano</th>
+                  <th>Cura</th>
+                </tr>
+              </thead>
+              <tbody>
+                {records.map((r) => (
+                  <tr key={r.playerName} onClick={() => setSelectedSplitId(r.row.id)} title="Clique para ver detalhes" style={{ cursor: 'pointer' }}>
+                    <td>{r.playerName}</td>
+                    <td>{r.row.date}</td>
+                    <td>{r.row.type === 'boss' ? '🐲 Boss' : '🗡️ Hunt'}</td>
+                    <td className="col-gold positive">{formatTibiaGold(r.row.equalShare)}</td>
+                    <td className="texto-perigo" style={{ fontWeight: recordMode === 'damage' ? 'bold' : 'normal' }}>{r.damage.toLocaleString('pt-BR')}</td>
+                    <td className="texto-sucesso" style={{ fontWeight: recordMode === 'healing' ? 'bold' : 'normal' }}>{r.healing.toLocaleString('pt-BR')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+      ) : filteredRows.length === 0 ? (
         <p className="estado-vazio">Nenhum split encontrado com esses filtros.</p>
       ) : (
         <div className="loot-table-wrapper">
