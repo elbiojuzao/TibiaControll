@@ -272,13 +272,26 @@ export function SplitsHistoricoPage() {
   // pela duração de cada sessão, não uma média simples por split. Splits sem
   // `durationMinutes` (log sem a linha "Session: HH:MMh") ficam de fora desse cálculo
   // específico — nunca inventa uma duração — mas continuam na tabela normalmente.
+  //
+  // Hunt arredonda pra hora CHEIA abaixo (2026-08-23, refinamento — pedido do usuário: "a
+  // hunt geralmente tem uma pausa de 10 a 20 minutos hunts que terminam com 3hrs a 3hrs e
+  // 30minutos duraram apenas 3 hrs e hunts de 2hrs a 2hrs e 30 duraram apenas 2 hrs"). A
+  // linha "Session: HH:MMh" mede tempo de relógio do início ao fim do log, não tempo de
+  // caça ativa — os minutos que sobram depois da última hora completa costumam ser a pausa
+  // (abastecer poção/soul, etc.), não hunt de verdade. `Math.floor(minutos/60)` descarta
+  // esse resto pra qualquer hunt (não só as que caem exatamente em X:00-X:30 dos exemplos
+  // do usuário — o floor já cobre X:00 até X:59 igual). Hunts com MENOS de 1h completa
+  // ficam de fora do cálculo (floor viraria 0h, divisão por zero). **Só se aplica a Hunt**
+  // — Boss geralmente dura menos de 1h, então essa mesma regra zeraria a maioria dos boss
+  // splits; Boss continua usando a duração exata do log.
   const playerAveragesByType = useMemo(() => {
     function summarize(type: 'hunt' | 'boss') {
       const totals = new Map<string, { damage: number; healing: number; hours: number; splitCount: number }>();
       for (const row of filteredRows) {
         if (row.type !== type) continue;
         if (!row.durationMinutes) continue;
-        const hours = row.durationMinutes / 60;
+        const hours = type === 'hunt' ? Math.floor(row.durationMinutes / 60) : row.durationMinutes / 60;
+        if (hours <= 0) continue;
         for (const p of row.players) {
           const cur = totals.get(p.name) ?? { damage: 0, healing: 0, hours: 0, splitCount: 0 };
           cur.damage += p.damage;
