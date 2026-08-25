@@ -60,9 +60,13 @@ const COLUMNS: { key: SortKey | 'icon'; label: string; sortable: boolean }[] = [
 interface LootTableProps {
   drops: LootDrop[];
   onRowClick?: (drop: LootDrop) => void;
+  /** Soft delete (2026-08-26, pedido do usuário) — 🗑️ por linha, só aparece quando
+   * fornecido (LootLogPage passa; outros consumidores do componente, se houver, continuam
+   * sem a coluna). */
+  onDelete?: (drop: LootDrop) => void;
 }
 
-export function LootTable({ drops, onRowClick }: LootTableProps) {
+export function LootTable({ drops, onRowClick, onDelete }: LootTableProps) {
   // Ordenação por coluna (2026-08-19, pedido do usuário: "clicar no cabeçalho... alterar a
   // ordenação asc descend") — clicar de novo na mesma coluna alterna a direção; clicar
   // numa coluna diferente reseta pra ascendente.
@@ -113,6 +117,7 @@ export function LootTable({ drops, onRowClick }: LootTableProps) {
                 <th key={col.key}>{col.label}</th>
               ),
             )}
+            {onDelete && <th></th>}
           </tr>
         </thead>
         <tbody>
@@ -153,6 +158,18 @@ export function LootTable({ drops, onRowClick }: LootTableProps) {
                   </span>
                 </td>
                 <td>{drop.saleDate ?? '—'}</td>
+                {onDelete && (
+                  <td style={{ textAlign: 'center' }}>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); onDelete(drop); }}
+                      title="Excluir este drop"
+                      className="botao-icone-perigo"
+                    >
+                      🗑️
+                    </button>
+                  </td>
+                )}
               </tr>
             );
           })}

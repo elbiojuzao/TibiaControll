@@ -19,6 +19,9 @@ export interface ILootDropRepository {
   findById(id: string): Promise<import('@/types').LootDrop | null>;
   create(accountId: string, dto: import('@/types').CreateLootDropDto): Promise<import('@/types').LootDrop>;
   update(id: string, dto: Partial<import('@/types').CreateLootDropDto>): Promise<import('@/types').LootDrop>;
+  /** Soft delete (2026-08-26, pedido do usuário) — nunca apaga a linha de verdade, marca
+   * `hidden=true` (migration 20260826000000_soft_delete_drops.sql). Antes disso era um
+   * DELETE de verdade e não estava ligado a nenhum botão da UI. */
   delete(id: string): Promise<void>;
 }
 

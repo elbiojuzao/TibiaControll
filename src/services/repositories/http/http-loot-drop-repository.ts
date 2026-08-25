@@ -93,6 +93,7 @@ export class HttpLootDropRepository implements ILootDropRepository {
       .from('drops')
       .select(SELECT_WITH_SERVICES)
       .eq('account_id', accountId)
+      .eq('hidden', false)
       .order('data_drop', { ascending: false });
 
     if (filters?.bossName) query = query.ilike('boss', `%${filters.bossName}%`);
@@ -177,9 +178,11 @@ export class HttpLootDropRepository implements ILootDropRepository {
     return updated;
   }
 
+  /** Soft delete (2026-08-26, pedido do usuário) — nunca apaga a linha de verdade, só marca
+   * `hidden=true` (migration 20260826000000_soft_delete_drops.sql). `drop_services` fica
+   * intacto (não faz sentido mais apagar em cascata, já que a linha em si não é apagada). */
   async delete(id: string): Promise<void> {
-    // drop_services é apagado em cascata (on delete cascade na FK drop_id)
-    const { error } = await getSupabaseClient().from('drops').delete().eq('id', id);
+    const { error } = await getSupabaseClient().from('drops').update({ hidden: true }).eq('id', id);
     if (error) throw new Error(error.message);
   }
 }

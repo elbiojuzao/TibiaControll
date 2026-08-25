@@ -48,5 +48,14 @@ export function useLootDrops(accountId: string, filters?: LootDropFilters) {
     return updated;
   }, []);
 
-  return { drops, loading, error, createDrop, updateDrop };
+  // Excluir (soft delete, 2026-08-26, pedido do usuário) — repositories.lootDrop.delete()
+  // já marca hidden=true no banco (nunca apaga de verdade, ver
+  // HttpLootDropRepository/MockLootDropRepository); aqui só remove do estado local pra
+  // sumir da tela na hora, sem precisar de refetch.
+  const removeDrop = useCallback(async (id: string) => {
+    await repositories.lootDrop.delete(id);
+    setDrops((prev) => prev.filter((d) => d.id !== id));
+  }, []);
+
+  return { drops, loading, error, createDrop, updateDrop, removeDrop };
 }

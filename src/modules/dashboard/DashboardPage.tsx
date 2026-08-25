@@ -17,6 +17,7 @@ import { getItemIconUrl } from '@/services/lootdrop/item-icons';
 import { buildLast12Months, computeMonthlyTrends, type DashboardMetricKey } from '@/services/dashboard/monthly-trend';
 import { UnsoldItemsShareModal } from './components/UnsoldItemsShareModal';
 import { MonthlyTrendModal } from './components/MonthlyTrendModal';
+import { PlayerDropsModal } from './components/PlayerDropsModal';
 import type { LootDropFilters, MemberXpStats } from '@/types';
 
 /** Rótulo + tipo de valor (gold vs contagem) de cada KPI clicável do grid — usado pra
@@ -114,6 +115,7 @@ export function DashboardPage() {
   const [soldFilter] = useState<string>('all');
   const [showUnsoldShareModal, setShowUnsoldShareModal] = useState(false);
   const [activeTrendMetric, setActiveTrendMetric] = useState<DashboardMetricKey | null>(null);
+  const [activePlayerDrops, setActivePlayerDrops] = useState<string | null>(null);
 
   // Alinhamento inferior das Colunas 1/3 com base na Coluna 2 (2026-08-25, pedido do
   // usuário: "vamos fazer um alinhamento inferior com base na tabela central"). CSS Grid
@@ -285,6 +287,14 @@ export function DashboardPage() {
       .sort((a, b) => b.totalValue - a.totalValue)
       .slice(0, 5);
   }, [last365Drops]);
+
+  // Drops do jogador aberto na modal (2026-08-25, pedido do usuário: clicar no nome do Top
+  // Drop abre um resumo) — MESMO filtro do ranking acima (sem Plunder), pra bater com o
+  // total mostrado no card.
+  const activePlayerDropsList = useMemo(() => {
+    if (!activePlayerDrops) return [];
+    return last365Drops.filter((d) => d.looter === activePlayerDrops && d.bossName !== 'Plunder');
+  }, [last365Drops, activePlayerDrops]);
 
   // Gráfico de tendência mensal (2026-08-21, pedido do usuário: "ao clicar nos campos
   // centrais da dashboard, abrir uma modal com gráfico dos últimos 12 meses") — reusa
@@ -625,7 +635,14 @@ export function DashboardPage() {
                     }}>
                       {idx + 1}
                     </span>
-                    <span className="texto-mudo" style={{ flex: 1, fontSize: '13px' }}>{entry.looter}</span>
+                    <span
+                      className="texto-mudo"
+                      onClick={() => setActivePlayerDrops(entry.looter)}
+                      title="Ver todos os drops deste jogador"
+                      style={{ flex: 1, fontSize: '13px', cursor: 'pointer', textDecoration: 'underline dotted' }}
+                    >
+                      {entry.looter}
+                    </span>
                     <span style={{ textAlign: 'right' }}>
                       <span className="texto-sucesso" style={{ display: 'block', fontSize: '13px', fontWeight: 'bold' }}>
                         {formatTibiaGold(entry.totalValue)}
@@ -654,6 +671,13 @@ export function DashboardPage() {
           months={trendMonths}
           values={monthlyTrends[activeTrendMetric]}
           onClose={() => setActiveTrendMetric(null)}
+        />
+      )}
+      {activePlayerDrops && (
+        <PlayerDropsModal
+          looter={activePlayerDrops}
+          drops={activePlayerDropsList}
+          onClose={() => setActivePlayerDrops(null)}
         />
       )}
     </div>

@@ -5,11 +5,14 @@ import { mockLootDrops } from '@/mocks/data/loot-drops';
 const delay = (ms = 200) => new Promise((r) => setTimeout(r, ms));
 
 let dropsStore = [...mockLootDrops];
+// Soft delete (2026-08-26) — mesma ideia de serviceiros/split_logs: LootDrop não expõe
+// `hidden` no tipo de domínio, ninguém fora do repository precisa saber disso.
+const hiddenIds = new Set<string>();
 
 export class MockLootDropRepository implements ILootDropRepository {
   async findByAccount(accountId: string, filters?: LootDropFilters): Promise<LootDrop[]> {
     await delay();
-    let results = dropsStore.filter((d) => d.accountId === accountId);
+    let results = dropsStore.filter((d) => d.accountId === accountId && !hiddenIds.has(d.id));
 
     if (filters?.bossName) {
       results = results.filter((d) =>
@@ -65,11 +68,12 @@ export class MockLootDropRepository implements ILootDropRepository {
 
   async delete(id: string): Promise<void> {
     await delay();
-    dropsStore = dropsStore.filter((d) => d.id !== id);
+    hiddenIds.add(id);
   }
 
   static reset(): void {
     dropsStore = [...mockLootDrops];
+    hiddenIds.clear();
   }
 }
 
