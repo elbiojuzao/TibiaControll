@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAccount } from '@/hooks/useAccount';
 import { useLootDrops } from '@/hooks/useLootDrops';
 import { useMembers } from '@/hooks/useMembers';
@@ -114,6 +114,46 @@ export function DashboardPage() {
   const [soldFilter] = useState<string>('all');
   const [showUnsoldShareModal, setShowUnsoldShareModal] = useState(false);
   const [activeTrendMetric, setActiveTrendMetric] = useState<DashboardMetricKey | null>(null);
+
+  // Alinhamento inferior das Colunas 1/3 com base na Coluna 2 (2026-08-25, pedido do
+  // usuário: "vamos fazer um alinhamento inferior com base na tabela central"). CSS Grid
+  // puro não resolve isso: mesmo com `flex:1`/`minHeight:0`/`overflow:auto` nas colunas
+  // laterais, o algoritmo de auto-sizing de linha do Grid usa o tamanho de CONTEÚDO NATURAL
+  // (max-content) de cada item — ignora que um filho aninhado tem scroll — então a linha
+  // sempre ficava do tamanho da coluna lateral mais cheia (Drops/Itens não vendidos), não
+  // da Coluna 2 (testado e confirmado via getBoundingClientRect antes desse fix: sobrava
+  // ~317px de espaço vazio embaixo da Coluna 2). Solução: medir a altura RENDERIZADA da
+  // Coluna 2 de verdade (ResizeObserver, reage a qualquer mudança de conteúdo — nº de
+  // membros, linhas de Meta XP etc.) e aplicar como altura FIXA nas Colunas 1/3 — com uma
+  // altura definida (não mais "auto"), o `flex:1` interno finalmente tem um limite real pra
+  // distribuir, e o `overflow:auto` passa a cortar/rolar de verdade.
+  const col2Ref = useRef<HTMLDivElement>(null);
+  const [col2Height, setCol2Height] = useState<number | null>(null);
+
+  useEffect(() => {
+    const el = col2Ref.current;
+    if (!el) return;
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) setCol2Height(entry.contentRect.height);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // Só faz sentido "esticar" as colunas laterais pra bater com a Coluna 2 quando elas estão
+  // LADO A LADO (desktop) — no mobile o `.responsive-grid` empilha tudo em 1 coluna
+  // (breakpoint 768px, ver global.css), e forçar a mesma altura ali só criava um vão vazio
+  // enorme embaixo do conteúdo real de cada card (achado testando essa mudança no preset
+  // mobile). `matchMedia` em vez de medir `window.innerWidth` no resize pra não rodar em
+  // toda pixel de resize, só quando cruza o breakpoint de verdade.
+  const [isDesktopLayout, setIsDesktopLayout] = useState(() => window.matchMedia('(min-width: 769px)').matches);
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 769px)');
+    const handler = () => setIsDesktopLayout(mq.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
 
   const filters: LootDropFilters = useMemo(() => {
     const { from, to } = monthRangeAsBr(Number(selectedMonth), Number(selectedYear));
@@ -260,44 +300,58 @@ export function DashboardPage() {
 
   if (accountLoading) return <div className="loading">Carregando...</div>;
 
+  // padding-top reduzido de 20px pra 4px (2026-08-25, pedido do usuário: "vamos tirar um
+  // pouco desse pading que tem em cima... se nao couber na tela pode seguir") — objetivo é
+  // caber o menu + conteúdo inteiro sem scroll quando possível; se não couber (ex: tela
+  // menor, party com mais membros), a página simplesmente rola normal, sem problema. Só o
+  // topo mudou — laterais/embaixo continuam 20px, sem impacto visual no resto da página.
   return (
-    <div className="dashboard-container" style={{ padding: '20px', maxWidth: '1700px', margin: '0 auto', color: 'var(--color-text)' }}>
+    <div className="dashboard-container" style={{ padding: '4px 20px 20px', maxWidth: '1700px', margin: '0 auto', color: 'var(--color-text)' }}>
 
-      {/* LAYOUT EM GRID: 3 COLUNAS */}
+      {/* LAYOUT EM GRID: 3 COLUNAS — alinhamento inferior com base na COLUNA 2 (2026-08-25,
+          pedido do usuário: "vamos fazer um alinhamento inferior com base na tabela
+          central"). Ver o `useEffect`/ResizeObserver de `col2Height` acima pro porquê de
+          medir via JS em vez de CSS puro (Grid ignora o scroll interno das colunas laterais
+          pro cálculo de altura da linha). Colunas 1/3 recebem `height: col2Height` (px,
+          medido de verdade) quando disponível — antes do 1º measure, ficam em `auto`
+          (só um flash inicial até o ResizeObserver disparar). */}
       <div className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1.2fr 2.1fr 1.1fr', gap: '20px' }}>
 
         {/* COLUNA 1: TABELA "DROPS NO MÊS" + SELETOR */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', minHeight: 0, height: isDesktopLayout && col2Height ? `${col2Height}px` : undefined, overflow: isDesktopLayout ? 'hidden' : undefined }}>
 
-          <div style={{ background: 'var(--color-bg-elevated)', padding: '10px 15px', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <span className="texto-mudo" style={{ fontSize: '11px', fontWeight: 'bold' }}>Mês</span>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <select
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                style={{ flex: 1, background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', padding: '6px 10px', borderRadius: 'var(--radius-sm)', fontSize: '13px' }}
-              >
-                {MESES.map((m) => (
-                  <option key={m.value} value={m.value}>{m.label}</option>
-                ))}
-              </select>
-              <input
-                type="text"
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(e.target.value)}
-                className="w75"
-                style={{ background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', padding: '6px 8px', borderRadius: 'var(--radius-sm)', textAlign: 'center', fontSize: '13px' }}
-              />
-            </div>
-          </div>
-
-          <div className="card" style={{ padding: '12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', borderBottom: '1px solid var(--color-border)', paddingBottom: '6px' }}>
+          {/* "Mês/Ano" juntado dentro do card "Drops no mês" (2026-08-25, pedido do
+              usuário: "vamos juntar a tabela mes/ano junto do drop no mes para ficar uma
+              coluna mais compactada") — antes eram 2 caixas separadas (com padding/borda
+              própria cada uma) empilhadas com gap entre elas; agora é 1 card só, com o
+              seletor de Mês/Ano na mesma linha do título. */}
+          <div className="card" style={{ padding: '12px', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
               <span style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--color-accent)' }}>Drops no mês</span>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  style={{ background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', padding: '4px 6px', borderRadius: 'var(--radius-sm)', fontSize: '12px' }}
+                >
+                  {MESES.map((m) => (
+                    <option key={m.value} value={m.value}>{m.label}</option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(e.target.value)}
+                  className="w60"
+                  style={{ background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', padding: '4px 6px', borderRadius: 'var(--radius-sm)', textAlign: 'center', fontSize: '12px' }}
+                />
+              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', borderBottom: '1px solid var(--color-border)', paddingBottom: '6px', marginBottom: '6px' }}>
               <span className="texto-mudo" style={{ fontSize: '12px' }}>Vendido / Valor</span>
             </div>
 
-            <div style={{ maxHeight: '720px', overflowY: 'auto' }}>
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
               {loading && <div className="texto-mudo" style={{ padding: '20px', textAlign: 'center', fontSize: '13px' }}>Carregando...</div>}
               {error && <div className="texto-perigo" style={{ padding: '20px', textAlign: 'center', fontSize: '13px' }}>{error}</div>}
               {!loading && !error && drops.length === 0 && (
@@ -335,7 +389,7 @@ export function DashboardPage() {
         </div>
 
         {/* COLUNA 2: BLOCOS DE INDICADORES (KPIs) + PLANILHA CENTRAL DE MEMBROS E METAS DE XP */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+        <div ref={col2Ref} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
 
           {/* GRADE DE 10 INDICADORES */}
           <div className="responsive-grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px' }}>
@@ -495,9 +549,9 @@ export function DashboardPage() {
         </div>
 
         {/* COLUNA 3: ITENS NÃO VENDIDOS & TOP DROPS */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', minHeight: 0, height: isDesktopLayout && col2Height ? `${col2Height}px` : undefined, overflow: isDesktopLayout ? 'hidden' : undefined }}>
 
-          <div className="card-compacto">
+          <div className="card-compacto" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1px solid var(--color-border)', paddingBottom: '8px' }}>
               <h3 style={{ fontSize: '14px', margin: 0, color: 'var(--color-warning)' }}>TODOS os Itens não vendidos</h3>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -524,7 +578,7 @@ export function DashboardPage() {
               </div>
             </div>
 
-            <div style={{ maxHeight: '320px', overflowY: 'auto' }}>
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
               {unsoldLoading && <div className="texto-mudo" style={{ padding: '15px', textAlign: 'center', fontSize: '13px' }}>Carregando...</div>}
               {unsoldError && <div className="texto-perigo" style={{ padding: '15px', textAlign: 'center', fontSize: '13px' }}>{unsoldError}</div>}
               {!unsoldLoading && !unsoldError && unsoldGrouped.length === 0 && (
