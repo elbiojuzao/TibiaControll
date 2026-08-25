@@ -72,6 +72,32 @@ export function LootLogPage() {
   const { serviceiros } = useServiceiros(accountId);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  // Opções dos dropdowns do filtro avançado (2026-08-25, pedido do usuário) — geradas a
+  // partir dos drops do mês já carregados, então só aparece o que realmente pode estar na
+  // tela (nada de listar boss/item/serviceiro que não tiveram drop nesse mês).
+  const filterOptions = useMemo(() => {
+    const bosses = new Set<string>();
+    const looters = new Set<string>();
+    const items = new Set<string>();
+    const serviceirosNomes = new Set<string>();
+    for (const d of monthDrops) {
+      if (d.bossName) bosses.add(d.bossName);
+      if (d.looter) looters.add(d.looter);
+      if (d.itemName) items.add(d.itemName);
+      if (d.party.service) serviceirosNomes.add(d.party.service);
+      for (const s of d.party.services) {
+        if (s.serviceiroName) serviceirosNomes.add(s.serviceiroName);
+      }
+    }
+    const sortBr = (a: string, b: string) => a.localeCompare(b, 'pt-BR');
+    return {
+      bosses: [...bosses].sort(sortBr),
+      looters: [...looters].sort(sortBr),
+      items: [...items].sort(sortBr),
+      serviceiros: [...serviceirosNomes].sort(sortBr),
+    };
+  }, [monthDrops]);
+
   // Excluir drop (soft delete, 2026-08-26, pedido do usuário) — sempre com confirmação,
   // nunca apaga de verdade (ver useLootDrops.removeDrop/HttpLootDropRepository.delete).
   // Mesmo padrão do resto do app: window.confirm() + botão 🗑️ (ver ServiceirosPage).
@@ -182,34 +208,46 @@ export function LootLogPage() {
 
         {showAdvancedFilters && (
           <>
-            <input
-              className="filter-input"
-              type="text"
-              placeholder="Fragador..."
+            <select
+              className="filter-select"
               value={looterFilter}
               onChange={(e) => setLooterFilter(e.target.value)}
-            />
-            <input
-              className="filter-input"
-              type="text"
-              placeholder="Serviceiro..."
+            >
+              <option value="">Fragador (todos)</option>
+              {filterOptions.looters.map((l) => (
+                <option key={l} value={l}>{l}</option>
+              ))}
+            </select>
+            <select
+              className="filter-select"
               value={serviceiroFilter}
               onChange={(e) => setServiceiroFilter(e.target.value)}
-            />
-            <input
-              className="filter-input"
-              type="text"
-              placeholder="Item..."
+            >
+              <option value="">Serviceiro (todos)</option>
+              {filterOptions.serviceiros.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+            <select
+              className="filter-select"
               value={itemFilter}
               onChange={(e) => setItemFilter(e.target.value)}
-            />
-            <input
-              className="filter-input"
-              type="text"
-              placeholder="Boss..."
+            >
+              <option value="">Item (todos)</option>
+              {filterOptions.items.map((i) => (
+                <option key={i} value={i}>{i}</option>
+              ))}
+            </select>
+            <select
+              className="filter-select"
               value={bossFilter}
               onChange={(e) => setBossFilter(e.target.value)}
-            />
+            >
+              <option value="">Boss (todos)</option>
+              {filterOptions.bosses.map((b) => (
+                <option key={b} value={b}>{b}</option>
+              ))}
+            </select>
             <select
               className="filter-select"
               value={soldFilter}
