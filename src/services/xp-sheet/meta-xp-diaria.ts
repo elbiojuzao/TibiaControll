@@ -1,8 +1,12 @@
 import { diasRestantesNoAno } from './level-prediction';
 
 /** Quantos "estágios" de 50 níveis mostrar abaixo do menor nível da party e acima do
- * maior — pedido do usuário em 2026-08-14. */
-const ESTAGIOS_ABAIXO_DO_MENOR = 2;
+ * maior — pedido do usuário em 2026-08-14. Reduzido de 2 pra 0 em 2026-08-25 (pedido do
+ * usuário: "vamos tirar 2 linhas da metas xp as 2 primeiras de lvl atingidos", pra
+ * compactar a tela do Dashboard) — essas 2 linhas eram sempre "Lvl Atingido" pra
+ * praticamente todo mundo da party, já que ficavam 50-100 níveis abaixo do menor nível
+ * atual. */
+const ESTAGIOS_ABAIXO_DO_MENOR = 0;
 const ESTAGIOS_ACIMA_DO_MAIOR = 4;
 const PASSO_NIVEL = 50;
 const NIVEL_MINIMO_TABELA = 50;
