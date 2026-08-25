@@ -10,6 +10,7 @@ import type {
   IBossRepository,
   ISplitRepository,
   ISplitLogRepository,
+  IPartyEventRepository,
   IServiceiroRepository,
   IDashboardRepository,
   ISettingsRepository,
@@ -22,12 +23,14 @@ import { MockHuntRepository } from './mock/mock-hunt-repository';
 import { MockBossRepository } from './mock/mock-boss-repository';
 import { MockSplitRepository } from './mock/mock-split-repository';
 import { MockSplitLogRepository } from './mock/mock-split-log-repository';
+import { MockPartyEventRepository } from './mock/mock-party-event-repository';
 import { MockServiceiroRepository } from './mock/mock-serviceiro-repository';
 import { MockDashboardRepository } from './mock/mock-dashboard-repository';
 import { MockSettingsRepository } from './mock/mock-settings-repository';
 import { HttpServiceiroRepository } from './http/http-serviceiro-repository';
 import { HttpLootDropRepository } from './http/http-loot-drop-repository';
 import { HttpSplitLogRepository } from './http/http-split-log-repository';
+import { HttpPartyEventRepository } from './http/http-party-event-repository';
 import { HttpAccountRepository } from './http/http-account-repository';
 import { HttpMemberRepository } from './http/http-member-repository';
 
@@ -39,6 +42,7 @@ export interface RepositoryContainer {
   boss: IBossRepository;
   split: ISplitRepository;
   splitLog: ISplitLogRepository;
+  partyEvent: IPartyEventRepository;
   serviceiro: IServiceiroRepository;
   dashboard: IDashboardRepository;
   settings: ISettingsRepository;
@@ -71,6 +75,10 @@ export const MEMBER_USE_SUPABASE = import.meta.env.VITE_MEMBER_USE_SUPABASE === 
  * migration 20260819000000_create_split_logs_table.sql. */
 export const SPLIT_LOGS_USE_SUPABASE = import.meta.env.VITE_SPLIT_LOGS_USE_SUPABASE === 'true';
 
+/** Mesma ideia, mas para os Eventos de party cadastrados pelo usuário no Calendário
+ * (2026-08-25) — ver migration 20260825000000_create_party_events_table.sql. */
+export const PARTY_EVENTS_USE_SUPABASE = import.meta.env.VITE_PARTY_EVENTS_USE_SUPABASE === 'true';
+
 function createRepositories(): RepositoryContainer {
   if (USE_MOCK) {
     return {
@@ -81,6 +89,7 @@ function createRepositories(): RepositoryContainer {
       boss: new MockBossRepository(),
       split: new MockSplitRepository(),
       splitLog: SPLIT_LOGS_USE_SUPABASE ? new HttpSplitLogRepository() : new MockSplitLogRepository(),
+      partyEvent: PARTY_EVENTS_USE_SUPABASE ? new HttpPartyEventRepository() : new MockPartyEventRepository(),
       serviceiro: SERVICEIROS_USE_SUPABASE ? new HttpServiceiroRepository() : new MockServiceiroRepository(),
       dashboard: new MockDashboardRepository(),
       settings: new MockSettingsRepository(),
