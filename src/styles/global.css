@@ -1077,6 +1077,14 @@ table {
   border-top: 3px solid var(--color-warning);
 }
 
+/* Faixa de dia com evento da PARTY (2026-08-25, cadastrado manualmente pelo usuário —
+   diferente do evento oficial acima) — border-bottom (não border-top) + cor accent (azul)
+   pra não se confundir visualmente com a faixa amarela de evento oficial; os dois podem
+   coexistir no mesmo dia (borda em cima E embaixo). */
+.calendar-day.has-party-event {
+  border-bottom: 3px solid var(--color-accent);
+}
+
 .calendar-day-number {
   font-size: 0.8rem;
   color: var(--color-text);
@@ -1106,6 +1114,7 @@ table {
 }
 
 .calendar-swatch.event { background: var(--color-warning); }
+.calendar-swatch.party-event { background: var(--color-accent); }
 
 .calendar-dot.hunt { background: var(--color-warning); }
 .calendar-dot.boss { background: var(--color-accent); }

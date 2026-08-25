@@ -69,3 +69,11 @@ export interface ISplitLogRepository {
    * mesmo tipo no mesmo dia). Nunca apaga de verdade. */
   hideById(accountId: string, id: string): Promise<void>;
 }
+
+/** Eventos cadastrados manualmente pelo usuário pra própria conta/PT (2026-08-25) — não
+ * confundir com eventos OFICIAIS do jogo (tabela `tibia_events`, sem account_id, lidos via
+ * useTibiaEvents — dado universal do jogo, não da conta). */
+export interface IPartyEventRepository {
+  create(accountId: string, dto: import('@/types').CreatePartyEventDto): Promise<import('@/types').PartyEvent>;
+  findByAccount(accountId: string): Promise<import('@/types').PartyEvent[]>;
+}

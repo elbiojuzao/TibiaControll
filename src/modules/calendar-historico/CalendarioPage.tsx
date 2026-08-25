@@ -6,10 +6,13 @@ import { useMembers } from '@/hooks/useMembers';
 import { useXpSheet } from '@/hooks/useXpSheet';
 import { useSplitLogsDaily } from '@/hooks/useSplitLogsDaily';
 import { useTibiaEvents, isDayInTibiaEvent } from '@/hooks/useTibiaEvents';
+import { usePartyEvents } from '@/hooks/usePartyEvents';
 import { Modal } from '@/components/common/Modal';
+import { PartyEventFormModal } from './components/PartyEventFormModal';
+import { PARTY_EVENT_CATEGORY_ICON, PARTY_EVENT_CATEGORY_LABEL } from './party-event-display';
 import { formatTibiaGold } from '@/services/split';
-import { formatDateKey, findLatestActivityDate, groupActivityByDate } from '@/services/calendar';
-import type { TibiaEventCategory } from '@/types';
+import { formatDateKey, findLatestActivityDate, groupActivityByDate, parseDateKey } from '@/services/calendar';
+import type { PartyEvent, TibiaEventCategory } from '@/types';
 
 function formatXp(value: number): string {
   const sign = value < 0 ? '-' : '+';
@@ -27,6 +30,15 @@ const EVENT_CATEGORY_LABEL: Record<TibiaEventCategory, string> = {
   xp_boost: 'Bônus de XP',
   potion_boost: 'Bônus de Poção',
 };
+
+/** Um dia (dateKey DD/MM/YYYY) cai dentro de um PartyEvent se a data concreta do dia
+ * estiver entre startDate/endDate (inclusive) — diferente de isDayInTibiaEvent (que compara
+ * só mês/dia, recorrente todo ano), aqui a data é concreta (ano incluso), então usa
+ * parseDateKey (timestamp) direto nos 3 valores. */
+function isDayInPartyEvent(dateKey: string, event: PartyEvent): boolean {
+  const t = parseDateKey(dateKey);
+  return t >= parseDateKey(event.startDate) && t <= parseDateKey(event.endDate);
+}
 
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const MONTH_NAMES = [
@@ -64,6 +76,8 @@ export function CalendarioPage() {
   const [hidingType, setHidingType] = useState<'hunt' | 'boss' | null>(null);
   const [hideError, setHideError] = useState<string | null>(null);
   const { events: tibiaEvents } = useTibiaEvents();
+  const { events: partyEvents, createEvent: createPartyEvent } = usePartyEvents(accountId);
+  const [showAddEvent, setShowAddEvent] = useState(false);
 
   const now = new Date();
   const [view, setView] = useState({ year: now.getFullYear(), month: now.getMonth() });
@@ -91,6 +105,10 @@ export function CalendarioPage() {
    * nesse dia do mês em exibição, independente do ano (a data é recorrente). */
   const eventsForDay = (day: number) => tibiaEvents.filter((ev) => isDayInTibiaEvent(viewMonth + 1, day, ev));
 
+  /** Eventos da PRÓPRIA party (cadastrados pelo usuário) que caem nesse dia — diferente de
+   * eventsForDay acima, a data aqui é concreta (compara timestamp, não só mês/dia). */
+  const partyEventsForDay = (dateKey: string) => partyEvents.filter((ev) => isDayInPartyEvent(dateKey, ev));
+
   /** XP de cada membro numa data específica (DD/MM/YYYY) — busca no histórico completo
    * da planilha (useXpSheet), não só nos últimos 30 dias, já que o calendário pode
    * navegar pra qualquer mês. */
@@ -111,6 +129,10 @@ export function CalendarioPage() {
     const [day, month] = selectedDateKey.split('/').map(Number);
     return tibiaEvents.filter((ev) => isDayInTibiaEvent(month, day, ev));
   }, [selectedDateKey, tibiaEvents]);
+  const selectedPartyEvents = useMemo(() => {
+    if (!selectedDateKey) return [];
+    return partyEvents.filter((ev) => isDayInPartyEvent(selectedDateKey, ev));
+  }, [selectedDateKey, partyEvents]);
 
   const goToPrevMonth = () => {
     setView((v) => {
@@ -157,7 +179,12 @@ export function CalendarioPage() {
             <span className="calendar-title">{MONTH_NAMES[viewMonth]} de {viewYear}</span>
             <button className="calendar-nav-btn" onClick={goToToday}>Hoje</button>
           </div>
-          <button className="calendar-nav-btn" onClick={goToNextMonth}>Próximo ›</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button className="calendar-nav-btn" onClick={goToNextMonth}>Próximo ›</button>
+            <button className="botao-primario" onClick={() => setShowAddEvent(true)} style={{ padding: '0.4rem 0.85rem', fontSize: '0.85rem' }}>
+              + Adicionar Evento
+            </button>
+          </div>
         </div>
 
         <div className="calendar-legend">
@@ -165,6 +192,7 @@ export function CalendarioPage() {
           <span className="calendar-legend-item"><span className="calendar-dot hunt" /> Hunt</span>
           <span className="calendar-legend-item">💎 Item</span>
           <span className="calendar-legend-item"><span className="calendar-swatch event" /> Evento oficial (Rapid Respawn / XP / Poção)</span>
+          <span className="calendar-legend-item"><span className="calendar-swatch party-event" /> Evento da party</span>
         </div>
 
         <div className="calendar-grid" style={{ marginBottom: '6px' }}>
@@ -190,14 +218,16 @@ export function CalendarioPage() {
             const hasActivity = !!activity && (activity.hunts.length > 0 || activity.drops.length > 0);
             const dayEvents = eventsForDay(cell.day);
             const hasEvent = dayEvents.length > 0;
-            const hasAnyIndicator = hasActivity || hasBoss || hasHunt || hasEvent;
+            const dayPartyEvents = partyEventsForDay(cell.dateKey!);
+            const hasPartyEvent = dayPartyEvents.length > 0;
+            const hasAnyIndicator = hasActivity || hasBoss || hasHunt || hasEvent || hasPartyEvent;
 
             return (
               <div
                 key={idx}
                 onClick={() => { setSelectedDateKey(cell.dateKey); setHideError(null); }}
                 title="Clique para ver os detalhes do dia"
-                className={`calendar-day${hasAnyIndicator ? ' has-activity' : ''}${hasEvent ? ' has-event' : ''}${cell.dateKey === todayKey ? ' today' : ''}`}
+                className={`calendar-day${hasAnyIndicator ? ' has-activity' : ''}${hasEvent ? ' has-event' : ''}${hasPartyEvent ? ' has-party-event' : ''}${cell.dateKey === todayKey ? ' today' : ''}`}
                 style={{ cursor: 'pointer' }}
               >
                 <span className="calendar-day-number">{cell.day}</span>
@@ -206,6 +236,7 @@ export function CalendarioPage() {
                   <div className="calendar-day-dots">
                     {hasBoss && <span className="calendar-dot boss" title="Boss" />}
                     {hasHunt && <span className="calendar-dot hunt" title="Hunt" />}
+                    {hasPartyEvent && <span title={dayPartyEvents.map((ev) => ev.title).join(', ')} style={{ fontSize: '8px', lineHeight: 1 }}>📌</span>}
                     {activity?.drops.map((drop) => (
                       // 2026-08-20, pedido do usuário: trocar a bolinha roxa (.calendar-dot.drop,
                       // removida do CSS) pelo mesmo emoji 💎 já usado na lista de Drops do modal
@@ -218,6 +249,14 @@ export function CalendarioPage() {
                 {hasAnyIndicator && (
                   <div className="calendar-tooltip">
                     <div className="calendar-tooltip-title">{cell.dateKey}</div>
+
+                    {hasPartyEvent && dayPartyEvents.map((ev) => (
+                      <div key={ev.id} className="calendar-tooltip-item">
+                        📌 <strong style={{ color: 'var(--color-accent)' }}>{ev.title}</strong>
+                        <br />
+                        {ev.categories.map((cat) => `${PARTY_EVENT_CATEGORY_ICON[cat]} ${PARTY_EVENT_CATEGORY_LABEL[cat]}`).join(' · ')}
+                      </div>
+                    ))}
 
                     {hasEvent && dayEvents.map((ev) => (
                       <div key={ev.id} className="calendar-tooltip-item">
@@ -260,6 +299,25 @@ export function CalendarioPage() {
       {selectedDateKey && (
         <Modal title={`Detalhes de ${selectedDateKey}`} onClose={() => setSelectedDateKey(null)}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '13px' }}>
+            {selectedPartyEvents.length > 0 && (
+              <div>
+                <h4 style={{ margin: '0 0 8px 0', fontSize: '13px', color: 'var(--color-accent)' }}>📌 Evento da party</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {selectedPartyEvents.map((ev) => (
+                    <div key={ev.id} style={{ background: 'var(--color-accent-soft)', border: '1px solid var(--color-accent)', borderRadius: 'var(--radius-sm)', padding: '10px' }}>
+                      <strong style={{ color: 'var(--color-accent)' }}>{ev.title}</strong>
+                      <div className="texto-mudo" style={{ fontSize: '11px', margin: '4px 0' }}>
+                        {ev.startDate === ev.endDate ? ev.startDate : `${ev.startDate} até ${ev.endDate}`}
+                        {' · '}
+                        {ev.categories.map((cat) => `${PARTY_EVENT_CATEGORY_ICON[cat]} ${PARTY_EVENT_CATEGORY_LABEL[cat]}`).join(' · ')}
+                      </div>
+                      {ev.description && <div style={{ fontSize: '12px', color: 'var(--color-text)' }}>{ev.description}</div>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {selectedEvents.length > 0 && (
               <div>
                 <h4 style={{ margin: '0 0 8px 0', fontSize: '13px', color: 'var(--color-warning)' }}>🚩 Evento oficial</h4>
@@ -359,6 +417,13 @@ export function CalendarioPage() {
             </div>
           </div>
         </Modal>
+      )}
+
+      {showAddEvent && (
+        <PartyEventFormModal
+          onClose={() => setShowAddEvent(false)}
+          onSubmit={createPartyEvent}
+        />
       )}
     </>
   );
