@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAccount } from '@/hooks/useAccount';
 import { useMembers } from '@/hooks/useMembers';
+import { useAccountSecurity } from '@/hooks/useAccountSecurity';
 import { VOCATION_ICON, VOCATION_LABEL } from '@/services/vocation/vocation-display';
 import { SKILL_CATEGORY_LABEL } from '@/services/tibiadata/tibiadata-client';
 import { MemberFormModal } from './components/MemberFormModal';
@@ -9,6 +10,73 @@ import type { Member } from '@/types';
 export function SettingsPage() {
   const { accountId, account, updatePartyName } = useAccount();
   const { members, loading, error, createMember, updateMember, removeMember } = useMembers(accountId);
+  const { emailInfo, changePassword, changeEmail } = useAccountSecurity();
+
+  // Trocar senha (2026-08-25, pedido do usuário: "ajustar as configurações das contas,
+  // senha email..."). Pede a senha ATUAL como confirmação extra antes de trocar — decisão
+  // confirmada com o usuário via AskUserQuestion (a API do Supabase não exige isso sozinha,
+  // é uma camada de segurança a mais, mesmo padrão de telas de conta em outros produtos).
+  const [currentPasswordForPw, setCurrentPasswordForPw] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSaved, setPasswordSaved] = useState(false);
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError(null);
+    if (newPassword.length < 6) {
+      setPasswordError('A nova senha precisa ter pelo menos 6 caracteres.');
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      setPasswordError('A confirmação não bate com a nova senha.');
+      return;
+    }
+    setSavingPassword(true);
+    try {
+      await changePassword(currentPasswordForPw, newPassword);
+      setCurrentPasswordForPw('');
+      setNewPassword('');
+      setConfirmNewPassword('');
+      setPasswordSaved(true);
+      setTimeout(() => setPasswordSaved(false), 3000);
+    } catch (err) {
+      setPasswordError(err instanceof Error ? err.message : 'Erro ao trocar senha.');
+    } finally {
+      setSavingPassword(false);
+    }
+  };
+
+  // Trocar e-mail — o Supabase manda um link de confirmação pro endereço NOVO; o e-mail só
+  // muda de verdade depois de clicar nesse link (ver useAccountSecurity/supabase-auth.ts).
+  const [currentPasswordForEmail, setCurrentPasswordForEmail] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [savingEmail, setSavingEmail] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [emailChangeSent, setEmailChangeSent] = useState(false);
+
+  const handleChangeEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEmailError(null);
+    const trimmedEmail = newEmail.trim();
+    if (!trimmedEmail || !trimmedEmail.includes('@')) {
+      setEmailError('Informe um e-mail válido.');
+      return;
+    }
+    setSavingEmail(true);
+    try {
+      await changeEmail(currentPasswordForEmail, trimmedEmail);
+      setCurrentPasswordForEmail('');
+      setNewEmail('');
+      setEmailChangeSent(true);
+    } catch (err) {
+      setEmailError(err instanceof Error ? err.message : 'Erro ao trocar e-mail.');
+    } finally {
+      setSavingEmail(false);
+    }
+  };
 
   // Nome da party (2026-08-16, pedido do usuário): editável aqui, salvo no banco
   // (accounts.party_name) — vale pra qualquer um que logar com a credencial
@@ -77,6 +145,102 @@ export function SettingsPage() {
 
   return (
     <div className="dashboard-container" style={{ padding: '20px', maxWidth: '900px', margin: '0 auto', color: 'var(--color-text)' }}>
+      <div className="card" style={{ marginBottom: '20px' }}>
+        <h3 style={{ margin: '0 0 4px 0', fontSize: '13px', color: 'var(--color-accent)' }}>Conta</h3>
+        <p className="texto-mudo" style={{ margin: '0 0 12px 0', fontSize: '12px' }}>
+          Login compartilhado da PT — trocar aqui vale pra qualquer um que usa essa credencial, não só quem está trocando.
+        </p>
+
+        <div style={{ marginBottom: '16px' }}>
+          <span className="label-padrao" style={{ display: 'block', marginBottom: '4px' }}>E-mail atual</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <strong style={{ fontSize: '13px' }}>{emailInfo?.email ?? '—'}</strong>
+            {emailInfo && (
+              emailInfo.emailConfirmedAt
+                ? <span className="texto-sucesso" style={{ fontSize: '11px' }}>✓ Confirmado</span>
+                : <span className="texto-perigo" style={{ fontSize: '11px' }}>⏳ Não confirmado</span>
+            )}
+          </div>
+          {emailInfo?.pendingNewEmail && (
+            <div className="texto-mudo" style={{ fontSize: '11px', marginTop: '4px' }}>
+              Troca pendente pra <strong>{emailInfo.pendingNewEmail}</strong> — confirme pelo link enviado nesse e-mail pra valer de verdade.
+            </div>
+          )}
+        </div>
+
+        <div className="grid-2col" style={{ gap: '20px' }}>
+          <form onSubmit={handleChangePassword} className="form-coluna">
+            <span className="label-padrao">Trocar senha</span>
+            <input
+              type="password"
+              value={currentPasswordForPw}
+              onChange={(e) => setCurrentPasswordForPw(e.target.value)}
+              placeholder="Senha atual"
+              className="campo-input"
+              autoComplete="current-password"
+            />
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Nova senha (mín. 6 caracteres)"
+              className="campo-input"
+              autoComplete="new-password"
+            />
+            <input
+              type="password"
+              value={confirmNewPassword}
+              onChange={(e) => setConfirmNewPassword(e.target.value)}
+              placeholder="Confirmar nova senha"
+              className="campo-input"
+              autoComplete="new-password"
+            />
+            {passwordError && <span className="texto-perigo" style={{ fontSize: '11px' }}>{passwordError}</span>}
+            <button
+              type="submit"
+              disabled={savingPassword || !currentPasswordForPw || !newPassword}
+              className="botao-secundario"
+              style={{ color: passwordSaved ? 'var(--color-success)' : undefined }}
+            >
+              {savingPassword ? 'Salvando...' : passwordSaved ? '✓ Senha alterada!' : 'Trocar Senha'}
+            </button>
+          </form>
+
+          <form onSubmit={handleChangeEmail} className="form-coluna">
+            <span className="label-padrao">Trocar e-mail</span>
+            <input
+              type="password"
+              value={currentPasswordForEmail}
+              onChange={(e) => setCurrentPasswordForEmail(e.target.value)}
+              placeholder="Senha atual"
+              className="campo-input"
+              autoComplete="current-password"
+            />
+            <input
+              type="email"
+              value={newEmail}
+              onChange={(e) => { setNewEmail(e.target.value); setEmailChangeSent(false); }}
+              placeholder="Novo e-mail"
+              className="campo-input"
+              autoComplete="email"
+            />
+            {emailError && <span className="texto-perigo" style={{ fontSize: '11px' }}>{emailError}</span>}
+            {emailChangeSent && (
+              <span className="texto-sucesso" style={{ fontSize: '11px' }}>
+                ✓ Link de confirmação enviado! Clique nele no novo e-mail pra confirmar a troca.
+              </span>
+            )}
+            <button
+              type="submit"
+              disabled={savingEmail || !currentPasswordForEmail || !newEmail}
+              className="botao-secundario"
+            >
+              {savingEmail ? 'Enviando...' : 'Trocar E-mail'}
+            </button>
+          </form>
+        </div>
+      </div>
+
       <div className="card" style={{ marginBottom: '20px' }}>
         <h3 style={{ margin: '0 0 4px 0', fontSize: '13px', color: 'var(--color-accent)' }}>Nome da Party</h3>
         <p className="texto-mudo" style={{ margin: '0 0 12px 0', fontSize: '12px' }}>
