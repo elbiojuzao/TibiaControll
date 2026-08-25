@@ -67,9 +67,23 @@ export function LootLogPage() {
     return { dateFrom: from, dateTo: to };
   }, [selectedMonth, selectedYear]);
 
-  const { drops: monthDrops, loading, error, createDrop, updateDrop } = useLootDrops(accountId, monthFilters);
+  const { drops: monthDrops, loading, error, createDrop, updateDrop, removeDrop } = useLootDrops(accountId, monthFilters);
   const { members } = useMembers(accountId);
   const { serviceiros } = useServiceiros(accountId);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  // Excluir drop (soft delete, 2026-08-26, pedido do usuário) — sempre com confirmação,
+  // nunca apaga de verdade (ver useLootDrops.removeDrop/HttpLootDropRepository.delete).
+  // Mesmo padrão do resto do app: window.confirm() + botão 🗑️ (ver ServiceirosPage).
+  const handleDeleteDrop = async (drop: LootDrop) => {
+    if (!window.confirm(`Excluir o drop "${drop.itemName}" (${drop.date})? Essa ação não pode ser desfeita por aqui.`)) return;
+    setDeleteError(null);
+    try {
+      await removeDrop(drop.id);
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Erro ao excluir drop.');
+    }
+  };
 
   const drops = useMemo(() => {
     const q = quickSearch.trim().toLowerCase();
@@ -217,9 +231,11 @@ export function LootLogPage() {
         )}
       </div>
 
+      {deleteError && <div className="banner-erro" style={{ marginBottom: '14px' }}>{deleteError}</div>}
+
       {loading && <div className="loading">Carregando drops...</div>}
       {error && <div className="empty-state">{error}</div>}
-      {!loading && !error && <LootTable drops={drops} onRowClick={setEditingDrop} />}
+      {!loading && !error && <LootTable drops={drops} onRowClick={setEditingDrop} onDelete={handleDeleteDrop} />}
 
       {showRegisterModal && (
         <DropFormModal
