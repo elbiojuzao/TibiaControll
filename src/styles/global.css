@@ -68,6 +68,34 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Scrollbar combinando com o tema escuro (2026-08-25, pedido do usuário: "essa barra de
+   scroll cinza ta muito feia") — aplica em toda a página, não só no topbar-nav (que já
+   tinha sua própria versão fina). Firefox usa `scrollbar-color`; Chrome/Edge/demais
+   WebKit usam os pseudo-elementos `::-webkit-scrollbar*`. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-strong) var(--color-bg);
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  border: 2px solid var(--color-bg);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent);
+}
+
 a {
   color: inherit;
   text-decoration: none;
