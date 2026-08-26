@@ -646,7 +646,7 @@ export function DashboardPage() {
                       className="texto-mudo"
                       onClick={() => setActivePlayerDrops(entry.looter)}
                       title="Ver todos os drops deste jogador"
-                      style={{ flex: 1, fontSize: '13px', cursor: 'pointer', textDecoration: 'underline dotted' }}
+                      style={{ flex: 1, fontSize: '13px', cursor: 'pointer' }}
                     >
                       {entry.looter}
                     </span>
