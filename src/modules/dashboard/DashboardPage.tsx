@@ -168,12 +168,19 @@ export function DashboardPage() {
 
   const { drops, loading, error } = useLootDrops(accountId, filters);
 
-  // Ordem de exibição da tabela "Drops no mês" (2026-08-17, pedido do usuário): vendidos
-  // primeiro, depois pendentes; dentro de cada grupo, maior Valor Total primeiro. Vem do
-  // banco só por data — a ordenação é só de exibição, não muda `drops` em si (usado em
-  // stats/KPIs acima, que não dependem de ordem).
+  // Ordem de exibição da tabela "Drops no mês": vendidos primeiro (2026-08-17, pedido do
+  // usuário), maior Valor Total primeiro dentro deles; depois os não vendidos, em ordem
+  // alfabética por item (2026-08-26, pedido do usuário — preço não ajuda a achar um item
+  // ainda não vendido, já que a maioria fica em 0 até a venda). Vem do banco só por data —
+  // a ordenação é só de exibição, não muda `drops` em si (usado em stats/KPIs acima, que
+  // não dependem de ordem).
   const sortedDrops = useMemo(
-    () => [...drops].sort((a, b) => Number(b.sold) - Number(a.sold) || b.totalValue - a.totalValue),
+    () => [...drops].sort((a, b) => {
+      if (a.sold !== b.sold) return Number(b.sold) - Number(a.sold);
+      return a.sold
+        ? b.totalValue - a.totalValue
+        : a.itemName.localeCompare(b.itemName, 'pt-BR');
+    }),
     [drops],
   );
 
