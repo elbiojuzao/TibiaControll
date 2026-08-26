@@ -2,6 +2,35 @@ import { useState, type FormEvent } from 'react';
 import { Navigate, useLocation, type Location } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 
+const SAVED_LOGIN_KEY = 'tibia-pts:saved-login-v1';
+
+interface SavedLogin {
+  email: string;
+  password: string;
+}
+
+/** Login é compartilhado da PT (1 única credencial pra todo mundo), então salvar aqui pra
+ * auto-preencher no próximo acesso é conveniente — evita todo mundo ter que perguntar a
+ * senha de novo (2026-08-26, pedido do usuário). Fica em localStorage, só neste
+ * dispositivo/navegador — nunca é enviado a lugar nenhum além do próprio login. */
+function readSavedLogin(): SavedLogin | null {
+  try {
+    const raw = localStorage.getItem(SAVED_LOGIN_KEY);
+    return raw ? (JSON.parse(raw) as SavedLogin) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeSavedLogin(login: SavedLogin | null): void {
+  try {
+    if (login) localStorage.setItem(SAVED_LOGIN_KEY, JSON.stringify(login));
+    else localStorage.removeItem(SAVED_LOGIN_KEY);
+  } catch {
+    // localStorage indisponível — segue sem persistir.
+  }
+}
+
 /** Login compartilhado da PT — 1 única credencial pra todo mundo (ver memória de projeto
  * "regras-gestao-pts"), não é cadastro por pessoa. Só protege os 5 módulos exclusivos de
  * conta (Dashboard, Log de Drops, Histórico, Histórico de XP, Serviceiros) — o resto do
@@ -9,8 +38,10 @@ import { useAuth } from '@/hooks/useAuth';
 export function LoginPage() {
   const { isAuthenticated, login, error } = useAuth();
   const location = useLocation();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const savedLogin = useState(readSavedLogin)[0];
+  const [email, setEmail] = useState(savedLogin?.email ?? '');
+  const [password, setPassword] = useState(savedLogin?.password ?? '');
+  const [rememberLogin, setRememberLogin] = useState(!!savedLogin);
   const [submitting, setSubmitting] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
@@ -24,6 +55,7 @@ export function LoginPage() {
     setSubmitting(true);
     try {
       await login(email, password);
+      writeSavedLogin(rememberLogin ? { email, password } : null);
     } catch {
       setLocalError('E-mail ou senha inválidos.');
     } finally {
@@ -82,6 +114,15 @@ export function LoginPage() {
             className="campo-input"
             style={{ marginTop: 0, padding: '8px 10px', fontSize: '14px' }}
           />
+        </label>
+
+        <label className="label-checkbox texto-mudo" style={{ fontSize: '13px' }}>
+          <input
+            type="checkbox"
+            checked={rememberLogin}
+            onChange={(e) => setRememberLogin(e.target.checked)}
+          />
+          Salvar login neste dispositivo
         </label>
 
         {(localError || error) && <div className="banner-erro">{localError ?? error}</div>}
