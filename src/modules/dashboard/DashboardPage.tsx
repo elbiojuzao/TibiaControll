@@ -18,6 +18,7 @@ import { buildLast12Months, computeMonthlyTrends, type DashboardMetricKey } from
 import { UnsoldItemsShareModal } from './components/UnsoldItemsShareModal';
 import { MonthlyTrendModal } from './components/MonthlyTrendModal';
 import { PlayerDropsModal } from './components/PlayerDropsModal';
+import { ItemSummaryModal } from './components/ItemSummaryModal';
 import type { LootDropFilters, MemberXpStats } from '@/types';
 
 /** Rótulo + tipo de valor (gold vs contagem) de cada KPI clicável do grid — usado pra
@@ -116,6 +117,7 @@ export function DashboardPage() {
   const [showUnsoldShareModal, setShowUnsoldShareModal] = useState(false);
   const [activeTrendMetric, setActiveTrendMetric] = useState<DashboardMetricKey | null>(null);
   const [activePlayerDrops, setActivePlayerDrops] = useState<string | null>(null);
+  const [activeItemName, setActiveItemName] = useState<string | null>(null);
 
   // Alinhamento inferior das Colunas 1/3 com base na Coluna 2 (2026-08-25, pedido do
   // usuário: "vamos fazer um alinhamento inferior com base na tabela central"). CSS Grid
@@ -303,6 +305,16 @@ export function DashboardPage() {
     return last365Drops.filter((d) => d.looter === activePlayerDrops && d.bossName !== 'Plunder');
   }, [last365Drops, activePlayerDrops]);
 
+  // Drops do item aberto na modal de resumo (2026-08-26, pedido do usuário: clicar num
+  // item na tabela "Drops no mês" abre um resumo dele) — reusa last365Drops (mesmo dataset
+  // já buscado pro Top Drop, sem fetch novo). Diferente do ranking por jogador, aqui NÃO
+  // exclui Plunder: a exclusão ali era regra de "dono do drop", não se aplica a uma visão
+  // por item.
+  const activeItemDropsList = useMemo(() => {
+    if (!activeItemName) return [];
+    return last365Drops.filter((d) => d.itemName === activeItemName);
+  }, [last365Drops, activeItemName]);
+
   // Gráfico de tendência mensal (2026-08-21, pedido do usuário: "ao clicar nos campos
   // centrais da dashboard, abrir uma modal com gráfico dos últimos 12 meses") — reusa
   // last365Drops (já buscado pro Top Drop) e splitDailySeries (já buscado pro KKs
@@ -381,7 +393,12 @@ export function DashboardPage() {
                       const isSold = drop.sold;
                       const rowBg = isSold ? 'var(--color-success-soft)' : 'var(--color-danger-soft)';
                       return (
-                        <tr key={drop.id || idx} style={{ borderBottom: '1px solid var(--color-border)', background: rowBg }}>
+                        <tr
+                          key={drop.id || idx}
+                          onClick={() => setActiveItemName(drop.itemName)}
+                          title="Ver resumo deste item"
+                          style={{ borderBottom: '1px solid var(--color-border)', background: rowBg, cursor: 'pointer' }}
+                        >
                           <td className="texto-mudo" style={{ padding: '6px 4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                             {getItemIconUrl(drop.itemName) && (
                               <img src={getItemIconUrl(drop.itemName)} alt="" className="h18 w18" style={{ objectFit: 'contain', imageRendering: 'pixelated' }} />
@@ -685,6 +702,13 @@ export function DashboardPage() {
           looter={activePlayerDrops}
           drops={activePlayerDropsList}
           onClose={() => setActivePlayerDrops(null)}
+        />
+      )}
+      {activeItemName && (
+        <ItemSummaryModal
+          itemName={activeItemName}
+          drops={activeItemDropsList}
+          onClose={() => setActiveItemName(null)}
         />
       )}
     </div>
