@@ -33,6 +33,16 @@ export function MemberFormModal({ mode, member, onClose, onSubmit }: MemberFormM
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
+  // Confirmação ao sair sem salvar (2026-08-26, pedido do usuário) — mesmo padrão de
+  // DropFormModal: snapshot dos campos na 1ª renderização (= valor inicial) comparado com
+  // os valores atuais.
+  const [initialSnapshot] = useState(() => JSON.stringify({
+    formCharacterName, formVocation, formSkillCategory, formIsServiceiro, formSharePercent, formOwnerCharacterName, formIsDefaultSeller,
+  }));
+  const isDirty = JSON.stringify({
+    formCharacterName, formVocation, formSkillCategory, formIsServiceiro, formSharePercent, formOwnerCharacterName, formIsDefaultSeller,
+  }) !== initialSnapshot;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
@@ -73,7 +83,7 @@ export function MemberFormModal({ mode, member, onClose, onSubmit }: MemberFormM
   };
 
   return (
-    <Modal title={mode === 'create' ? 'Novo Membro' : 'Editar Membro'} onClose={onClose}>
+    <Modal title={mode === 'create' ? 'Novo Membro' : 'Editar Membro'} onClose={onClose} isDirty={isDirty}>
       <form onSubmit={handleSubmit} className="form-coluna">
         <div className="grid-2col">
           <label className="label-padrao">

@@ -34,6 +34,12 @@ export function ServiceiroFormModal({ mode, serviceiro, onClose, onSubmit }: Ser
   // undefined = ainda não checou; null = checou e não achou; objeto = achou
   const [checkResult, setCheckResult] = useState<CharacterBasics | null | undefined>(undefined);
 
+  // Confirmação ao sair sem salvar (2026-08-26, pedido do usuário) — mesmo padrão de
+  // DropFormModal: snapshot dos campos na 1ª renderização (= valor inicial) comparado com
+  // os valores atuais.
+  const [initialSnapshot] = useState(() => JSON.stringify({ formName, formCharacterName, formPhone, formVocations }));
+  const isDirty = JSON.stringify({ formName, formCharacterName, formPhone, formVocations }) !== initialSnapshot;
+
   const handleCheckCharacter = async () => {
     const name = formCharacterName.trim();
     if (!name) return;
@@ -98,7 +104,7 @@ export function ServiceiroFormModal({ mode, serviceiro, onClose, onSubmit }: Ser
   };
 
   return (
-    <Modal title={mode === 'create' ? 'Novo Serviceiro' : 'Editar Serviceiro'} onClose={onClose}>
+    <Modal title={mode === 'create' ? 'Novo Serviceiro' : 'Editar Serviceiro'} onClose={onClose} isDirty={isDirty}>
       <form onSubmit={handleSubmit} className="form-coluna">
         <div className="grid-2col">
           <label className="label-padrao">

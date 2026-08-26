@@ -49,6 +49,12 @@ export function PartyEventFormModal({ onClose, onSubmit }: PartyEventFormModalPr
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
+  // Confirmação ao sair sem salvar (2026-08-26, pedido do usuário) — mesmo padrão de
+  // DropFormModal: snapshot dos campos na 1ª renderização (= valor inicial, sempre vazio
+  // aqui já que esse modal só cria eventos novos) comparado com os valores atuais.
+  const [initialSnapshot] = useState(() => JSON.stringify({ title, description, startDate, endDate, categories }));
+  const isDirty = JSON.stringify({ title, description, startDate, endDate, categories }) !== initialSnapshot;
+
   // Título automático a partir do(s) tipo(s) selecionado(s) (2026-08-25, pedido do
   // usuário: "ao selecionar o tipo do evento tem que colocar o titulo automático") — junta
   // os labels na ordem em que aparecem em PARTY_EVENT_CATEGORIES (não na ordem de clique),
@@ -103,7 +109,7 @@ export function PartyEventFormModal({ onClose, onSubmit }: PartyEventFormModalPr
   };
 
   return (
-    <Modal title="Novo Evento" onClose={onClose}>
+    <Modal title="Novo Evento" onClose={onClose} isDirty={isDirty}>
       <form onSubmit={handleSubmit} className="form-coluna">
         <label className="label-padrao">
           Título
