@@ -245,6 +245,13 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
   // "esquisito" — a parede de 10 checkboxes sempre visível quebrava o fluxo do form).
   const [showQuestFilter, setShowQuestFilter] = useState(false);
 
+  // Confirmação ao sair sem salvar (2026-08-26, pedido do usuário) — compara os campos do
+  // form contra o snapshot capturado na 1ª renderização (que é justamente o valor inicial,
+  // já que o effect roda uma única vez). Campos só de UI (saving/formError/waMessage/
+  // doneIndices/etc.) ficam de fora de propósito — não é dado que se perde de verdade.
+  const [initialSnapshot] = useState(() => JSON.stringify({ date, ek, ed, rp, ms, fifthPlayer, serviceDrafts, totalValue, bossName, itemName, looter, sold }));
+  const isDirty = JSON.stringify({ date, ek, ed, rp, ms, fifthPlayer, serviceDrafts, totalValue, bossName, itemName, looter, sold }) !== initialSnapshot;
+
   const { bosses: allBosses, bossToQuest, quests, error: bossQuestsError } = useBossQuests();
   const { isQuestChecked, toggleQuest } = useQuestFilter();
   const { itemsByBoss, error: bossItemsError } = useBossItems();
@@ -413,7 +420,7 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
   };
 
   return (
-    <Modal title={mode === 'create' ? 'Registro de Drop' : 'Editar Drop'} onClose={onClose} maxWidth={720}>
+    <Modal title={mode === 'create' ? 'Registro de Drop' : 'Editar Drop'} onClose={onClose} maxWidth={720} isDirty={isDirty}>
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         <div className="form-section-title">Composição da party</div>
 
