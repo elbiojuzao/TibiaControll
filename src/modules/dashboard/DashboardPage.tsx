@@ -13,13 +13,17 @@ import { computeMetaLevelRange, computeDailyGoals } from '@/services/xp-sheet/me
 import { monthRangeAsBr } from '@/services/common/months';
 import { dateAsBr, todayAsBr } from '@/services/common/br-date';
 import { parseDateKey } from '@/services/calendar';
-import { getItemIconUrl } from '@/services/lootdrop/item-icons';
 import { buildLast12Months, computeMonthlyTrends, type DashboardMetricKey } from '@/services/dashboard/monthly-trend';
 import { UnsoldItemsShareModal } from './components/UnsoldItemsShareModal';
 import { MonthlyTrendModal } from './components/MonthlyTrendModal';
 import { PlayerDropsModal } from './components/PlayerDropsModal';
 import { ItemSummaryModal } from './components/ItemSummaryModal';
-import type { LootDropFilters, MemberXpStats } from '@/types';
+import { MonthDropsCard } from './components/MonthDropsCard';
+import { KpiGrid } from './components/KpiGrid';
+import { MembersXpTable } from './components/MembersXpTable';
+import { UnsoldItemsCard } from './components/UnsoldItemsCard';
+import { TopDropCard } from './components/TopDropCard';
+import type { LootDropFilters } from '@/types';
 
 /** Rótulo + tipo de valor (gold vs contagem) de cada KPI clicável do grid — usado pra
  * título/formatação da modal de tendência mensal (MonthlyTrendModal, 2026-08-21). */
@@ -35,31 +39,6 @@ const METRIC_META: Record<DashboardMetricKey, { label: string; isCurrency: boole
   kksBagsInd: { label: 'KKs Bags(ind)', isCurrency: true },
   kksBoss: { label: 'KKs Boss', isCurrency: true },
 };
-
-const MESES = [
-  { value: '1', label: 'Janeiro' }, { value: '2', label: 'Fevereiro' },
-  { value: '3', label: 'Março' }, { value: '4', label: 'Abril' },
-  { value: '5', label: 'Maio' }, { value: '6', label: 'Junho' },
-  { value: '7', label: 'Julho' }, { value: '8', label: 'Agosto' },
-  { value: '9', label: 'Setembro' }, { value: '10', label: 'Outubro' },
-  { value: '11', label: 'Novembro' }, { value: '12', label: 'Dezembro' },
-];
-
-/** Lvl Atual e Skill vêm ao vivo da API do TibiaData (ver useMemberLiveStats). Previsão fim
- * de ano também é real agora (2026-08-10, ver previsaoPorMembro/level-prediction.ts) — só
- * "metas" (tabela de 16 níveis) dentro de MemberXpStats continua mock por enquanto, ver
- * memória do projeto "checkpoint-banco-mock"/"integracao-planilha-xp". */
-const EMPTY_XP_STATS: MemberXpStats = { xpOntem: '—', xp30Dias: '—' };
-
-function getMetaCellStyle(val: string) {
-  if (val === 'Lvl Atingido') {
-    return { background: 'var(--color-danger-soft)', color: 'var(--color-danger)' };
-  }
-  if (val.startsWith('+')) {
-    return { background: 'var(--color-accent-soft)', color: 'var(--color-accent)' };
-  }
-  return { background: 'transparent', color: 'var(--color-text-muted)' };
-}
 
 export function DashboardPage() {
   const { accountId, loading: accountLoading } = useAccount();
@@ -348,127 +327,23 @@ export function DashboardPage() {
 
         {/* COLUNA 1: TABELA "DROPS NO MÊS" + SELETOR */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', minHeight: 0, height: isDesktopLayout && col2Height ? `${col2Height}px` : undefined, overflow: isDesktopLayout ? 'hidden' : undefined }}>
-
-          {/* "Mês/Ano" juntado dentro do card "Drops no mês" (2026-08-25, pedido do
-              usuário: "vamos juntar a tabela mes/ano junto do drop no mes para ficar uma
-              coluna mais compactada") — antes eram 2 caixas separadas (com padding/borda
-              própria cada uma) empilhadas com gap entre elas; agora é 1 card só, com o
-              seletor de Mês/Ano na mesma linha do título. */}
-          <div className="card" style={{ padding: '12px', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-              <span style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--color-accent)' }}>Drops no mês</span>
-              <div style={{ display: 'flex', gap: '6px' }}>
-                <select
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(e.target.value)}
-                  style={{ background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', padding: '4px 6px', borderRadius: 'var(--radius-sm)', fontSize: '12px' }}
-                >
-                  {MESES.map((m) => (
-                    <option key={m.value} value={m.value}>{m.label}</option>
-                  ))}
-                </select>
-                <input
-                  type="text"
-                  value={selectedYear}
-                  onChange={(e) => setSelectedYear(e.target.value)}
-                  className="w60"
-                  style={{ background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', padding: '4px 6px', borderRadius: 'var(--radius-sm)', textAlign: 'center', fontSize: '12px' }}
-                />
-              </div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', borderBottom: '1px solid var(--color-border)', paddingBottom: '6px', marginBottom: '6px' }}>
-              <span className="texto-mudo" style={{ fontSize: '12px' }}>Vendido / Valor</span>
-            </div>
-
-            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-              {loading && <div className="texto-mudo" style={{ padding: '20px', textAlign: 'center', fontSize: '13px' }}>Carregando...</div>}
-              {error && <div className="texto-perigo" style={{ padding: '20px', textAlign: 'center', fontSize: '13px' }}>{error}</div>}
-              {!loading && !error && drops.length === 0 && (
-                <div className="texto-fraco" style={{ padding: '20px', textAlign: 'center', fontSize: '13px' }}>Nenhum drop encontrado.</div>
-              )}
-              {!loading && !error && drops.length > 0 && (
-                <table className="tabela-simples">
-                  <tbody>
-                    {sortedDrops.map((drop, idx) => {
-                      const isSold = drop.sold;
-                      const rowBg = isSold ? 'var(--color-success-soft)' : 'var(--color-danger-soft)';
-                      return (
-                        <tr
-                          key={drop.id || idx}
-                          onClick={() => setActiveItemName(drop.itemName)}
-                          title="Ver resumo deste item"
-                          style={{ borderBottom: '1px solid var(--color-border)', background: rowBg, cursor: 'pointer' }}
-                        >
-                          <td className="texto-mudo" style={{ padding: '6px 4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            {getItemIconUrl(drop.itemName) && (
-                              <img src={getItemIconUrl(drop.itemName)} alt="" className="h18 w18" style={{ objectFit: 'contain', imageRendering: 'pixelated' }} />
-                            )}
-                            <span>{drop.itemName || 'Item Raro'}</span>
-                          </td>
-                          <td className={`w60 ${isSold ? 'texto-sucesso' : 'texto-perigo'}`} style={{ padding: '6px 4px', textAlign: 'center', fontWeight: 'bold' }}>
-                            {isSold ? 'Sim' : 'Não'}
-                          </td>
-                          <td className={`texto-mono w110 ${isSold ? 'texto-sucesso' : 'texto-fraco'}`} style={{ padding: '6px 4px', textAlign: 'right' }}>
-                            {isSold ? formatTibiaGold(drop.totalValue) : '---'}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </div>
-
+          <MonthDropsCard
+            selectedMonth={selectedMonth}
+            selectedYear={selectedYear}
+            onMonthChange={setSelectedMonth}
+            onYearChange={setSelectedYear}
+            drops={sortedDrops}
+            loading={loading}
+            error={error}
+            onItemClick={setActiveItemName}
+          />
         </div>
 
         {/* COLUNA 2: BLOCOS DE INDICADORES (KPIs) + PLANILHA CENTRAL DE MEMBROS E METAS DE XP */}
         <div ref={col2Ref} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
 
           {/* GRADE DE 10 INDICADORES */}
-          <div className="responsive-grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px' }}>
-            <div className="stat-box stat-box-clicavel" onClick={() => setActiveTrendMetric('qtdDrops')} title="Ver últimos 12 meses">
-              <span className="stat-box-rotulo">Qtd Drops</span>
-              <strong style={{ fontSize: '14px', color: 'var(--color-text)' }}>{stats.totalDrops}</strong>
-            </div>
-            <div className="stat-box stat-box-clicavel" onClick={() => setActiveTrendMetric('qtdNVendido')} title="Ver últimos 12 meses">
-              <span className="stat-box-rotulo">Qtd N Vendido</span>
-              <strong style={{ fontSize: '14px', color: 'var(--color-warning)' }}>{stats.pendingCount}</strong>
-            </div>
-            <div className="stat-box stat-box-clicavel" onClick={() => setActiveTrendMetric('qtdServiceiro')} title="Ver últimos 12 meses">
-              <span className="stat-box-rotulo">Qtd Serviceiro</span>
-              <strong style={{ fontSize: '14px', color: 'var(--color-accent)' }}>{stats.serviceiroDropsCount}</strong>
-            </div>
-            <div className="stat-box stat-box-clicavel" onClick={() => setActiveTrendMetric('kksPlunderInd')} title="Ver últimos 12 meses">
-              <span className="stat-box-rotulo">KKs Plunder(ind)</span>
-              <strong className="texto-sucesso" style={{ fontSize: '11px' }}>{formatTibiaGold(stats.plunderTotal)}</strong>
-            </div>
-            <div className="stat-box stat-box-clicavel" onClick={() => setActiveTrendMetric('kksHunt')} title="Ver últimos 12 meses">
-              <span className="stat-box-rotulo">KKs Hunt</span>
-              <strong style={{ fontSize: '11px', color: 'var(--color-text)' }}>{formatTibiaGold(bossHuntTotals.hunt)}</strong>
-            </div>
-
-            <div className="stat-box stat-box-clicavel" onClick={() => setActiveTrendMetric('qtdBags')} title="Ver últimos 12 meses">
-              <span className="stat-box-rotulo">Qtd Bags</span>
-              <strong style={{ fontSize: '14px', color: 'var(--color-text)' }}>{stats.bagsCount}</strong>
-            </div>
-            <div className="stat-box stat-box-clicavel" onClick={() => setActiveTrendMetric('qtdPlunders')} title="Ver últimos 12 meses">
-              <span className="stat-box-rotulo">Qtd Plunders</span>
-              <strong style={{ fontSize: '14px', color: 'var(--color-text)' }}>{stats.plunderCount}</strong>
-            </div>
-            <div className="stat-box stat-box-clicavel" onClick={() => setActiveTrendMetric('totalInd')} title="Ver últimos 12 meses">
-              <span className="stat-box-rotulo">Total (ind)</span>
-              <strong className="texto-sucesso" style={{ fontSize: '11px' }}>{formatTibiaGold(totalInd)}</strong>
-            </div>
-            <div className="stat-box stat-box-clicavel" onClick={() => setActiveTrendMetric('kksBagsInd')} title="Ver últimos 12 meses">
-              <span className="stat-box-rotulo">KKs Bags(ind)</span>
-              <strong className="texto-sucesso" style={{ fontSize: '11px' }}>{formatTibiaGold(stats.bagsTotal)}</strong>
-            </div>
-            <div className="stat-box stat-box-clicavel" onClick={() => setActiveTrendMetric('kksBoss')} title="Ver últimos 12 meses">
-              <span className="stat-box-rotulo">KKs Boss</span>
-              <strong style={{ fontSize: '11px', color: 'var(--color-accent)' }}>{formatTibiaGold(bossHuntTotals.boss)}</strong>
-            </div>
-          </div>
+          <KpiGrid stats={stats} bossHuntTotals={bossHuntTotals} totalInd={totalInd} onMetricClick={setActiveTrendMetric} />
 
           {/* VALOR TOTAL CONSOLIDADO */}
           <div style={{ background: 'var(--color-bg-elevated)', padding: '12px 20px', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -483,203 +358,29 @@ export function DashboardPage() {
           </div>
 
           {/* PLANILHA CENTRAL DE MEMBROS, SKILLS E METAS DE XP */}
-          <div className="card-compacto" style={{ overflowX: 'auto', padding: 0 }}>
-            <table className="tabela-simples texto-mono" style={{ textAlign: 'center' }}>
-              <thead>
-                {/* Linha de Nomes dos Membros */}
-                <tr className="linha-cabecalho-tabela">
-                  <th className="borda-padrao w110" style={{ padding: '10px' }}></th>
-                  {members.map((m) => (
-                    <th key={m.id} className="borda-padrao" style={{ padding: '10px', fontWeight: 'bold', fontSize: '13px' }}>
-                      {m.characterName}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {/* Lvl Atual — ao vivo via TibiaData (character) */}
-                <tr className="linha-tabela-dado">
-                  <td className="borda-padrao texto-mudo" style={{ padding: '8px', textAlign: 'left', paddingLeft: '10px', fontWeight: 'bold' }}>Lvl Atual</td>
-                  {members.map((m) => {
-                    const live = liveStats[m.characterName];
-                    return (
-                      <td key={m.id} className="borda-padrao" style={{ padding: '8px', fontWeight: 'bold' }}>
-                        {live?.loading ? '…' : live?.level ?? '—'}
-                      </td>
-                    );
-                  })}
-                </tr>
-                {/* Skill — ao vivo via TibiaData (highscores, top 500 do mundo) */}
-                <tr className="linha-tabela-dado-alt">
-                  <td className="borda-padrao texto-mudo" style={{ padding: '8px', textAlign: 'left', paddingLeft: '10px', fontWeight: 'bold' }}>Skill</td>
-                  {members.map((m) => {
-                    const live = liveStats[m.characterName];
-                    return (
-                      <td key={m.id} className="borda-padrao" style={{ padding: '8px' }}>
-                        {live?.loading ? '…' : live?.skillLabel ?? '—'}
-                      </td>
-                    );
-                  })}
-                </tr>
-                {/* Xp Ontem */}
-                <tr className="linha-tabela-dado">
-                  <td className="borda-padrao texto-mudo" style={{ padding: '8px', textAlign: 'left', paddingLeft: '10px', fontWeight: 'bold' }}>Xp Ontem</td>
-                  {members.map((m) => {
-                    const extra = statsByName[m.characterName] ?? EMPTY_XP_STATS;
-                    return (
-                      <td key={m.id} className={`borda-padrao ${extra.xpOntem.startsWith('-') ? 'texto-perigo' : 'texto-sucesso'}`} style={{ padding: '8px', fontWeight: 'bold' }}>
-                        {extra.xpOntem}
-                      </td>
-                    );
-                  })}
-                </tr>
-                {/* Xp 30Dias */}
-                <tr className="linha-tabela-dado-alt">
-                  <td className="borda-padrao texto-mudo" style={{ padding: '8px', textAlign: 'left', paddingLeft: '10px', fontWeight: 'bold' }}>Xp 30Dias</td>
-                  {members.map((m) => (
-                    <td key={m.id} className="borda-padrao texto-sucesso" style={{ padding: '8px', fontWeight: 'bold' }}>
-                      {(statsByName[m.characterName] ?? EMPTY_XP_STATS).xp30Dias}
-                    </td>
-                  ))}
-                </tr>
-                {/* Previsão fim de ano */}
-                <tr className="linha-tabela-aviso" style={{ fontWeight: 'bold' }}>
-                  <td className="borda-padrao" style={{ padding: '8px', textAlign: 'left', paddingLeft: '10px' }}>Previsão fim de ano</td>
-                  {members.map((m) => (
-                    <td key={m.id} className="borda-padrao" style={{ padding: '8px' }}>
-                      {previsaoPorMembro[m.characterName] ?? '—'}
-                    </td>
-                  ))}
-                </tr>
-
-                {/* Cabeçalho Seção Metas */}
-                <tr>
-                  <td colSpan={members.length + 1} className="borda-padrao" style={{ background: 'var(--color-border-strong)', color: 'var(--color-text)', padding: '6px', fontWeight: 'bold', fontSize: '11px', textAlign: 'center' }}>
-                    Meta XP Diaria para atingir ao final do ano o Lvl Indicado
-                  </td>
-                </tr>
-
-                {/* Linhas de Metas por Nível */}
-                {niveisMetas.map((lvl) => (
-                  <tr key={lvl} style={{ background: 'var(--color-bg-elevated)' }}>
-                    <td className="borda-padrao texto-mudo" style={{ padding: '5px', textAlign: 'left', paddingLeft: '10px', fontWeight: 'bold', fontSize: '11px' }}>
-                      Lvl {lvl}
-                    </td>
-                    {members.map((m) => {
-                      const val = metaXpDiariaPorMembro[m.characterName]?.[lvl] ?? '';
-                      const style = getMetaCellStyle(val);
-                      return (
-                        <td key={m.id} className="borda-padrao" style={{ padding: '5px', backgroundColor: style.background, color: style.color, fontSize: '11px' }}>
-                          {val}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <MembersXpTable
+            members={members}
+            liveStats={liveStats}
+            statsByName={statsByName}
+            previsaoPorMembro={previsaoPorMembro}
+            niveisMetas={niveisMetas}
+            metaXpDiariaPorMembro={metaXpDiariaPorMembro}
+          />
 
         </div>
 
         {/* COLUNA 3: ITENS NÃO VENDIDOS & TOP DROPS */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', minHeight: 0, height: isDesktopLayout && col2Height ? `${col2Height}px` : undefined, overflow: isDesktopLayout ? 'hidden' : undefined }}>
 
-          <div className="card-compacto" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1px solid var(--color-border)', paddingBottom: '8px' }}>
-              <h3 style={{ fontSize: '14px', margin: 0, color: 'var(--color-warning)' }}>TODOS os Itens não vendidos</h3>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {unsoldGrouped.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setShowUnsoldShareModal(true)}
-                    title="Compartilhar itens à venda"
-                    className="botao-icone"
-                    style={{ display: 'flex', alignItems: 'center' }}
-                  >
-                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="18" cy="5" r="3" fill="currentColor" stroke="none" />
-                      <circle cx="6" cy="12" r="3" fill="currentColor" stroke="none" />
-                      <circle cx="18" cy="19" r="3" fill="currentColor" stroke="none" />
-                      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-                      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-                    </svg>
-                  </button>
-                )}
-                <span style={{ fontSize: '12px', background: 'var(--color-bg-input)', padding: '2px 6px', borderRadius: 'var(--radius-sm)' }}>
-                  Qtd: {allUnsoldDrops.length}
-                </span>
-              </div>
-            </div>
+          <UnsoldItemsCard
+            items={unsoldGrouped}
+            totalCount={allUnsoldDrops.length}
+            loading={unsoldLoading}
+            error={unsoldError}
+            onShareClick={() => setShowUnsoldShareModal(true)}
+          />
 
-            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-              {unsoldLoading && <div className="texto-mudo" style={{ padding: '15px', textAlign: 'center', fontSize: '13px' }}>Carregando...</div>}
-              {unsoldError && <div className="texto-perigo" style={{ padding: '15px', textAlign: 'center', fontSize: '13px' }}>{unsoldError}</div>}
-              {!unsoldLoading && !unsoldError && unsoldGrouped.length === 0 && (
-                <p className="estado-vazio">Nenhum item pendente no momento.</p>
-              )}
-              {!unsoldLoading && !unsoldError && unsoldGrouped.length > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                  {unsoldGrouped.map((item) => {
-                    const iconUrl = getItemIconUrl(item.itemName);
-                    return (
-                      <div key={item.itemName} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 4px', borderBottom: '1px solid var(--color-bg-elevated)' }}>
-                        {iconUrl
-                          ? <img src={iconUrl} alt="" className="h20 w20" style={{ objectFit: 'contain', imageRendering: 'pixelated', flexShrink: 0 }} />
-                          : <span className="w20" style={{ flexShrink: 0 }} />}
-                        <span className="texto-mudo" style={{ fontSize: '13px', flex: 1 }}>{item.itemName || 'Item Raro'}</span>
-                        <span style={{ color: 'var(--color-warning)', fontSize: '13px', fontWeight: 'bold' }}>x{item.count}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="card-compacto">
-            <h3 style={{ fontSize: '14px', margin: '0 0 10px 0', color: 'var(--color-accent)', borderBottom: '1px solid var(--color-border)', paddingBottom: '8px' }}>Top Drop</h3>
-            <span className="texto-fraco" style={{ fontSize: '11px', display: 'block', marginBottom: '8px', marginTop: '-6px' }}>Últimos 365 dias</span>
-            {topDropLoading && <div className="texto-mudo" style={{ fontSize: '13px', textAlign: 'center', padding: '20px 0' }}>Carregando...</div>}
-            {!topDropLoading && topDropRanking.length === 0 && (
-              <div className="texto-fraco" style={{ fontSize: '13px', textAlign: 'center', padding: '20px 0' }}>
-                Nenhum drop com fragador nos últimos 365 dias.
-              </div>
-            )}
-            {!topDropLoading && topDropRanking.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {topDropRanking.map((entry, idx) => (
-                  <div key={entry.looter} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '6px 4px', borderBottom: '1px solid var(--color-bg-elevated)' }}>
-                    <span className="h22 w22" style={{
-                      borderRadius: 'var(--radius-pill)', flexShrink: 0,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: '11px', fontWeight: 'bold',
-                      background: idx === 0 ? 'var(--color-warning)' : idx === 1 ? 'var(--color-text-muted)' : idx === 2 ? '#b45309' : 'var(--color-border)',
-                      color: idx <= 2 ? 'var(--color-bg)' : 'var(--color-text-muted)',
-                    }}>
-                      {idx + 1}
-                    </span>
-                    <span
-                      className="texto-mudo"
-                      onClick={() => setActivePlayerDrops(entry.looter)}
-                      title="Ver todos os drops deste jogador"
-                      style={{ flex: 1, fontSize: '13px', cursor: 'pointer' }}
-                    >
-                      {entry.looter}
-                    </span>
-                    <span style={{ textAlign: 'right' }}>
-                      <span className="texto-sucesso" style={{ display: 'block', fontSize: '13px', fontWeight: 'bold' }}>
-                        {formatTibiaGold(entry.totalValue)}
-                      </span>
-                      <span className="texto-fraco" style={{ display: 'block', fontSize: '11px' }}>
-                        {entry.dropCount} {entry.dropCount === 1 ? 'drop' : 'drops'}
-                      </span>
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <TopDropCard ranking={topDropRanking} loading={topDropLoading} onPlayerClick={setActivePlayerDrops} />
 
         </div>
 
