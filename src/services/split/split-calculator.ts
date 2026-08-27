@@ -107,7 +107,12 @@ function emptyResult(): SplitCalculationResult {
 
 /** Formata valor em gold do Tibia (ex: 989.759.000) */
 export function formatTibiaGold(value: number): string {
-  const prefix = value >= 0 ? '+' : '';
+  // Achado escrevendo os testes (2026-08-27): valor negativo caía no branch `''`, então
+  // saía sem NENHUM sinal (ex: -500 virava "500", indistinguível de um +500 sem o prefixo)
+  // — usado de verdade em saldo de split que pode ficar negativo (ex: SplitsHistoricoPage,
+  // coluna Saldo). Zero continua com prefixo '+' de propósito (não mudar) — é o padrão já
+  // usado nas telas de item ainda não vendido ("Valor cada +0").
+  const prefix = value >= 0 ? '+' : '-';
   return prefix + Math.abs(value).toLocaleString('pt-BR');
 }
 

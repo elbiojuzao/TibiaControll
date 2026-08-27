@@ -10,6 +10,11 @@ describe('formatTibiaGold', () => {
   it('formata zero com prefixo + (padrão já usado nas telas de item pendente)', () => {
     expect(formatTibiaGold(0)).toBe('+0');
   });
+
+  it('formata valores negativos com sinal de menos (bug real: saldo negativo de split saía sem sinal nenhum, "500" em vez de "-500")', () => {
+    expect(formatTibiaGold(-500)).toBe('-500');
+    expect(formatTibiaGold(-1234567)).toBe('-1.234.567');
+  });
 });
 
 describe('parseTibiaGold', () => {
