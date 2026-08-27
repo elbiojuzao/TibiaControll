@@ -44,5 +44,21 @@ export default defineConfig(({ mode }) => {
         '@': path.resolve(__dirname, './src'),
       },
     },
+    build: {
+      rollupOptions: {
+        output: {
+          // Vendor libs em chunk próprio, separado do código do app (2026-08-27) — junto
+          // com o lazy() por rota em App.tsx, ataca o aviso de bundle >500kB de verdade
+          // (code-splitting) em vez de só levantar o limite do aviso. react/react-dom/
+          // react-router-dom mudam bem menos que o código do app, então ficam cacheados no
+          // navegador entre deploys; @supabase/supabase-js fica à parte por ser pesado
+          // sozinho (~100kB) e usado só depois do login.
+          manualChunks: {
+            'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+            'vendor-supabase': ['@supabase/supabase-js'],
+          },
+        },
+      },
+    },
   }
 })
