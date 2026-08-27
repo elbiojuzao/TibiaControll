@@ -12,6 +12,7 @@ import {
 import { PartyCompositionFields } from './PartyCompositionFields';
 import { ServiceDraftsEditor } from './ServiceDraftsEditor';
 import { TransferCommandsPanel } from './TransferCommandsPanel';
+import { SaleMessagePanel } from './SaleMessagePanel';
 import type { CreateLootDropDto, LootDrop, Member, Serviceiro, Vocation } from '@/types';
 
 const VAZIO = '';
@@ -371,27 +372,12 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
         )}
 
         {mode === 'edit' && sold && (playerShares.length > 0 || serviceiroShares.length > 0) && (
-          <div className="card-compacto">
-            <h4 style={{ fontSize: '13px', margin: '0 0 10px 0', color: 'var(--color-text)' }}>Avisar a venda no WhatsApp:</h4>
-            <textarea
-              rows={8}
-              value={waMessage}
-              onChange={(e) => {
-                setWaMessage(e.target.value);
-                setWaCopied(false);
-              }}
-              className="campo-input texto-mono"
-              style={{ marginTop: 0, fontSize: '12px', resize: 'vertical' }}
-            />
-            <button
-              type="button"
-              onClick={handleCopyMessage}
-              className="botao-primario"
-              style={{ marginTop: '8px', background: waCopied ? 'var(--color-success)' : undefined }}
-            >
-              {waCopied ? '✓ Copiado' : '📋 Copiar Mensagem'}
-            </button>
-          </div>
+          <SaleMessagePanel
+            message={waMessage}
+            copied={waCopied}
+            onMessageChange={(value) => { setWaMessage(value); setWaCopied(false); }}
+            onCopy={handleCopyMessage}
+          />
         )}
 
         {formError && <span className="texto-perigo" style={{ fontSize: '12px' }}>{formError}</span>}
