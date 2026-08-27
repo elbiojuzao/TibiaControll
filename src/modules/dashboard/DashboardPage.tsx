@@ -20,6 +20,7 @@ import { MonthlyTrendModal } from './components/MonthlyTrendModal';
 import { PlayerDropsModal } from './components/PlayerDropsModal';
 import { ItemSummaryModal } from './components/ItemSummaryModal';
 import { MonthDropsCard } from './components/MonthDropsCard';
+import { KpiGrid } from './components/KpiGrid';
 import type { LootDropFilters, MemberXpStats } from '@/types';
 
 /** Rótulo + tipo de valor (gold vs contagem) de cada KPI clicável do grid — usado pra
@@ -356,49 +357,7 @@ export function DashboardPage() {
         <div ref={col2Ref} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
 
           {/* GRADE DE 10 INDICADORES */}
-          <div className="responsive-grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px' }}>
-            <div className="stat-box stat-box-clicavel" onClick={() => setActiveTrendMetric('qtdDrops')} title="Ver últimos 12 meses">
-              <span className="stat-box-rotulo">Qtd Drops</span>
-              <strong style={{ fontSize: '14px', color: 'var(--color-text)' }}>{stats.totalDrops}</strong>
-            </div>
-            <div className="stat-box stat-box-clicavel" onClick={() => setActiveTrendMetric('qtdNVendido')} title="Ver últimos 12 meses">
-              <span className="stat-box-rotulo">Qtd N Vendido</span>
-              <strong style={{ fontSize: '14px', color: 'var(--color-warning)' }}>{stats.pendingCount}</strong>
-            </div>
-            <div className="stat-box stat-box-clicavel" onClick={() => setActiveTrendMetric('qtdServiceiro')} title="Ver últimos 12 meses">
-              <span className="stat-box-rotulo">Qtd Serviceiro</span>
-              <strong style={{ fontSize: '14px', color: 'var(--color-accent)' }}>{stats.serviceiroDropsCount}</strong>
-            </div>
-            <div className="stat-box stat-box-clicavel" onClick={() => setActiveTrendMetric('kksPlunderInd')} title="Ver últimos 12 meses">
-              <span className="stat-box-rotulo">KKs Plunder(ind)</span>
-              <strong className="texto-sucesso" style={{ fontSize: '11px' }}>{formatTibiaGold(stats.plunderTotal)}</strong>
-            </div>
-            <div className="stat-box stat-box-clicavel" onClick={() => setActiveTrendMetric('kksHunt')} title="Ver últimos 12 meses">
-              <span className="stat-box-rotulo">KKs Hunt</span>
-              <strong style={{ fontSize: '11px', color: 'var(--color-text)' }}>{formatTibiaGold(bossHuntTotals.hunt)}</strong>
-            </div>
-
-            <div className="stat-box stat-box-clicavel" onClick={() => setActiveTrendMetric('qtdBags')} title="Ver últimos 12 meses">
-              <span className="stat-box-rotulo">Qtd Bags</span>
-              <strong style={{ fontSize: '14px', color: 'var(--color-text)' }}>{stats.bagsCount}</strong>
-            </div>
-            <div className="stat-box stat-box-clicavel" onClick={() => setActiveTrendMetric('qtdPlunders')} title="Ver últimos 12 meses">
-              <span className="stat-box-rotulo">Qtd Plunders</span>
-              <strong style={{ fontSize: '14px', color: 'var(--color-text)' }}>{stats.plunderCount}</strong>
-            </div>
-            <div className="stat-box stat-box-clicavel" onClick={() => setActiveTrendMetric('totalInd')} title="Ver últimos 12 meses">
-              <span className="stat-box-rotulo">Total (ind)</span>
-              <strong className="texto-sucesso" style={{ fontSize: '11px' }}>{formatTibiaGold(totalInd)}</strong>
-            </div>
-            <div className="stat-box stat-box-clicavel" onClick={() => setActiveTrendMetric('kksBagsInd')} title="Ver últimos 12 meses">
-              <span className="stat-box-rotulo">KKs Bags(ind)</span>
-              <strong className="texto-sucesso" style={{ fontSize: '11px' }}>{formatTibiaGold(stats.bagsTotal)}</strong>
-            </div>
-            <div className="stat-box stat-box-clicavel" onClick={() => setActiveTrendMetric('kksBoss')} title="Ver últimos 12 meses">
-              <span className="stat-box-rotulo">KKs Boss</span>
-              <strong style={{ fontSize: '11px', color: 'var(--color-accent)' }}>{formatTibiaGold(bossHuntTotals.boss)}</strong>
-            </div>
-          </div>
+          <KpiGrid stats={stats} bossHuntTotals={bossHuntTotals} totalInd={totalInd} onMetricClick={setActiveTrendMetric} />
 
           {/* VALOR TOTAL CONSOLIDADO */}
           <div style={{ background: 'var(--color-bg-elevated)', padding: '12px 20px', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
