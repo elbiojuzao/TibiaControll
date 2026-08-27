@@ -3,13 +3,14 @@ import { Modal } from '@/components/common/Modal';
 import { useBossQuests } from '@/hooks/useBossQuests';
 import { useQuestFilter } from '@/hooks/useQuestFilter';
 import { useBossItems } from '@/hooks/useBossItems';
-import { isoToBr, brToIso, todayAsBr } from '@/services/common/br-date';
+import { todayAsBr } from '@/services/common/br-date';
 import { formatTibiaGold } from '@/services/split';
 import {
-  vocationOptions, fifthPlayerOptions, servedPlayerOptions, deriveVocation,
+  servedPlayerOptions, deriveVocation,
   computeTransferInstructions, computeShareBreakdown, buildSaleMessage,
   type ServiceDraft,
 } from '@/services/lootdrop/drop-form-calculations';
+import { PartyCompositionFields } from './PartyCompositionFields';
 import type { CreateLootDropDto, LootDrop, Member, Serviceiro, Vocation } from '@/types';
 
 const VAZIO = '';
@@ -240,57 +241,11 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         <div className="form-section-title">Composição da party</div>
 
-        <div className="grid-3col">
-          <label className="label-padrao">
-            Data:
-            <input type="date" value={brToIso(date)} onChange={(e) => setDate(isoToBr(e.target.value))} className="campo-input" />
-          </label>
-          <label className="label-padrao">
-            EK:
-            <select value={ek} onChange={(e) => setEk(e.target.value)} className="campo-input">
-              <option value={VAZIO}>-- Vazio --</option>
-              {vocationOptions(members, 'EK', ek).map((name) => (
-                <option key={name} value={name}>{name}</option>
-              ))}
-            </select>
-          </label>
-          <label className="label-padrao">
-            ED:
-            <select value={ed} onChange={(e) => setEd(e.target.value)} className="campo-input">
-              <option value={VAZIO}>-- Vazio --</option>
-              {vocationOptions(members, 'ED', ed).map((name) => (
-                <option key={name} value={name}>{name}</option>
-              ))}
-            </select>
-          </label>
-          <label className="label-padrao">
-            RP:
-            <select value={rp} onChange={(e) => setRp(e.target.value)} className="campo-input">
-              <option value={VAZIO}>-- Vazio --</option>
-              {vocationOptions(members, 'RP', rp).map((name) => (
-                <option key={name} value={name}>{name}</option>
-              ))}
-            </select>
-          </label>
-          <label className="label-padrao">
-            MS:
-            <select value={ms} onChange={(e) => setMs(e.target.value)} className="campo-input">
-              <option value={VAZIO}>-- Vazio --</option>
-              {vocationOptions(members, 'MS', ms).map((name) => (
-                <option key={name} value={name}>{name}</option>
-              ))}
-            </select>
-          </label>
-          <label className="label-padrao">
-            5º Player:
-            <select value={fifthPlayer} onChange={(e) => setFifthPlayer(e.target.value)} className="campo-input">
-              <option value={VAZIO}>-- Vazio --</option>
-              {fifthPlayerOptions(serviceiros, fifthPlayer).map((name) => (
-                <option key={name} value={name}>{name}</option>
-              ))}
-            </select>
-          </label>
-        </div>
+        <PartyCompositionFields
+          date={date} ek={ek} ed={ed} rp={rp} ms={ms} fifthPlayer={fifthPlayer}
+          onDateChange={setDate} onEkChange={setEk} onEdChange={setEd} onRpChange={setRp} onMsChange={setMs} onFifthPlayerChange={setFifthPlayer}
+          members={members} serviceiros={serviceiros}
+        />
 
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
