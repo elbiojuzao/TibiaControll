@@ -1,4 +1,9 @@
-import { defineConfig, loadEnv, type Plugin } from 'vite'
+// defineConfig vem de 'vitest/config' (não 'vite') pra também tipar o campo `test` abaixo
+// — é um re-export 100% compatível do defineConfig do Vite, só com esse campo a mais; não
+// muda nada em `npm run dev`/`npm run build`, que ignoram `test`. loadEnv não é reexportado
+// por 'vitest/config', então continua vindo direto de 'vite'.
+import { defineConfig } from 'vitest/config'
+import { loadEnv, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 import { fetchXpStatsFromSheet } from './api/_lib/xp-sheet'
@@ -43,6 +48,14 @@ export default defineConfig(({ mode }) => {
       alias: {
         '@': path.resolve(__dirname, './src'),
       },
+    },
+    test: {
+      // Só testes de unidade puros por enquanto (services/*, funções sem DOM) — ambiente
+      // 'node' é bem mais rápido que 'jsdom' e é tudo que essa 1ª leva de testes precisa.
+      // Se/quando entrar teste de componente React, ele muda pra 'jsdom' (com
+      // @testing-library/react) só naqueles arquivos via docblock `@vitest-environment`.
+      environment: 'node',
+      include: ['src/**/*.test.ts'],
     },
     build: {
       rollupOptions: {
