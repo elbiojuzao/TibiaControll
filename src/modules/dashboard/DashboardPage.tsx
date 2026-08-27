@@ -19,6 +19,7 @@ import { UnsoldItemsShareModal } from './components/UnsoldItemsShareModal';
 import { MonthlyTrendModal } from './components/MonthlyTrendModal';
 import { PlayerDropsModal } from './components/PlayerDropsModal';
 import { ItemSummaryModal } from './components/ItemSummaryModal';
+import { MonthDropsCard } from './components/MonthDropsCard';
 import type { LootDropFilters, MemberXpStats } from '@/types';
 
 /** Rótulo + tipo de valor (gold vs contagem) de cada KPI clicável do grid — usado pra
@@ -35,15 +36,6 @@ const METRIC_META: Record<DashboardMetricKey, { label: string; isCurrency: boole
   kksBagsInd: { label: 'KKs Bags(ind)', isCurrency: true },
   kksBoss: { label: 'KKs Boss', isCurrency: true },
 };
-
-const MESES = [
-  { value: '1', label: 'Janeiro' }, { value: '2', label: 'Fevereiro' },
-  { value: '3', label: 'Março' }, { value: '4', label: 'Abril' },
-  { value: '5', label: 'Maio' }, { value: '6', label: 'Junho' },
-  { value: '7', label: 'Julho' }, { value: '8', label: 'Agosto' },
-  { value: '9', label: 'Setembro' }, { value: '10', label: 'Outubro' },
-  { value: '11', label: 'Novembro' }, { value: '12', label: 'Dezembro' },
-];
 
 /** Lvl Atual e Skill vêm ao vivo da API do TibiaData (ver useMemberLiveStats). Previsão fim
  * de ano também é real agora (2026-08-10, ver previsaoPorMembro/level-prediction.ts) — só
@@ -348,78 +340,16 @@ export function DashboardPage() {
 
         {/* COLUNA 1: TABELA "DROPS NO MÊS" + SELETOR */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', minHeight: 0, height: isDesktopLayout && col2Height ? `${col2Height}px` : undefined, overflow: isDesktopLayout ? 'hidden' : undefined }}>
-
-          {/* "Mês/Ano" juntado dentro do card "Drops no mês" (2026-08-25, pedido do
-              usuário: "vamos juntar a tabela mes/ano junto do drop no mes para ficar uma
-              coluna mais compactada") — antes eram 2 caixas separadas (com padding/borda
-              própria cada uma) empilhadas com gap entre elas; agora é 1 card só, com o
-              seletor de Mês/Ano na mesma linha do título. */}
-          <div className="card" style={{ padding: '12px', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-              <span style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--color-accent)' }}>Drops no mês</span>
-              <div style={{ display: 'flex', gap: '6px' }}>
-                <select
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(e.target.value)}
-                  style={{ background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', padding: '4px 6px', borderRadius: 'var(--radius-sm)', fontSize: '12px' }}
-                >
-                  {MESES.map((m) => (
-                    <option key={m.value} value={m.value}>{m.label}</option>
-                  ))}
-                </select>
-                <input
-                  type="text"
-                  value={selectedYear}
-                  onChange={(e) => setSelectedYear(e.target.value)}
-                  className="w60"
-                  style={{ background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', padding: '4px 6px', borderRadius: 'var(--radius-sm)', textAlign: 'center', fontSize: '12px' }}
-                />
-              </div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', borderBottom: '1px solid var(--color-border)', paddingBottom: '6px', marginBottom: '6px' }}>
-              <span className="texto-mudo" style={{ fontSize: '12px' }}>Vendido / Valor</span>
-            </div>
-
-            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-              {loading && <div className="texto-mudo" style={{ padding: '20px', textAlign: 'center', fontSize: '13px' }}>Carregando...</div>}
-              {error && <div className="texto-perigo" style={{ padding: '20px', textAlign: 'center', fontSize: '13px' }}>{error}</div>}
-              {!loading && !error && drops.length === 0 && (
-                <div className="texto-fraco" style={{ padding: '20px', textAlign: 'center', fontSize: '13px' }}>Nenhum drop encontrado.</div>
-              )}
-              {!loading && !error && drops.length > 0 && (
-                <table className="tabela-simples">
-                  <tbody>
-                    {sortedDrops.map((drop, idx) => {
-                      const isSold = drop.sold;
-                      const rowBg = isSold ? 'var(--color-success-soft)' : 'var(--color-danger-soft)';
-                      return (
-                        <tr
-                          key={drop.id || idx}
-                          onClick={() => setActiveItemName(drop.itemName)}
-                          title="Ver resumo deste item"
-                          style={{ borderBottom: '1px solid var(--color-border)', background: rowBg, cursor: 'pointer' }}
-                        >
-                          <td className="texto-mudo" style={{ padding: '6px 4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            {getItemIconUrl(drop.itemName) && (
-                              <img src={getItemIconUrl(drop.itemName)} alt="" className="h18 w18" style={{ objectFit: 'contain', imageRendering: 'pixelated' }} />
-                            )}
-                            <span>{drop.itemName || 'Item Raro'}</span>
-                          </td>
-                          <td className={`w60 ${isSold ? 'texto-sucesso' : 'texto-perigo'}`} style={{ padding: '6px 4px', textAlign: 'center', fontWeight: 'bold' }}>
-                            {isSold ? 'Sim' : 'Não'}
-                          </td>
-                          <td className={`texto-mono w110 ${isSold ? 'texto-sucesso' : 'texto-fraco'}`} style={{ padding: '6px 4px', textAlign: 'right' }}>
-                            {isSold ? formatTibiaGold(drop.totalValue) : '---'}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </div>
-
+          <MonthDropsCard
+            selectedMonth={selectedMonth}
+            selectedYear={selectedYear}
+            onMonthChange={setSelectedMonth}
+            onYearChange={setSelectedYear}
+            drops={sortedDrops}
+            loading={loading}
+            error={error}
+            onItemClick={setActiveItemName}
+          />
         </div>
 
         {/* COLUNA 2: BLOCOS DE INDICADORES (KPIs) + PLANILHA CENTRAL DE MEMBROS E METAS DE XP */}
