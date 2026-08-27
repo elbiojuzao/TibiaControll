@@ -6,11 +6,11 @@ import { useBossItems } from '@/hooks/useBossItems';
 import { todayAsBr } from '@/services/common/br-date';
 import { formatTibiaGold } from '@/services/split';
 import {
-  servedPlayerOptions, deriveVocation,
   computeTransferInstructions, computeShareBreakdown, buildSaleMessage,
   type ServiceDraft,
 } from '@/services/lootdrop/drop-form-calculations';
 import { PartyCompositionFields } from './PartyCompositionFields';
+import { ServiceDraftsEditor } from './ServiceDraftsEditor';
 import type { CreateLootDropDto, LootDrop, Member, Serviceiro, Vocation } from '@/types';
 
 const VAZIO = '';
@@ -247,57 +247,14 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
           members={members} serviceiros={serviceiros}
         />
 
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <span className="form-section-title" style={{ margin: 0, padding: 0, border: 'none' }}>Serviceiros nesse item</span>
-            <button type="button" onClick={addServiceRow} className="botao-secundario" style={{ padding: '4px 10px', fontSize: '12px' }}>
-              + Adicionar Serviceiro
-            </button>
-          </div>
-
-          {serviceDrafts.length === 0 ? (
-            <p className="estado-vazio" style={{ margin: '4px 0' }}>Nenhum serviceiro nesse item.</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {serviceDrafts.map((row, index) => {
-                const serviceiro = serviceiros.find((s) => s.id === row.serviceiroId);
-                const playerOptions = servedPlayerOptions({ ek, ed, ms, rp, fifthPlayer }, row.servedCharacterName);
-                return (
-                  <div key={index} className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '8px', alignItems: 'center' }}>
-                    <select
-                      value={row.serviceiroId}
-                      onChange={(e) => updateServiceRow(index, { serviceiroId: e.target.value, vocation: '' })}
-                      className="campo-input"
-                    >
-                      <option value={VAZIO}>-- Vazio --</option>
-                      {serviceiros.map((s) => (
-                        <option key={s.id} value={s.id}>{s.name}</option>
-                      ))}
-                    </select>
-                    <select
-                      value={row.servedCharacterName}
-                      onChange={(e) => {
-                        const servedCharacterName = e.target.value;
-                        updateServiceRow(index, { servedCharacterName, vocation: deriveVocation({ ek, ed, ms, rp }, servedCharacterName) });
-                      }}
-                      disabled={!serviceiro}
-                      className="campo-input"
-                      title="Em quem esse serviceiro fez o service"
-                    >
-                      <option value={VAZIO}>{serviceiro ? '-- Jogador servido --' : 'Escolha o serviceiro'}</option>
-                      {playerOptions.map((opt) => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
-                    <button type="button" onClick={() => removeServiceRow(index)} title="Remover serviceiro do item" className="botao-icone-perigo">
-                      🗑️
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        <ServiceDraftsEditor
+          serviceDrafts={serviceDrafts}
+          serviceiros={serviceiros}
+          party={{ ek, ed, ms, rp, fifthPlayer }}
+          onAddRow={addServiceRow}
+          onRemoveRow={removeServiceRow}
+          onUpdateRow={updateServiceRow}
+        />
 
         <div className="form-section-title">Boss & item</div>
 
