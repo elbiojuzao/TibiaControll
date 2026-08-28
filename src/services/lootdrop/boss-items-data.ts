@@ -70,4 +70,8 @@ export const BOSS_ITEMS: Record<string, string[]> = {
     'Moonsilver Chopper', 'Moonsilver Claymore', 'Moonsilver Crusher', 'Moonsilver Crossbow',
     'Moonsilver Epee', 'Moonsilver Katar', 'Moonsilver Mace', 'Moonsilver Sceptre',
   ],
+  'Court Warlock': [
+    'Stag Boots', 'Stag Footwraps', 'Stag Helmet', 'Stag Legs', 'Stag Plate',
+    'Stag Robe', 'Stag Scrolls', 'Stag Shield', 'Stag Shinguards', 'Stag Spellbook',
+  ],
 };

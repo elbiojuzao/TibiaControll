@@ -51,7 +51,7 @@ function Podium({ items }: { items: PodiumItem[] }) {
         const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `${rank}º`;
         const barColor = PODIUM_COLORS[idx] ?? 'var(--color-border)';
         return (
-          <div key={item.name} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', width: '110px', flexShrink: 0 }}>
+          <div key={item.name} className="w110" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
             <span style={{ fontSize: rank <= 3 ? '24px' : '14px', fontWeight: 'bold' }}>{medal}</span>
             <span style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--color-text)', textAlign: 'center' }}>{item.name}</span>
             <span className="texto-sucesso" style={{ fontSize: '12px', fontWeight: 'bold' }}>{item.valueLabel}</span>
