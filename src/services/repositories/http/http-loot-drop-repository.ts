@@ -1,4 +1,5 @@
 import { getSupabaseClient } from '@/services/supabase/supabase-client';
+import { friendlyErrorMessage } from '@/services/common/friendly-supabase-error';
 import { brToIso, isoToBr } from '@/services/common/br-date';
 import type { CreateLootDropDto, DropService, LootDrop, LootDropFilters, Vocation } from '@/types';
 import type { ILootDropRepository } from '../interfaces';
@@ -103,7 +104,7 @@ export class HttpLootDropRepository implements ILootDropRepository {
     if (filters?.dateTo) query = query.lte('data_drop', brToIso(filters.dateTo));
 
     const { data, error } = await query;
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(friendlyErrorMessage(error));
     return (data as unknown as DropRow[]).map(toDomain);
   }
 
@@ -113,7 +114,7 @@ export class HttpLootDropRepository implements ILootDropRepository {
       .select(SELECT_WITH_SERVICES)
       .eq('id', id)
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(friendlyErrorMessage(error));
     return data ? toDomain(data as unknown as DropRow) : null;
   }
 
@@ -138,7 +139,7 @@ export class HttpLootDropRepository implements ILootDropRepository {
       })
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(friendlyErrorMessage(error));
 
     const dropId = (dropRow as { id: string }).id;
     await replaceDropServices(dropId, dto.party.services ?? []);
@@ -166,7 +167,7 @@ export class HttpLootDropRepository implements ILootDropRepository {
 
     if (Object.keys(patch).length > 0) {
       const { error } = await getSupabaseClient().from('drops').update(patch).eq('id', id);
-      if (error) throw new Error(error.message);
+      if (error) throw new Error(friendlyErrorMessage(error));
     }
 
     if (dto.party?.services !== undefined) {
@@ -183,6 +184,6 @@ export class HttpLootDropRepository implements ILootDropRepository {
    * intacto (não faz sentido mais apagar em cascata, já que a linha em si não é apagada). */
   async delete(id: string): Promise<void> {
     const { error } = await getSupabaseClient().from('drops').update({ hidden: true }).eq('id', id);
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(friendlyErrorMessage(error));
   }
 }

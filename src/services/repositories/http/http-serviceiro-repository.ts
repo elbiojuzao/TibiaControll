@@ -1,4 +1,5 @@
 import { getSupabaseClient } from '@/services/supabase/supabase-client';
+import { friendlyErrorMessage } from '@/services/common/friendly-supabase-error';
 import type { Serviceiro, CreateServiceiroDto } from '@/types';
 import type { IServiceiroRepository } from '../interfaces';
 
@@ -37,7 +38,7 @@ export class HttpServiceiroRepository implements IServiceiroRepository {
       .eq('account_id', accountId)
       .eq('hidden', false)
       .order('name');
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(friendlyErrorMessage(error));
     return (data as ServiceiroRow[]).map(toDomain);
   }
 
@@ -67,7 +68,7 @@ export class HttpServiceiroRepository implements IServiceiroRepository {
         .eq('id', hiddenMatch.id)
         .select()
         .single();
-      if (error) throw new Error(error.message);
+      if (error) throw new Error(friendlyErrorMessage(error));
       return toDomain(data as ServiceiroRow);
     }
 
@@ -76,7 +77,7 @@ export class HttpServiceiroRepository implements IServiceiroRepository {
       .insert({ account_id: accountId, name: dto.name, character_name: dto.characterName, phone_number: dto.phoneNumber, vocations: dto.vocations })
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(friendlyErrorMessage(error));
     return toDomain(data as ServiceiroRow);
   }
 
@@ -94,7 +95,7 @@ export class HttpServiceiroRepository implements IServiceiroRepository {
       .eq('id', id)
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(friendlyErrorMessage(error));
     return toDomain(data as ServiceiroRow);
   }
 
@@ -110,6 +111,6 @@ export class HttpServiceiroRepository implements IServiceiroRepository {
    */
   async delete(id: string): Promise<void> {
     const { error } = await getSupabaseClient().from('serviceiros').update({ hidden: true }).eq('id', id);
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(friendlyErrorMessage(error));
   }
 }

@@ -1,4 +1,5 @@
 import { getSupabaseClient } from '@/services/supabase/supabase-client';
+import { friendlyErrorMessage } from '@/services/common/friendly-supabase-error';
 import type { Member, CreateMemberDto, HighscoreSkillCategory } from '@/types';
 import type { IMemberRepository } from '../interfaces';
 
@@ -36,7 +37,7 @@ export class HttpMemberRepository implements IMemberRepository {
       .select('*')
       .eq('account_id', accountId)
       .order('character_name');
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(friendlyErrorMessage(error));
     return (data as MemberRow[]).map(toDomain);
   }
 
@@ -56,7 +57,7 @@ export class HttpMemberRepository implements IMemberRepository {
       })
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(friendlyErrorMessage(error));
     return toDomain(data as MemberRow);
   }
 
@@ -77,12 +78,12 @@ export class HttpMemberRepository implements IMemberRepository {
       .eq('id', id)
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(friendlyErrorMessage(error));
     return toDomain(data as MemberRow);
   }
 
   async delete(id: string): Promise<void> {
     const { error } = await getSupabaseClient().from('members').delete().eq('id', id);
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(friendlyErrorMessage(error));
   }
 }

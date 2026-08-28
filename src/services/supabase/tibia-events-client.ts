@@ -1,4 +1,5 @@
 import { getSupabaseClient } from './supabase-client';
+import { friendlyErrorMessage } from '@/services/common/friendly-supabase-error';
 import type { TibiaEvent, TibiaEventCategory } from '@/types';
 
 interface TibiaEventRow {
@@ -22,7 +23,7 @@ export async function fetchTibiaEvents(): Promise<TibiaEvent[]> {
   const { data, error } = await getSupabaseClient()
     .from('tibia_events')
     .select('id, name, start_month, start_day, end_month, end_day, categories, description');
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(friendlyErrorMessage(error));
 
   return (data as TibiaEventRow[]).map((row) => ({
     id: row.id,

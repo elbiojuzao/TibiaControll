@@ -1,5 +1,6 @@
 import type { Session } from '@supabase/supabase-js';
 import { getSupabaseClient } from './supabase-client';
+import { friendlyErrorMessage } from '@/services/common/friendly-supabase-error';
 
 /**
  * Login real via Supabase Auth — 1 única credencial compartilhada pela PT inteira (login
@@ -10,14 +11,14 @@ import { getSupabaseClient } from './supabase-client';
  */
 export async function signInWithPassword(email: string, password: string): Promise<Session> {
   const { data, error } = await getSupabaseClient().auth.signInWithPassword({ email, password });
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(friendlyErrorMessage(error));
   if (!data.session) throw new Error('Login falhou — sessão não retornada.');
   return data.session;
 }
 
 export async function signOut(): Promise<void> {
   const { error } = await getSupabaseClient().auth.signOut();
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(friendlyErrorMessage(error));
 }
 
 export async function getSession(): Promise<Session | null> {
@@ -47,14 +48,14 @@ export interface AccountEmailInfo {
 
 async function getCurrentUserEmail(): Promise<string> {
   const { data, error } = await getSupabaseClient().auth.getUser();
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(friendlyErrorMessage(error));
   if (!data.user?.email) throw new Error('Não foi possível identificar o e-mail da conta logada.');
   return data.user.email;
 }
 
 export async function getAccountEmailInfo(): Promise<AccountEmailInfo> {
   const { data, error } = await getSupabaseClient().auth.getUser();
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(friendlyErrorMessage(error));
   if (!data.user) throw new Error('Sessão inválida.');
   return {
     email: data.user.email ?? '',
@@ -76,7 +77,7 @@ async function verifyCurrentPassword(currentPassword: string): Promise<void> {
 export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
   await verifyCurrentPassword(currentPassword);
   const { error } = await getSupabaseClient().auth.updateUser({ password: newPassword });
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(friendlyErrorMessage(error));
 }
 
 /** Troca de e-mail — o Supabase envia um link de confirmação pro endereço NOVO (e, por
@@ -87,5 +88,5 @@ export async function changePassword(currentPassword: string, newPassword: strin
 export async function changeEmail(currentPassword: string, newEmail: string): Promise<void> {
   await verifyCurrentPassword(currentPassword);
   const { error } = await getSupabaseClient().auth.updateUser({ email: newEmail });
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(friendlyErrorMessage(error));
 }

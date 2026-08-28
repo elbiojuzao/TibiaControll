@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Account } from '@/types';
 import { repositories } from '@/services/repositories';
 import { MOCK_ACCOUNT_ID } from '@/mocks/data/accounts';
@@ -28,6 +28,10 @@ export function useAccount() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [account, setAccount] = useState<Account | null>(() => readCachedAccount());
   const [loading, setLoading] = useState(!readCachedAccount());
+  const [error, setError] = useState<string | null>(null);
+  /** Guarda contra a corrida de uma resposta velha chegando depois de um remount/re-run
+   * do efeito (mesmo padrão de useServiceiros.ts/useMembers.ts). */
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
     if (authLoading) return;
@@ -35,6 +39,7 @@ export function useAccount() {
     if (!isAuthenticated) {
       hasFetchedFreshThisSession = false; // próximo login busca de novo, garante dado fresco
       setLoading(false);
+      setError(null);
       return;
     }
 
@@ -42,22 +47,32 @@ export function useAccount() {
     if (cached && hasFetchedFreshThisSession) {
       setAccount(cached);
       setLoading(false);
+      setError(null);
       return;
     }
 
-    let cancelled = false;
+    const requestId = ++requestIdRef.current;
     setLoading(true);
+    setError(null);
 
-    repositories.account.getCurrentAccount().then((current) => {
-      if (!cancelled) {
+    repositories.account.getCurrentAccount()
+      .then((current) => {
+        if (requestIdRef.current !== requestId) return;
         setAccount(current);
-        setLoading(false);
         hasFetchedFreshThisSession = true;
         if (current) writeCachedAccount(current);
-      }
-    });
-
-    return () => { cancelled = true; };
+      })
+      .catch((err) => {
+        if (requestIdRef.current !== requestId) return;
+        // Sem isso, uma falha aqui (Supabase fora do ar, sessão inválida) deixava a
+        // Promise rejeitar sem handler: loading nunca virava false e o app inteiro
+        // ficava preso em "Carregando..." pra sempre (AppLayout bloqueia a tela inteira
+        // nesse estado) — bug real encontrado em auditoria, não reportado pelo usuário.
+        setError(err instanceof Error ? err.message : 'Erro ao carregar a conta.');
+      })
+      .finally(() => {
+        if (requestIdRef.current === requestId) setLoading(false);
+      });
   }, [authLoading, isAuthenticated]);
 
   // Sincroniza instantaneamente com outras instâncias do hook montadas na mesma aba —
@@ -73,5 +88,5 @@ export function useAccount() {
     return updated;
   };
 
-  return { account, loading, accountId: account?.id ?? MOCK_ACCOUNT_ID, updatePartyName };
+  return { account, loading, error, accountId: account?.id ?? MOCK_ACCOUNT_ID, updatePartyName };
 }

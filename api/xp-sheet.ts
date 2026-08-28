@@ -1,10 +1,11 @@
 import { fetchXpStatsFromSheet } from './_lib/xp-sheet.js';
+import { checkRateLimit, clientKeyFromRequest } from './_lib/rate-limit.js';
 
 /** Vercel Node Function — GET /api/xp-sheet. Tipado à mão (sem @vercel/node) pra não
  * adicionar dependência só por causa dos tipos; req/res seguem a assinatura padrão do
  * Node http (compatível com o runtime Node do Vercel). */
 export default async function handler(
-  req: { method?: string },
+  req: { method?: string; headers?: Record<string, string | string[] | undefined>; socket?: { remoteAddress?: string } },
   res: {
     status: (code: number) => typeof res;
     json: (body: unknown) => void;
@@ -13,6 +14,14 @@ export default async function handler(
 ) {
   if (req.method && req.method !== 'GET') {
     res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  // Best-effort — soma-se ao Cache-Control abaixo, ver comentário em _lib/rate-limit.ts.
+  const rateLimit = checkRateLimit(clientKeyFromRequest(req));
+  if (!rateLimit.allowed) {
+    res.setHeader('Retry-After', String(rateLimit.retryAfterSeconds ?? 60));
+    res.status(429).json({ error: 'Muitas requisições. Tente de novo em instantes.' });
     return;
   }
 

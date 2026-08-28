@@ -1,4 +1,5 @@
 import { getSupabaseClient } from './supabase-client';
+import { friendlyErrorMessage } from '@/services/common/friendly-supabase-error';
 
 interface BossItemRow {
   boss: string;
@@ -14,7 +15,7 @@ export async function fetchBossItems(): Promise<Record<string, string[]>> {
   const { data, error } = await getSupabaseClient()
     .from('boss_items')
     .select('boss, item');
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(friendlyErrorMessage(error));
 
   const byBoss: Record<string, string[]> = {};
   for (const row of data as BossItemRow[]) {

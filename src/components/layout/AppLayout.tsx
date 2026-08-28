@@ -23,7 +23,7 @@ function partyInitial(partyName: string | undefined): string {
 }
 
 export function AppLayout() {
-  const { account, loading } = useAccount();
+  const { account, loading, error } = useAccount();
   const { isAuthenticated, logout } = useAuth();
   // Menu hambúrguer (2026-08-19, pedido do usuário: "ajustar o sistema para a tela do
   // celular") — a barra horizontal de navegação não cabe numa tela de celular, então
@@ -32,6 +32,20 @@ export function AppLayout() {
 
   if (loading) {
     return <div className="loading">Carregando...</div>;
+  }
+
+  // Antes, uma falha aqui deixava a tela presa em "Carregando..." pra sempre (useAccount
+  // não tinha .catch() — ver auditoria de 2026-08-28). Agora mostra o erro de verdade com
+  // opção de tentar de novo, em vez de travar sem explicação nenhuma.
+  if (error) {
+    return (
+      <div className="estado-vazio" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
+        <p className="texto-perigo">Não foi possível carregar sua conta: {error}</p>
+        <button type="button" className="botao-primario" onClick={() => window.location.reload()}>
+          Tentar novamente
+        </button>
+      </div>
+    );
   }
 
   return (

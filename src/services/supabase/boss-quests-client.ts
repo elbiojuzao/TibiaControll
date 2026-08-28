@@ -1,4 +1,5 @@
 import { getSupabaseClient } from './supabase-client';
+import { friendlyErrorMessage } from '@/services/common/friendly-supabase-error';
 
 interface BossQuestRow {
   boss: string;
@@ -22,7 +23,7 @@ export async function fetchBossQuests(): Promise<BossQuestsData> {
   const { data, error } = await getSupabaseClient()
     .from('boss_quests')
     .select('boss, quest');
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(friendlyErrorMessage(error));
 
   const rows = data as BossQuestRow[];
   const bosses: string[] = [];

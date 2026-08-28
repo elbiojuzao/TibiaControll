@@ -1,4 +1,5 @@
 import { getSupabaseClient } from '@/services/supabase/supabase-client';
+import { friendlyErrorMessage } from '@/services/common/friendly-supabase-error';
 import { brToIso, isoToBr } from '@/services/common/br-date';
 import type { CreatePartyEventDto, PartyEvent, PartyEventCategory } from '@/types';
 import type { IPartyEventRepository } from '../interfaces';
@@ -41,7 +42,7 @@ export class HttpPartyEventRepository implements IPartyEventRepository {
       })
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(friendlyErrorMessage(error));
     return toDomain(data as unknown as PartyEventRow);
   }
 
@@ -51,7 +52,7 @@ export class HttpPartyEventRepository implements IPartyEventRepository {
       .select()
       .eq('account_id', accountId)
       .order('start_date', { ascending: false });
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(friendlyErrorMessage(error));
     return (data as unknown as PartyEventRow[]).map(toDomain);
   }
 }

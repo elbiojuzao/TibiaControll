@@ -1054,6 +1054,16 @@
         <li><b>Confirmação ao fechar modal com alterações não salvas (2026-08-26, commit 5433fe7)</b> — <code>Modal.tsx</code> ganhou prop <code>isDirty?</code>; fechar pelo X/overlay com o form "sujo" (snapshot da 1ª renderização vs. valores atuais) pede <code>window.confirm()</code>. Aplicado em todos os 4 modais de formulário do app (Drop/Serviceiro/Membro/Evento de Party) — modais só de visualização continuam fechando direto.</li>
         <li><b>Senha tirada do localStorage (2026-08-26→27, commits 319067a/589ed0e)</b> — checkbox "Salvar login" chegou guardando e-mail+senha em texto puro; o PRÓPRIO usuário revisou no dia seguinte e pediu a correção. Só o e-mail é salvo agora; a senha depende do gerenciador do navegador + da sessão persistente do Supabase Auth. Ver seção Módulos → Login.</li>
       </ul>
+
+      <h3 style="margin-top:26px">Robustez — erros e limite de requisições (2026-08-28)</h3>
+      <p style="color:var(--text-muted); font-size:13.5px; max-width:68ch">Pedido do usuário: "adicionar validações de erros mensagens de erros (caso ocorra) tanto para consultas como para inserts, alem de termos de fazer com que nunca o nosso sistema caia por excesso de requisições". Auditoria prévia confirmou que o padrão de erro já era sólido na maioria do app — foram 4 gaps pontuais reais, não uma reescrita.</p>
+      <ul style="color:var(--text-muted); font-size:13.5px; max-width:74ch; margin:8px 0 0 18px; padding:0; line-height:1.7">
+        <li><b><code>useAccount.ts</code> travava em "Carregando..." pra sempre</b> — a busca da conta não tinha <code>.catch()</code>; como esse hook roda em quase toda página, uma falha (Supabase fora do ar, sessão inválida) deixava a Promise rejeitar sem handler e <code>loading</code> nunca virava <code>false</code>. Reescrito pro padrão try/catch/finally + <code>requestIdRef</code> já usado em <code>useServiceiros.ts</code>/<code>useMembers.ts</code>; hook agora expõe <code>error</code>. <code>AppLayout.tsx</code> ganhou tela de erro com botão "Tentar novamente" no lugar da trava. Testado forçando rejeição manual (revertida depois) — confirmado no browser antes/depois do fix.</li>
+        <li><b>Error Boundary global</b> — zero existia no projeto; um erro de render não previsto derrubava a árvore inteira pra tela branca. <code>src/components/common/ErrorBoundary.tsx</code> (class component) envolve <code>&lt;AppRouter /&gt;</code> em <code>main.tsx</code>, fallback simples reaproveitando classes do catálogo CSS. Testado forçando <code>throw</code> no topo de <code>AppRouter</code> (revertido depois).</li>
+        <li><b>Mensagens de erro amigáveis (pt-BR)</b> — mensagens cruas do Postgres (ex: <code>duplicate key value violates unique constraint "members_one_default_seller_per_account"</code>) apareciam direto nos banners. Novo helper <code>src/services/common/friendly-supabase-error.ts</code> mapeia por <code>error.code</code> (estável, PostgrestError sempre tem esse campo): unique/not-null/foreign-key violation, permissão negada (RLS/sessão expirada), <code>.single()</code> sem 1 linha — código desconhecido cai no <code>message</code> original. Aplicado nos 11 arquivos que faziam <code>throw new Error(error.message)</code> (6 <code>http-*-repository.ts</code> + <code>boss-quests</code>/<code>boss-items</code>/<code>tibia-events</code>/<code>xp-levels</code>-client.ts + <code>supabase-auth.ts</code>). Teste novo cobre os 8 casos (códigos mapeados + fallback).</li>
+        <li><b>Rate limit em <code>api/xp-sheet.ts</code></b> — único endpoint do projeto, só tinha <code>Cache-Control</code> de 1h no edge, sem limite nenhum contra quem bate direto ignorando cache. Novo <code>api/_lib/rate-limit.ts</code> — limitador em memória por IP (20 req/min, janela deslizante, best-effort — não é global entre instâncias serverless, soma-se ao Cache-Control, não substitui). Aplicado tanto na Vercel Function quanto no plugin de dev do Vite (mesma rota local). Testado com 25 requisições em sequência: as 20 primeiras passam, da 21ª em diante vem <code>429</code> com <code>Retry-After</code>.</li>
+        <li><b>RLS já estava correta</b> — a auditoria confirmou que não era um gap de acesso de verdade, só a documentação (card "RLS desligada" abaixo) que tinha ficado desatualizada desde 2026-08-06. Corrigida na mesma leva.</li>
+      </ul>
     </section>
 
     <section id="issues">
@@ -1142,11 +1152,11 @@
           </div>
         </div>
         <div class="issue">
-          <span class="chip chip-issue-medio">médio</span>
+          <span class="chip chip-issue-info">info (DESATUALIZADO — corrigido em 2026-08-28)</span>
           <div>
-            <p class="issue-title">RLS desligada no Supabase</p>
+            <p class="issue-title">RLS já está ativa (esse card ficou parado desde 2026-08-06)</p>
             <p class="issue-area">Supabase</p>
-            <p class="issue-desc">Anon key com acesso total (leitura+escrita). Aceitável só por não haver Auth real ainda.</p>
+            <p class="issue-desc">RLS foi RELIGADA na migration <code>20260814000000_enable_rls_with_auth.sql</code> (<code>accounts</code>/<code>drops</code>/<code>drop_services</code>/<code>serviceiros</code>) e toda tabela nova desde então (<code>members</code>/<code>split_logs</code>/<code>party_events</code>) segue o mesmo padrão restrito por conta. A anon key NÃO tem mais escrita livre — escrever exige sessão autenticada, e mesmo autenticado só enxerga/altera a própria conta. Confirmado lendo as migrations numa auditoria de erro/rate-limit em 2026-08-28 (ver Regras de negócio).</p>
           </div>
         </div>
         <div class="issue">

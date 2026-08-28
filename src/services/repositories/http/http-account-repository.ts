@@ -1,4 +1,5 @@
 import { getSupabaseClient } from '@/services/supabase/supabase-client';
+import { friendlyErrorMessage } from '@/services/common/friendly-supabase-error';
 import type { Account } from '@/types';
 import type { IAccountRepository } from '../interfaces';
 
@@ -24,7 +25,7 @@ function toDomain(row: AccountRow): Account {
 export class HttpAccountRepository implements IAccountRepository {
   async getCurrentAccount(): Promise<Account | null> {
     const { data, error } = await getSupabaseClient().from('accounts').select('*').maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(friendlyErrorMessage(error));
     return data ? toDomain(data as AccountRow) : null;
   }
 
@@ -37,7 +38,7 @@ export class HttpAccountRepository implements IAccountRepository {
       .eq('id', accountId)
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(friendlyErrorMessage(error));
     return toDomain(data as AccountRow);
   }
 }

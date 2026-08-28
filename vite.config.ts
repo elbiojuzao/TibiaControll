@@ -7,6 +7,7 @@ import { loadEnv, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 import { fetchXpStatsFromSheet } from './api/_lib/xp-sheet'
+import { checkRateLimit, clientKeyFromRequest } from './api/_lib/rate-limit'
 
 /** Serve a rota /api/xp-sheet no `npm run dev` (Vite puro) — em produção quem atende
  * essa rota é a Vercel Function em api/xp-sheet.ts, que reusa a mesma lógica. Sem isso
@@ -19,7 +20,16 @@ function sheetDevApiPlugin(): Plugin {
   return {
     name: 'sheet-dev-api',
     configureServer(server) {
-      server.middlewares.use('/api/xp-sheet', async (_req, res) => {
+      server.middlewares.use('/api/xp-sheet', async (req, res) => {
+        const rateLimit = checkRateLimit(clientKeyFromRequest(req))
+        if (!rateLimit.allowed) {
+          res.statusCode = 429
+          res.setHeader('Retry-After', String(rateLimit.retryAfterSeconds ?? 60))
+          res.setHeader('Content-Type', 'application/json')
+          res.end(JSON.stringify({ error: 'Muitas requisições. Tente de novo em instantes.' }))
+          return
+        }
+
         try {
           const stats = await fetchXpStatsFromSheet()
           res.setHeader('Content-Type', 'application/json')

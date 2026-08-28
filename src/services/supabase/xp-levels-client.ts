@@ -1,4 +1,5 @@
 import { getSupabaseClient } from './supabase-client';
+import { friendlyErrorMessage } from '@/services/common/friendly-supabase-error';
 
 interface XpLevelRow {
   level: number;
@@ -15,7 +16,7 @@ export async function fetchXpLevels(): Promise<Record<number, number>> {
     .from('xp_levels')
     .select('level, xp_total')
     .order('level');
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(friendlyErrorMessage(error));
 
   const byLevel: Record<number, number> = {};
   for (const row of data as XpLevelRow[]) {

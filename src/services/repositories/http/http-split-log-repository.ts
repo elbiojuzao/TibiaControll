@@ -1,4 +1,5 @@
 import { getSupabaseClient } from '@/services/supabase/supabase-client';
+import { friendlyErrorMessage } from '@/services/common/friendly-supabase-error';
 import { brToIso, isoToBr } from '@/services/common/br-date';
 import type { CreateSplitLogDto, SplitLog, SplitLogMember, SplitLogPlayerSlot, SplitLogTransfer, SplitLogType } from '@/types';
 import type { ISplitLogRepository } from '../interfaces';
@@ -95,7 +96,7 @@ export class HttpSplitLogRepository implements ISplitLogRepository {
       })
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(friendlyErrorMessage(error));
     return toDomain(data as unknown as SplitLogRow);
   }
 
@@ -106,7 +107,7 @@ export class HttpSplitLogRepository implements ISplitLogRepository {
       .eq('account_id', accountId)
       .eq('hidden', false)
       .order('data', { ascending: false });
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(friendlyErrorMessage(error));
     return (data as unknown as SplitLogRow[]).map(toDomain);
   }
 
@@ -121,7 +122,7 @@ export class HttpSplitLogRepository implements ISplitLogRepository {
       .eq('account_id', accountId)
       .eq('data', brToIso(date))
       .eq('tipo', type);
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(friendlyErrorMessage(error));
   }
 
   /** Soft delete de 1 split específico (2026-08-23, aba Splits do Histórico) — diferente de
@@ -132,6 +133,6 @@ export class HttpSplitLogRepository implements ISplitLogRepository {
       .update({ hidden: true })
       .eq('account_id', accountId)
       .eq('id', id);
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(friendlyErrorMessage(error));
   }
 }
