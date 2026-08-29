@@ -1,4 +1,5 @@
 import { formatTibiaGold } from '@/services/split';
+import { shortBr } from '@/services/common/br-date';
 import type { Member, Serviceiro, TransferInstruction, Vocation } from '@/types';
 
 /** Linha em edição do formulário — vira um DropService completo só quando serviceiro + vocação estão preenchidos */
@@ -175,10 +176,11 @@ export function computeShareBreakdown(
 
 /** Mensagem pronta pra avisar a party da venda no WhatsApp — formato exato pedido pelo
  * usuário em 2026-08-16 (item/boss em negrito, valor da venda, lista de cada um com sua
- * parte, total no fim). */
-export function buildSaleMessage(itemName: string, bossName: string, totalValue: number, playerShares: ShareEntry[], serviceiroShares: ShareEntry[]): string {
+ * parte, total no fim). Data do drop (DD/MM, sem ano) adicionada depois do boss em
+ * 2026-08-28, pedido do usuário. */
+export function buildSaleMessage(itemName: string, bossName: string, dropDate: string, totalValue: number, playerShares: ShareEntry[], serviceiroShares: ShareEntry[]): string {
   const lines = [
-    `*${itemName} — ${bossName}*`,
+    `*${itemName} — ${bossName} ${shortBr(dropDate)}*`,
     `💰 Venda: *${formatTibiaGold(totalValue)}*`,
     '',
     '',

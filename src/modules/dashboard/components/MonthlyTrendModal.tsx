@@ -3,6 +3,13 @@ import { formatTibiaGold } from '@/services/split';
 import { formatGoldKK } from '@/services/common/gold-format';
 import type { MonthBucket } from '@/services/dashboard/monthly-trend';
 
+export interface StackedSeries {
+  key: string;
+  label: string;
+  color: string;
+  values: number[];
+}
+
 interface MonthlyTrendModalProps {
   title: string;
   /** Se true, os valores são gold (formatados com kk); se false, são contagens simples. */
@@ -10,6 +17,12 @@ interface MonthlyTrendModalProps {
   months: MonthBucket[];
   values: number[];
   onClose: () => void;
+  /** Quando fornecido, cada barra mensal vira uma pilha desses segmentos coloridos em vez
+   * de uma barra sólida — a soma de todos os segmentos de um mês deve bater com `values[i]`.
+   * Usado só pro "Total (ind)" (2026-08-27, pedido do usuário: "mostrar em uma cor o
+   * proveniente de Hunt outra cor boss outra cor itens (todos os boss exceto plunder)
+   * outra cor itens (plunder), tudo isso na mesma pilha"). */
+  stackedSeries?: StackedSeries[];
 }
 
 const CHART_LEFT = 20;
@@ -25,7 +38,7 @@ const BAR_GAP = 8;
  * esquerda. Escopo confirmado com o usuário: só os KPIs financeiros/contagem (que já têm
  * histórico real em drops/split_logs); a tabela de membros (Lvl/Skill/XP) ficou de fora,
  * não tem snapshot diário guardado. */
-export function MonthlyTrendModal({ title, isCurrency, months, values, onClose }: MonthlyTrendModalProps) {
+export function MonthlyTrendModal({ title, isCurrency, months, values, onClose, stackedSeries }: MonthlyTrendModalProps) {
   const count = months.length;
   const chartWidth = CHART_RIGHT - CHART_LEFT;
   const barWidth = (chartWidth - BAR_GAP * (count - 1)) / count;
@@ -52,15 +65,34 @@ export function MonthlyTrendModal({ title, isCurrency, months, values, onClose }
               const barHeight = (value / max) * chartHeight;
               const x = CHART_LEFT + i * (barWidth + BAR_GAP);
               const y = CHART_BOTTOM - barHeight;
+
               return (
                 <g key={m.key}>
-                  <rect
-                    x={x} y={y} width={barWidth} height={Math.max(barHeight, 0)}
-                    fill={value > 0 ? 'var(--color-accent)' : 'var(--color-border)'}
-                    rx="2"
-                  >
-                    <title>{`${m.label}: ${formatValue(value)}`}</title>
-                  </rect>
+                  {stackedSeries ? (
+                    (() => {
+                      let cursorY = CHART_BOTTOM;
+                      return stackedSeries.map((series) => {
+                        const segValue = series.values[i] ?? 0;
+                        const segHeight = (segValue / max) * chartHeight;
+                        const segY = cursorY - segHeight;
+                        cursorY = segY;
+                        if (segHeight <= 0) return null;
+                        return (
+                          <rect key={series.key} x={x} y={segY} width={barWidth} height={segHeight} fill={series.color}>
+                            <title>{`${m.label} — ${series.label}: ${formatValue(segValue)}`}</title>
+                          </rect>
+                        );
+                      });
+                    })()
+                  ) : (
+                    <rect
+                      x={x} y={y} width={barWidth} height={Math.max(barHeight, 0)}
+                      fill={value > 0 ? 'var(--color-accent)' : 'var(--color-border)'}
+                      rx="2"
+                    >
+                      <title>{`${m.label}: ${formatValue(value)}`}</title>
+                    </rect>
+                  )}
                   {value !== 0 && (
                     <text x={x + barWidth / 2} y={y - 6} textAnchor="middle" fontSize="8.5" fill="var(--color-text-muted)">
                       {formatValue(value)}
@@ -73,6 +105,18 @@ export function MonthlyTrendModal({ title, isCurrency, months, values, onClose }
               );
             })}
           </svg>
+
+          {stackedSeries && (
+            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center', marginTop: '4px' }}>
+              {stackedSeries.map((series) => (
+                <span key={series.key} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                  <span style={{ width: '10px', height: '10px', borderRadius: '2px', background: series.color, display: 'inline-block' }} />
+                  {series.label}
+                </span>
+              ))}
+            </div>
+          )}
+
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px', paddingTop: '10px', borderTop: '1px solid var(--color-border)' }}>
             <span className="texto-mudo" style={{ fontSize: '12px' }}>
               Total no período: <strong style={{ color: 'var(--color-text)' }}>{isCurrency ? formatTibiaGold(total) : total.toLocaleString('pt-BR')}</strong>

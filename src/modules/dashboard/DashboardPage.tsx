@@ -15,7 +15,7 @@ import { dateAsBr, todayAsBr } from '@/services/common/br-date';
 import { parseDateKey } from '@/services/calendar';
 import { buildLast12Months, computeMonthlyTrends, type DashboardMetricKey } from '@/services/dashboard/monthly-trend';
 import { UnsoldItemsShareModal } from './components/UnsoldItemsShareModal';
-import { MonthlyTrendModal } from './components/MonthlyTrendModal';
+import { MonthlyTrendModal, type StackedSeries } from './components/MonthlyTrendModal';
 import { PlayerDropsModal } from './components/PlayerDropsModal';
 import { ItemSummaryModal } from './components/ItemSummaryModal';
 import { MonthDropsCard } from './components/MonthDropsCard';
@@ -306,6 +306,18 @@ export function DashboardPage() {
     [trendMonths, last365Drops, splitDailySeries],
   );
 
+  // "Total (ind)" = soma de 4 fontes (ver stats/bossHuntTotals/totalInd acima) — pedido do
+  // usuário (2026-08-27): em vez de barra sólida no gráfico de tendência, empilhar essas 4
+  // fontes com cor própria cada. Cores reaproveitadas das já usadas no Calendário pra
+  // Hunt/Boss (.calendar-dot.hunt/.boss em global.css), pra manter a mesma associação de
+  // cor em telas diferentes.
+  const totalIndStackedSeries: StackedSeries[] = useMemo(() => [
+    { key: 'hunt', label: 'Hunt', color: 'var(--color-warning)', values: monthlyTrends.kksHunt },
+    { key: 'boss', label: 'Boss', color: 'var(--color-accent)', values: monthlyTrends.kksBoss },
+    { key: 'bags', label: 'Itens (exceto Plunder)', color: 'var(--color-success)', values: monthlyTrends.kksBagsInd },
+    { key: 'plunder', label: 'Itens (Plunder)', color: 'var(--color-danger)', values: monthlyTrends.kksPlunderInd },
+  ], [monthlyTrends]);
+
   if (accountLoading) return <div className="loading">Carregando...</div>;
 
   // padding-top reduzido de 20px pra 4px (2026-08-25, pedido do usuário: "vamos tirar um
@@ -396,6 +408,7 @@ export function DashboardPage() {
           months={trendMonths}
           values={monthlyTrends[activeTrendMetric]}
           onClose={() => setActiveTrendMetric(null)}
+          stackedSeries={activeTrendMetric === 'totalInd' ? totalIndStackedSeries : undefined}
         />
       )}
       {activePlayerDrops && (

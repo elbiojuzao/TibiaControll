@@ -151,8 +151,8 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
   );
 
   const defaultSaleMessage = useMemo(
-    () => buildSaleMessage(itemName, bossName, totalNumber, playerShares, serviceiroShares),
-    [itemName, bossName, totalNumber, playerShares, serviceiroShares],
+    () => buildSaleMessage(itemName, bossName, date, totalNumber, playerShares, serviceiroShares),
+    [itemName, bossName, date, totalNumber, playerShares, serviceiroShares],
   );
 
   // Mensagem editável — sincroniza com o texto gerado automaticamente sempre que os

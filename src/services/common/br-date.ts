@@ -12,6 +12,13 @@ export function brToIso(br: string): string {
   return `${year}-${month}-${day}`;
 }
 
+/** DD/MM/YYYY -> DD/MM (sem ano) — usado na mensagem de venda (2026-08-28, pedido do usuário) */
+export function shortBr(br: string): string {
+  if (!br) return '';
+  const [day, month] = br.split('/');
+  return `${day}/${month}`;
+}
+
 export function dateAsBr(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()}`;
