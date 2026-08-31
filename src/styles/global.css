@@ -295,6 +295,25 @@ table {
   position: relative;
 }
 
+/* Ponte invisível cobrindo o espaço entre o avatar e o menu (2026-08-31, bug real
+   reportado pelo usuário: "o mouse hover esta saindo muito facil ao passar o mouse e
+   tentar ir em sair ele some o menu rapidamente") — clássico "gap de hover": o menu só
+   fica visível enquanto .avatar-trigger:hover é verdadeiro, mas .avatar-panel (170px de
+   largura) fica 8px ABAIXO do botão (34px). Mover o mouse na diagonal do avatar até
+   "Sair" passa por essa faixa de 8px onde não existe elemento nenhum — o hover quebra
+   ali, o painel vira display:none antes do cursor chegar. O pseudo-elemento fica sempre
+   presente em .avatar-trigger (diferente de um bridge dentro do próprio painel, que só
+   existiria depois que ele já tivesse aparecido — tarde demais), com a mesma largura/
+   alinhamento à direita do painel, pra cobrir a faixa toda por onde o cursor passa. */
+.avatar-trigger::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 180px;
+  height: 8px;
+}
+
 .avatar-panel {
   display: none;
   position: absolute;
