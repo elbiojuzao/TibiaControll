@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { Modal } from '@/components/common/Modal';
-import { isoToBr } from '@/services/common/br-date';
-import { PARTY_EVENT_CATEGORIES, PARTY_EVENT_CATEGORY_ICON, PARTY_EVENT_CATEGORY_LABEL } from '../party-event-display';
-import type { CreatePartyEventDto, PartyEventCategory } from '@/types';
+import { brToIso, isoToBr } from '@/services/common/br-date';
+import { PARTY_EVENT_CATEGORIES, PARTY_EVENT_CATEGORY_ICON, PARTY_EVENT_CATEGORY_LABEL } from '@/services/party-events/party-event-display';
+import type { CreatePartyEventDto, PartyEvent, PartyEventCategory } from '@/types';
 
 interface PartyEventFormModalProps {
+  mode: 'create' | 'edit';
+  /** Obrigatório quando mode === 'edit' */
+  event?: PartyEvent;
   onClose: () => void;
   onSubmit: (dto: CreatePartyEventDto) => Promise<unknown>;
 }
@@ -27,25 +30,39 @@ function toggleCategory(list: PartyEventCategory[], cat: PartyEventCategory): Pa
   return [...list, cat];
 }
 
-/** Modal de "Novo Evento" no Calendário (2026-08-25, pedido do usuário: "o botao de
- * adicionar novo evento que abre a modal e o usuario vai digitar sobre o evento e
- * cadastrar") — mesmo padrão de formulário-em-modal já usado no resto do app (ver
+/** Modal de "Novo Evento" (2026-08-25, pedido do usuário: "o botao de adicionar novo
+ * evento que abre a modal e o usuario vai digitar sobre o evento e cadastrar") — mesmo
+ * padrão de formulário-em-modal já usado no resto do app (ver
  * ServiceiroFormModal/DropFormModal/MemberFormModal). Data fim é opcional no campo — se
  * ficar em branco, assume igual à data início (evento de 1 dia só). **Tipo do evento**
  * (2026-08-25, refinamento seguinte, pedido do usuário: "a modal de evento tem que ter o
  * tipo do evento") — multi-select por toggle buttons (mesmo padrão de vocações do
  * ServiceiroFormModal), lista fixa confirmada com o usuário: Double XP/Rapid
- * Respawn/Exaltation Forge/Double Skill, pode marcar mais de 1 ao mesmo tempo. */
-export function PartyEventFormModal({ onClose, onSubmit }: PartyEventFormModalProps) {
-  const [title, setTitle] = useState('');
+ * Respawn/Exaltation Forge/Double Skill, pode marcar mais de 1 ao mesmo tempo.
+ *
+ * **Movido do Calendário pra Configurações em 2026-08-28** (pedido do usuário: "o
+ * adicionar evento tem que ser em configurações... ele vai adicionar para todas as
+ * contas e não apenas para a party" — na prática o evento já era isolado por
+ * account_id/RLS desde a migration original, mas o usuário preferiu deixar a *criação*
+ * fora do Calendário, que passa a ser só exibição/leitura dos eventos). O evento
+ * continua compartilhado com a conta/PT inteira (não é por login individual), só a
+ * localização do botão mudou. Ver [[modulo-eventos-party]].
+ *
+ * **Reutilizada pra editar em 2026-08-31** (pedido do usuário: "podemos reutilizar [a
+ * modal] para excluir um evento ou editar evento") — mesmo padrão de `MemberFormModal`
+ * (`mode: 'create' | 'edit'` + prop `event` obrigatória no modo edit). Exclusão não passa
+ * por essa modal (é direto na lista com `window.confirm`, ver SettingsPage.tsx), só edição. */
+export function PartyEventFormModal({ mode, event, onClose, onSubmit }: PartyEventFormModalProps) {
+  const [title, setTitle] = useState(mode === 'edit' ? event!.title : '');
   // Título deixa de ser auto-preenchido assim que o usuário digitar algo nele à mão
   // (2026-08-25, ver handleToggleCategory abaixo) — mesmo padrão de "slug auto-derivado até
-  // edição manual" já comum em formulários.
-  const [titleTouched, setTitleTouched] = useState(false);
-  const [description, setDescription] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [categories, setCategories] = useState<PartyEventCategory[]>([]);
+  // edição manual" já comum em formulários. No modo edit já nasce "touched" (o título já
+  // existe de verdade, não deve ser sobrescrito só por mexer nos tipos).
+  const [titleTouched, setTitleTouched] = useState(mode === 'edit');
+  const [description, setDescription] = useState(mode === 'edit' ? event!.description : '');
+  const [startDate, setStartDate] = useState(mode === 'edit' ? brToIso(event!.startDate) : '');
+  const [endDate, setEndDate] = useState(mode === 'edit' ? brToIso(event!.endDate) : '');
+  const [categories, setCategories] = useState<PartyEventCategory[]>(mode === 'edit' ? event!.categories : []);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -109,7 +126,7 @@ export function PartyEventFormModal({ onClose, onSubmit }: PartyEventFormModalPr
   };
 
   return (
-    <Modal title="Novo Evento" onClose={onClose} isDirty={isDirty}>
+    <Modal title={mode === 'create' ? 'Novo Evento' : 'Editar Evento'} onClose={onClose} isDirty={isDirty}>
       <form onSubmit={handleSubmit} className="form-coluna">
         <label className="label-padrao">
           Título
@@ -199,7 +216,7 @@ export function PartyEventFormModal({ onClose, onSubmit }: PartyEventFormModalPr
           className="botao-primario"
           style={{ padding: '12px', borderRadius: 'var(--radius)', fontSize: '14px' }}
         >
-          {saving ? 'Salvando...' : 'Salvar Evento'}
+          {saving ? 'Salvando...' : mode === 'create' ? 'Salvar Evento' : 'Salvar Alterações'}
         </button>
       </form>
     </Modal>

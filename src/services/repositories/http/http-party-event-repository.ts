@@ -46,13 +46,38 @@ export class HttpPartyEventRepository implements IPartyEventRepository {
     return toDomain(data as unknown as PartyEventRow);
   }
 
-  async findByAccount(accountId: string): Promise<PartyEvent[]> {
+  /** Mural: todo mundo autenticado lê todos os eventos, não só os da própria conta (RLS
+   * "party_events_select_all", migration 20260828000000) — quem RESTRINGE é o `create`
+   * (só conta admin), não a leitura. */
+  async findAll(): Promise<PartyEvent[]> {
     const { data, error } = await getSupabaseClient()
       .from('party_events')
       .select()
-      .eq('account_id', accountId)
       .order('start_date', { ascending: false });
     if (error) throw new Error(friendlyErrorMessage(error));
     return (data as unknown as PartyEventRow[]).map(toDomain);
+  }
+
+  async update(id: string, dto: Partial<CreatePartyEventDto>): Promise<PartyEvent> {
+    const patch: Record<string, unknown> = {};
+    if (dto.title !== undefined) patch.title = dto.title;
+    if (dto.description !== undefined) patch.description = dto.description;
+    if (dto.startDate !== undefined) patch.start_date = brToIso(dto.startDate);
+    if (dto.endDate !== undefined) patch.end_date = brToIso(dto.endDate);
+    if (dto.categories !== undefined) patch.categories = dto.categories;
+
+    const { data, error } = await getSupabaseClient()
+      .from('party_events')
+      .update(patch)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw new Error(friendlyErrorMessage(error));
+    return toDomain(data as unknown as PartyEventRow);
+  }
+
+  async delete(id: string): Promise<void> {
+    const { error } = await getSupabaseClient().from('party_events').delete().eq('id', id);
+    if (error) throw new Error(friendlyErrorMessage(error));
   }
 }

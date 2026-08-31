@@ -2,10 +2,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { repositories } from '@/services/repositories';
 import type { CreatePartyEventDto, PartyEvent } from '@/types';
 
-/** Eventos cadastrados manualmente pelo usuário no Calendário (2026-08-25, pedido do
- * usuário: "o botao de adicionar novo evento que abre a modal e o usuario vai digitar
- * sobre o evento e cadastrar") — diferente de useTibiaEvents (eventos oficiais do jogo,
- * sem account_id). */
+/** Mural de eventos (2026-08-25, pedido do usuário; redesenhado em 2026-08-28 pra virar
+ * mural visível a todo mundo, só conta Admin cria — ver [[modulo-eventos-party]]) —
+ * diferente de useTibiaEvents (eventos oficiais do jogo, sem account_id nem admin). Leitura
+ * (`findAll`) não depende mais de `accountId` — só a criação (`create`) usa, pra gravar
+ * quem cadastrou. */
 export function usePartyEvents(accountId: string) {
   const [events, setEvents] = useState<PartyEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -16,7 +17,7 @@ export function usePartyEvents(accountId: string) {
     setLoading(true);
     setError(null);
     repositories.partyEvent
-      .findByAccount(accountId)
+      .findAll()
       .then((list) => {
         if (!cancelled) setEvents(list);
       })
@@ -27,7 +28,7 @@ export function usePartyEvents(accountId: string) {
         if (!cancelled) setLoading(false);
       });
     return () => { cancelled = true; };
-  }, [accountId]);
+  }, []);
 
   const createEvent = useCallback(async (dto: CreatePartyEventDto) => {
     const created = await repositories.partyEvent.create(accountId, dto);
@@ -35,5 +36,16 @@ export function usePartyEvents(accountId: string) {
     return created;
   }, [accountId]);
 
-  return { events, loading, error, createEvent };
+  const updateEvent = useCallback(async (id: string, dto: Partial<CreatePartyEventDto>) => {
+    const updated = await repositories.partyEvent.update(id, dto);
+    setEvents((prev) => prev.map((ev) => (ev.id === id ? updated : ev)));
+    return updated;
+  }, []);
+
+  const deleteEvent = useCallback(async (id: string) => {
+    await repositories.partyEvent.delete(id);
+    setEvents((prev) => prev.filter((ev) => ev.id !== id));
+  }, []);
+
+  return { events, loading, error, createEvent, updateEvent, deleteEvent };
 }

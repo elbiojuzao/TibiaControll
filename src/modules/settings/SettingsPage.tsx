@@ -1,16 +1,72 @@
 import { useEffect, useState } from 'react';
 import { useAccount } from '@/hooks/useAccount';
 import { useMembers } from '@/hooks/useMembers';
+import { usePartyEvents } from '@/hooks/usePartyEvents';
 import { useAccountSecurity } from '@/hooks/useAccountSecurity';
 import { VOCATION_ICON, VOCATION_LABEL } from '@/services/vocation/vocation-display';
 import { SKILL_CATEGORY_LABEL } from '@/services/tibiadata/tibiadata-client';
+import { PARTY_EVENT_CATEGORY_ICON, PARTY_EVENT_CATEGORY_LABEL } from '@/services/party-events/party-event-display';
 import { MemberFormModal } from './components/MemberFormModal';
-import type { Member } from '@/types';
+import { PartyEventFormModal } from './components/PartyEventFormModal';
+import type { Member, PartyEvent } from '@/types';
 
 export function SettingsPage() {
   const { accountId, account, updatePartyName } = useAccount();
   const { members, loading, error, createMember, updateMember, removeMember } = useMembers(accountId);
   const { emailInfo, changePassword, changeEmail } = useAccountSecurity();
+
+  // Eventos da party (2026-08-28, movido do Calendário — pedido do usuário: "o adicionar
+  // evento tem que ser em configurações... ele vai adicionar para todas as contas e não
+  // apenas para a party"; o Calendário passou a ser só leitura/exibição, ver
+  // CalendarioPage.tsx). O evento continua compartilhado com a conta/PT inteira, só a
+  // criação saiu de lá.
+  const {
+    events: partyEvents,
+    loading: partyEventsLoading,
+    error: partyEventsError,
+    createEvent: createPartyEvent,
+    updateEvent: updatePartyEvent,
+    deleteEvent: deletePartyEvent,
+  } = usePartyEvents(accountId);
+  // Editar/excluir evento (2026-08-31, pedido do usuário: "podemos reutilizar [a modal]
+  // para excluir um evento ou editar evento... mostrar um historico dos ultimos 5 eventos")
+  // — mesmo padrão create/edit já usado pra Membros logo abaixo (modalMode/editingMember).
+  const [eventModalMode, setEventModalMode] = useState<'create' | 'edit' | null>(null);
+  const [editingEvent, setEditingEvent] = useState<PartyEvent | null>(null);
+  const [eventDeleteError, setEventDeleteError] = useState<string | null>(null);
+
+  const openCreateEvent = () => {
+    setEditingEvent(null);
+    setEventModalMode('create');
+  };
+
+  const openEditEvent = (ev: PartyEvent) => {
+    setEditingEvent(ev);
+    setEventModalMode('edit');
+  };
+
+  const closeEventModal = () => {
+    setEventModalMode(null);
+    setEditingEvent(null);
+  };
+
+  const handleEventModalSubmit = (dto: Parameters<typeof createPartyEvent>[0]) =>
+    eventModalMode === 'edit' && editingEvent ? updatePartyEvent(editingEvent.id, dto) : createPartyEvent(dto);
+
+  const handleDeleteEvent = async (ev: PartyEvent) => {
+    if (!window.confirm(`Excluir o evento "${ev.title}"? Essa ação não pode ser desfeita.`)) return;
+    setEventDeleteError(null);
+    try {
+      await deletePartyEvent(ev.id);
+    } catch (err) {
+      setEventDeleteError(err instanceof Error ? err.message : 'Erro ao excluir evento.');
+    }
+  };
+
+  // Histórico mostra só os 5 mais recentes (pedido do usuário) — partyEvents já vem
+  // ordenado desc por start_date (HttpPartyEventRepository.findAll), mock mantém a mesma
+  // ordem (create sempre prepende).
+  const recentPartyEvents = partyEvents.slice(0, 5);
 
   // Trocar senha (2026-08-25, pedido do usuário: "ajustar as configurações das contas,
   // senha email..."). Pede a senha ATUAL como confirmação extra antes de trocar — decisão
@@ -266,6 +322,83 @@ export function SettingsPage() {
         </form>
         {partyNameError && <span className="texto-perigo" style={{ display: 'block', marginTop: '8px', fontSize: '12px' }}>{partyNameError}</span>}
       </div>
+
+      {/* "Adicionar Eventos" — só pra conta Admin (2026-08-28, pedido do usuário: "a
+          adicionar eventos... só pode aparecer para contas Admin"). Vira um mural: só admin
+          cria, mas qualquer conta autenticada VÊ os eventos no Calendário (RLS
+          "party_events_select_all" + hook usePartyEvents/findAll, ver
+          [[modulo-eventos-party]]). Nome enxuto a pedido do usuário — sem subtítulo. */}
+      {account?.isAdmin && (
+        <>
+          <header className="page-header" style={{ marginBottom: '20px', borderBottom: '1px solid var(--color-border)', paddingBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2 style={{ margin: 0, fontSize: '20px', color: 'var(--color-accent)' }}>Adicionar Eventos</h2>
+            <button onClick={openCreateEvent} className="botao-primario">
+              + Adicionar Evento
+            </button>
+          </header>
+
+          {eventModalMode && (
+            <PartyEventFormModal
+              key={editingEvent?.id ?? 'create'}
+              mode={eventModalMode}
+              event={editingEvent ?? undefined}
+              onClose={closeEventModal}
+              onSubmit={handleEventModalSubmit}
+            />
+          )}
+
+          {eventDeleteError && <div className="banner-erro" style={{ marginBottom: '14px' }}>{eventDeleteError}</div>}
+
+          {partyEventsLoading && <div className="loading">Carregando...</div>}
+          {partyEventsError && <div className="texto-perigo" style={{ padding: '20px', textAlign: 'center', fontSize: '13px' }}>{partyEventsError}</div>}
+
+          {!partyEventsLoading && !partyEventsError && recentPartyEvents.length === 0 && (
+            <p className="estado-vazio">Nenhum evento cadastrado ainda.</p>
+          )}
+
+          {!partyEventsLoading && !partyEventsError && recentPartyEvents.length > 0 && (
+            <>
+              <span className="texto-mudo" style={{ fontSize: '11px', display: 'block', marginBottom: '8px' }}>
+                Histórico (últimos {recentPartyEvents.length})
+              </span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '25px' }}>
+                {recentPartyEvents.map((ev) => (
+                  <div key={ev.id} className="card-compacto" style={{ padding: '12px 16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
+                      <div>
+                        <div style={{ fontWeight: 'bold', fontSize: '14px' }}>{ev.title}</div>
+                        <div className="texto-fraco" style={{ fontSize: '11px', marginTop: '2px' }}>
+                          {ev.startDate}{ev.endDate !== ev.startDate ? ` — ${ev.endDate}` : ''}
+                        </div>
+                        {ev.description && (
+                          <div className="texto-mudo" style={{ fontSize: '12px', marginTop: '4px' }}>{ev.description}</div>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                          {ev.categories.map((cat) => (
+                            <span key={cat} title={PARTY_EVENT_CATEGORY_LABEL[cat]} style={{ fontSize: '16px' }}>
+                              {PARTY_EVENT_CATEGORY_ICON[cat]}
+                            </span>
+                          ))}
+                        </div>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <button onClick={() => openEditEvent(ev)} title="Editar evento" className="botao-icone">
+                            ✏️
+                          </button>
+                          <button onClick={() => handleDeleteEvent(ev)} title="Excluir evento" className="botao-icone-perigo">
+                            🗑️
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </>
+      )}
 
       <header className="page-header" style={{ marginBottom: '25px', borderBottom: '1px solid var(--color-border)', paddingBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>

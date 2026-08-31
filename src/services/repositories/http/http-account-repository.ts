@@ -8,10 +8,11 @@ interface AccountRow {
   party_name: string;
   type: 'party' | 'solo';
   created_at: string;
+  is_admin: boolean;
 }
 
 function toDomain(row: AccountRow): Account {
-  return { id: row.id, partyName: row.party_name, type: row.type, createdAt: row.created_at };
+  return { id: row.id, partyName: row.party_name, type: row.type, createdAt: row.created_at, isAdmin: row.is_admin };
 }
 
 /**

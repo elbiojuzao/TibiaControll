@@ -1,5 +1,5 @@
 import { Modal } from '@/components/common/Modal';
-import { PARTY_EVENT_CATEGORY_ICON, PARTY_EVENT_CATEGORY_LABEL } from '../party-event-display';
+import { PARTY_EVENT_CATEGORY_ICON, PARTY_EVENT_CATEGORY_LABEL } from '@/services/party-events/party-event-display';
 import { formatTibiaGold } from '@/services/split';
 import type { DayActivity, PartyEvent, TibiaEvent, TibiaEventCategory } from '@/types';
 import type { SplitLogDailyEntry } from '@/hooks/useSplitLogsDaily';

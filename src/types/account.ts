@@ -11,4 +11,8 @@ export interface Account {
   partyName: string;
   type: AccountType;
   createdAt: string;
+  /** Conta com permissão de administrador do app (2026-08-28) — não é por pessoa, é por
+   * conta/party, mesmo modelo de login compartilhado. Hoje só controla quem vê/usa
+   * "Adicionar Eventos" em Configurações (ver [[modulo-eventos-party]]). */
+  isAdmin: boolean;
 }

@@ -7,9 +7,8 @@ import { useXpSheet } from '@/hooks/useXpSheet';
 import { useSplitLogsDaily } from '@/hooks/useSplitLogsDaily';
 import { useTibiaEvents, isDayInTibiaEvent } from '@/hooks/useTibiaEvents';
 import { usePartyEvents } from '@/hooks/usePartyEvents';
-import { PartyEventFormModal } from './components/PartyEventFormModal';
 import { CalendarDayDetailsModal } from './components/CalendarDayDetailsModal';
-import { PARTY_EVENT_CATEGORY_ICON, PARTY_EVENT_CATEGORY_LABEL } from './party-event-display';
+import { PARTY_EVENT_CATEGORY_ICON, PARTY_EVENT_CATEGORY_LABEL } from '@/services/party-events/party-event-display';
 import { formatTibiaGold } from '@/services/split';
 import { formatDateKey, findLatestActivityDate, groupActivityByDate, parseDateKey } from '@/services/calendar';
 import type { PartyEvent, TibiaEventCategory } from '@/types';
@@ -76,8 +75,11 @@ export function CalendarioPage() {
   const [hidingType, setHidingType] = useState<'hunt' | 'boss' | null>(null);
   const [hideError, setHideError] = useState<string | null>(null);
   const { events: tibiaEvents } = useTibiaEvents();
-  const { events: partyEvents, createEvent: createPartyEvent } = usePartyEvents(accountId);
-  const [showAddEvent, setShowAddEvent] = useState(false);
+  // Cadastro de novo evento mora em Configurações agora (2026-08-28, pedido do usuário:
+  // "o adicionar evento tem que ser em configurações... ele vai adicionar para todas as
+  // contas e não apenas para a party") — aqui só lê/exibe (ver PartyEventFormModal em
+  // modules/settings/components/).
+  const { events: partyEvents } = usePartyEvents(accountId);
 
   const now = new Date();
   const [view, setView] = useState({ year: now.getFullYear(), month: now.getMonth() });
@@ -179,12 +181,7 @@ export function CalendarioPage() {
             <span className="calendar-title">{MONTH_NAMES[viewMonth]} de {viewYear}</span>
             <button className="calendar-nav-btn" onClick={goToToday}>Hoje</button>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <button className="calendar-nav-btn" onClick={goToNextMonth}>Próximo ›</button>
-            <button className="botao-primario" onClick={() => setShowAddEvent(true)} style={{ padding: '0.4rem 0.85rem', fontSize: '0.85rem' }}>
-              + Adicionar Evento
-            </button>
-          </div>
+          <button className="calendar-nav-btn" onClick={goToNextMonth}>Próximo ›</button>
         </div>
 
         <div className="calendar-legend">
@@ -308,13 +305,6 @@ export function CalendarioPage() {
           hideError={hideError}
           onClose={() => setSelectedDateKey(null)}
           onHideSplit={handleHideSplit}
-        />
-      )}
-
-      {showAddEvent && (
-        <PartyEventFormModal
-          onClose={() => setShowAddEvent(false)}
-          onSubmit={createPartyEvent}
         />
       )}
     </>

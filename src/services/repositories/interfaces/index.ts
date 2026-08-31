@@ -73,10 +73,19 @@ export interface ISplitLogRepository {
   hideById(accountId: string, id: string): Promise<void>;
 }
 
-/** Eventos cadastrados manualmente pelo usuário pra própria conta/PT (2026-08-25) — não
- * confundir com eventos OFICIAIS do jogo (tabela `tibia_events`, sem account_id, lidos via
- * useTibiaEvents — dado universal do jogo, não da conta). */
+/** Mural de eventos gerenciado por conta Admin (2026-08-25, redesenhado em 2026-08-28) —
+ * qualquer conta autenticada LÊ todos os eventos (`findAll`, não é mais por account_id —
+ * antes era `findByAccount`, privado por conta; o usuário pediu pra virar um mural visível
+ * pra todo mundo), mas só conta com `Account.isAdmin` CRIA (`create`, ainda exige
+ * `accountId` porque `party_events.account_id` continua NOT NULL — registra quem criou).
+ * Não confundir com eventos OFICIAIS do jogo (tabela `tibia_events`, sem account_id, lidos
+ * via useTibiaEvents — dado universal do jogo, nem por conta nem por admin). */
 export interface IPartyEventRepository {
   create(accountId: string, dto: import('@/types').CreatePartyEventDto): Promise<import('@/types').PartyEvent>;
-  findByAccount(accountId: string): Promise<import('@/types').PartyEvent[]>;
+  findAll(): Promise<import('@/types').PartyEvent[]>;
+  /** Update/delete são admin-only via RLS (`party_events_update_admin_only`/
+   * `party_events_delete_admin_only`, migration 20260831000000) — qualquer conta admin pode
+   * editar/excluir QUALQUER evento do mural, não só os que ela mesma criou. */
+  update(id: string, dto: Partial<import('@/types').CreatePartyEventDto>): Promise<import('@/types').PartyEvent>;
+  delete(id: string): Promise<void>;
 }
