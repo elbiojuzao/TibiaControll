@@ -1224,6 +1224,18 @@ table {
   right: 0;
 }
 
+/* Balão vira pra CIMA nas 2 últimas linhas do grid (2026-09-02, pedido do usuário: "se o
+   balão passar da tela o balão deve aparecer para cima e não fazer um scroll") —
+   `:nth-last-child(-n+14)` pega sempre as 2 últimas linhas de verdade (14 = 2×7 colunas),
+   não importa se o mês tem 5 ou 6 linhas de grid (mesmo truque de `nth-child(7n)` já usado
+   acima pra última coluna, que também independe do nº de linhas). 2 linhas em vez de só 1
+   porque o balão é alto o suficiente (vários indicadores) pra ainda estourar embaixo da
+   penúltima linha em telas mais baixas. */
+.calendar-day:nth-last-child(-n+14) .calendar-tooltip {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
+
 .calendar-day.has-activity:hover .calendar-tooltip {
   display: block;
 }
