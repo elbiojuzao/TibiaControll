@@ -2,13 +2,23 @@ import { useEffect, useMemo, useState } from 'react';
 import { Modal } from '@/components/common/Modal';
 import { getItemIconUrl } from '@/services/lootdrop/item-icons';
 import { formatGoldKK } from '@/services/common/gold-format';
+import { useBossQuests } from '@/hooks/useBossQuests';
+import { useQuestFilter } from '@/hooks/useQuestFilter';
 import { guessItemIcon } from '../utils/loot-visuals';
 
 interface UnsoldItem {
   itemName: string;
   count: number;
   totalValue: number;
+  bosses: string[];
 }
+
+// Filtro próprio dessa tela (2026-09-02, pedido do usuário: "pode fazer um filtro de quest
+// para enviar a mensagem (exemplo nos não anunciamos geralmente os itens dos plunders)") —
+// chave separada do filtro de quest do DropFormModal (ver useQuestFilter.ts): decidir quais
+// itens entram no anúncio de venda é uma escolha diferente de decidir quais bosses aparecem
+// no dropdown ao registrar um drop.
+const UNSOLD_QUEST_FILTER_STORAGE_KEY = 'tibia-pts:unsold-quest-filter-v1';
 
 interface UnsoldItemsShareModalProps {
   items: UnsoldItem[];
@@ -102,21 +112,50 @@ const FORMAT_TOGGLES: { key: keyof MessageFormat; label: string }[] = [
  * pedido do usuário) — deixa escolher quais itens entram no anúncio de venda (nem sempre
  * quer anunciar TUDO que está pendente de uma vez) e gera a mensagem pronta pra copiar. */
 export function UnsoldItemsShareModal({ items, onClose }: UnsoldItemsShareModalProps) {
-  const [selected, setSelected] = useState<Set<string>>(() => new Set(items.map((i) => i.itemName)));
+  const { bossToQuest, quests: allQuests } = useBossQuests();
+  const { isQuestChecked, toggleQuest } = useQuestFilter(UNSOLD_QUEST_FILTER_STORAGE_KEY);
+  const [showQuestFilter, setShowQuestFilter] = useState(false);
+
+  // Item passa no filtro se PELO MENOS 1 dos bosses de onde ele já caiu tiver a quest
+  // marcada — mesmo fallback do DropFormModal (bossToQuest[boss] ?? boss): boss sem quest
+  // conhecida vira "quest de 1 boss só", filtrável mesmo assim, nunca some sozinho.
+  const filteredItems = useMemo(
+    () => items.filter((i) => i.bosses.length === 0 || i.bosses.some((b) => isQuestChecked(bossToQuest[b] ?? b))),
+    [items, bossToQuest, isQuestChecked]
+  );
+
+  // Só mostra quest no filtro se tiver pelo menos 1 item PENDENTE (não vendido) de verdade
+  // hoje — 2026-09-02, pedido do usuário: "poderia mostrar um filtro de quest apenas de
+  // itens que possui na lista". Antes listava as 11 quests inteiras do jogo (boss_quests),
+  // a maioria irrelevante pra quem só tem 2-3 itens pendentes agora. Calculado sobre `items`
+  // (a lista CRUA, não `filteredItems`) — senão desmarcar a última quest visível faria ela
+  // sumir do próprio filtro, sem jeito de remarcar.
+  const availableQuests = useMemo(() => {
+    const present = new Set<string>();
+    for (const item of items) {
+      for (const b of item.bosses) present.add(bossToQuest[b] ?? b);
+    }
+    return allQuests.filter((q) => present.has(q));
+  }, [items, bossToQuest, allQuests]);
+
+  const [selected, setSelected] = useState<Set<string>>(() => new Set(filteredItems.map((i) => i.itemName)));
   const [format, setFormat] = useState<MessageFormat>(readStoredFormat);
   const [message, setMessage] = useState('');
   const [copied, setCopied] = useState(false);
 
-  const selectedItems = useMemo(() => items.filter((i) => selected.has(i.itemName)), [items, selected]);
+  const selectedItems = useMemo(() => filteredItems.filter((i) => selected.has(i.itemName)), [filteredItems, selected]);
 
-  // Mensagem sincroniza com a seleção e com as opções de formato — editar manualmente é
-  // permitido (mesmo padrão do aviso de venda em DropFormModal.tsx), mas trocar seleção ou
-  // formato regenera do zero.
+  // Mensagem sincroniza com a seleção, o filtro de quest e as opções de formato — editar
+  // manualmente é permitido (mesmo padrão do aviso de venda em DropFormModal.tsx), mas
+  // trocar seleção/filtro/formato regenera do zero. Depender de `selectedItems` (não só de
+  // `selected`) é o que faz a mensagem reagir a desmarcar uma quest — 2026-09-02, achado
+  // testando o filtro novo: sem isso, esconder um item da lista via quest não tirava ele da
+  // mensagem já gerada.
   useEffect(() => {
     setMessage(buildUnsoldItemsMessage(selectedItems, format));
     setCopied(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected, format]);
+  }, [selectedItems, format]);
 
   const toggleItem = (itemName: string) => {
     setSelected((prev) => {
@@ -128,7 +167,7 @@ export function UnsoldItemsShareModal({ items, onClose }: UnsoldItemsShareModalP
   };
 
   const toggleAll = () => {
-    setSelected((prev) => (prev.size === items.length ? new Set() : new Set(items.map((i) => i.itemName))));
+    setSelected((prev) => (prev.size === filteredItems.length ? new Set() : new Set(filteredItems.map((i) => i.itemName))));
   };
 
   const toggleFormat = (key: keyof MessageFormat) => {
@@ -150,14 +189,41 @@ export function UnsoldItemsShareModal({ items, onClose }: UnsoldItemsShareModalP
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
             <span className="form-section-title" style={{ margin: 0, padding: 0, border: 'none' }}>
-              Itens ({selected.size}/{items.length} selecionados)
+              Itens ({selectedItems.length}/{filteredItems.length} selecionados)
             </span>
             <button type="button" onClick={toggleAll} className="botao-secundario" style={{ padding: '4px 10px', fontSize: '12px' }}>
-              {selected.size === items.length ? 'Desmarcar todos' : 'Marcar todos'}
+              {selectedItems.length === filteredItems.length ? 'Desmarcar todos' : 'Marcar todos'}
             </button>
           </div>
+
+          {availableQuests.length > 1 && (
+            <div style={{ marginBottom: '8px' }}>
+              <button
+                type="button"
+                onClick={() => setShowQuestFilter((v) => !v)}
+                className="botao-secundario"
+                style={{ padding: '4px 10px', fontSize: '11px' }}
+              >
+                🔍 Filtrar por quest {showQuestFilter ? '▲' : '▼'}
+              </button>
+              {showQuestFilter && (
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '8px' }}>
+                  {availableQuests.map((quest) => (
+                    <label key={quest} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', color: 'var(--color-text-muted)', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={isQuestChecked(quest)} onChange={() => toggleQuest(quest)} />
+                      {quest}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           <div style={{ maxHeight: '220px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-            {items.map((item) => {
+            {filteredItems.length === 0 && (
+              <p className="estado-vazio" style={{ padding: '10px 4px' }}>Nenhum item pendente com as quests marcadas.</p>
+            )}
+            {filteredItems.map((item) => {
               const iconUrl = getItemIconUrl(item.itemName);
               return (
                 <label

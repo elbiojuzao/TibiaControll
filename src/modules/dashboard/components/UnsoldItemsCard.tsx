@@ -4,6 +4,11 @@ export interface UnsoldGroupedItem {
   itemName: string;
   count: number;
   totalValue: number;
+  /** Bosses distintos entre os drops não vendidos desse item (2026-09-02) — usado só pro
+   * filtro de quest na mensagem de venda (UnsoldItemsShareModal), não muda a exibição
+   * deste card. Normalmente 1 boss só; pode ter mais de 1 se o mesmo item cair de bosses
+   * diferentes. */
+  bosses: string[];
 }
 
 interface UnsoldItemsCardProps {

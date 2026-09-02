@@ -192,15 +192,16 @@ export function DashboardPage() {
   const { drops: allUnsoldDrops, loading: unsoldLoading, error: unsoldError } = useLootDrops(accountId, { sold: false });
 
   const unsoldGrouped = useMemo(() => {
-    const byItem = new Map<string, { count: number; totalValue: number }>();
+    const byItem = new Map<string, { count: number; totalValue: number; bosses: Set<string> }>();
     for (const d of allUnsoldDrops) {
-      const existing = byItem.get(d.itemName) ?? { count: 0, totalValue: 0 };
+      const existing = byItem.get(d.itemName) ?? { count: 0, totalValue: 0, bosses: new Set<string>() };
       existing.count += 1;
       existing.totalValue += d.totalValue;
+      existing.bosses.add(d.bossName);
       byItem.set(d.itemName, existing);
     }
     return Array.from(byItem.entries())
-      .map(([itemName, { count, totalValue }]) => ({ itemName, count, totalValue }))
+      .map(([itemName, { count, totalValue, bosses }]) => ({ itemName, count, totalValue, bosses: Array.from(bosses) }))
       .sort((a, b) => b.count - a.count || a.itemName.localeCompare(b.itemName));
   }, [allUnsoldDrops]);
 
