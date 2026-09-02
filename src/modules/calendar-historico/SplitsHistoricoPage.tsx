@@ -6,8 +6,10 @@ import { parseDateKey } from '@/services/calendar';
 import { formatTibiaGold } from '@/services/split';
 import type { SplitLog, SplitLogPlayerSlot } from '@/types';
 import { SplitDetailModal } from './components/SplitDetailModal';
+import { SplitsCalendarView } from './components/SplitsCalendarView';
+import { SplitsDayModal } from './components/SplitsDayModal';
 
-interface SplitRow {
+export interface SplitRow {
   id: string;
   date: string;
   type: 'hunt' | 'boss';
@@ -50,6 +52,17 @@ const BASE_COLUMNS: { key: SortKey; label: string }[] = [
 const WINDOW_OPTIONS = [30, 60, 90, 120, 365];
 const TODOS_PLAYERS = '';
 
+// Filtro de tipo (2026-09-02, pedido do usuário: "vamos fazer o botão para filtrar apenas
+// boss e hunt") + modo calendário (mesmo pedido, "tambem fazer ele ficar em modo
+// calendario") — ver SplitsCalendarView.tsx.
+type TypeFilter = 'all' | 'boss' | 'hunt';
+const TYPE_OPTIONS: { value: TypeFilter; label: string }[] = [
+  { value: 'all', label: 'Todos' },
+  { value: 'boss', label: '🐲 Boss' },
+  { value: 'hunt', label: '🗡️ Hunt' },
+];
+type ViewMode = 'table' | 'calendar';
+
 /** Splits salvos ANTES da migration 20260822000000 (colunas player1_*..player8_*) têm
  * `playerSlots` vazio mesmo já tendo damage/healing em `members[]` (capturados desde
  * 2026-08-21) — cai pra `members` nesse caso, pra não mostrar colunas de player em branco
@@ -88,16 +101,29 @@ function sortValue(row: SplitRow, key: SortKey): string | number {
  * os jogadores daquele split. Resumo por player (2 cards, "🗡️ Hunt"/"🐲 Boss" — pedido do
  * usuário em 2026-08-23: "era ele ser a media de dano/cura isso pra hunt e boss") mostra a
  * MÉDIA de dano/cura por split de cada jogador, calculada separadamente por tipo (hunt e
- * boss têm perfis de dano bem diferentes, misturar não fazia sentido). */
+ * boss têm perfis de dano bem diferentes, misturar não fazia sentido).
+ *
+ * **Filtro de tipo + modo calendário (2026-09-02, pedido do usuário: "vamos fazer o botão
+ * para filtrar apenas boss e hunt e tambem fazer ele ficar em modo calendario")** — pills
+ * "Todos/🐲 Boss/🗡️ Hunt" (`typeFilter`) filtram tanto o modo tabela quanto o calendário.
+ * Toggle "📋 Lista"/"📅 Calendário" (`viewMode`) alterna pra `SplitsCalendarView.tsx` (mesma
+ * estrutura visual do Calendário principal, navegação por mês em vez da janela "Ver
+ * últimos" — que só faz sentido no modo tabela, por isso some no modo calendário, junto com
+ * Maior Dano/Cura e os cards de média por hora). Clicar num dia com 1 split só abre direto o
+ * `SplitDetailModal`; com mais de 1 (ex: Boss+Hunt no mesmo dia), abre antes o
+ * `SplitsDayListModal.tsx` pra escolher qual. */
 export function SplitsHistoricoPage() {
   const { accountId } = useAccount();
   const { splitLogs, loading, error, hideSplit } = useSplitLogsList(accountId);
   const [windowDays, setWindowDays] = useState(30);
   const [selectedPlayer, setSelectedPlayer] = useState(TODOS_PLAYERS);
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
+  const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [sortKey, setSortKey] = useState<SortKey>('date');
   const [sortDir, setSortDir] = useState<SortDirection>('desc');
   const [recordMode, setRecordMode] = useState<'damage' | 'healing' | null>(null);
   const [selectedSplitId, setSelectedSplitId] = useState<string | null>(null);
+  const [selectedDayKey, setSelectedDayKey] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Excluir 1 split (soft delete, 2026-08-23, pedido do usuário: "uma maneira para excluir
@@ -135,14 +161,21 @@ export function SplitsHistoricoPage() {
     [rows],
   );
 
-  const filteredRows = useMemo(() => {
-    const windowStartTs = Date.now() - windowDays * 24 * 60 * 60 * 1000;
+  // Player + tipo, SEM janela de tempo — base do modo calendário (navega por mês, não faz
+  // sentido combinar com "Ver últimos Nd") e também usada pelo modo tabela (que aplica o
+  // recorte de janela em cima, ver filteredRows abaixo).
+  const playerAndTypeFilteredRows = useMemo(() => {
     return rows.filter((r) => {
       if (selectedPlayer && !r.players.some((p) => p.name === selectedPlayer)) return false;
-      if (parseDateKey(r.date) < windowStartTs) return false;
+      if (typeFilter !== 'all' && r.type !== typeFilter) return false;
       return true;
     });
-  }, [rows, selectedPlayer, windowDays]);
+  }, [rows, selectedPlayer, typeFilter]);
+
+  const filteredRows = useMemo(() => {
+    const windowStartTs = Date.now() - windowDays * 24 * 60 * 60 * 1000;
+    return playerAndTypeFilteredRows.filter((r) => parseDateKey(r.date) >= windowStartTs);
+  }, [playerAndTypeFilteredRows, windowDays]);
 
   // Só o nº de colunas de jogador que o período FILTRADO realmente precisa — não o máximo
   // histórico de todos os splits já salvos (ver doc do módulo acima).
@@ -247,6 +280,26 @@ export function SplitsHistoricoPage() {
 
   const selectedSplit = selectedSplitId ? splitLogs.find((l) => l.id === selectedSplitId) ?? null : null;
 
+  // Clique num dia do modo calendário — pula direto pro detalhe (com transferências) se só
+  // tem 1 split naquele dia; com mais de 1, abre os dois lado a lado sem a parte de
+  // pagamento (SplitsDayModal, pedido do usuário em 2026-09-02).
+  const handleSelectDate = (dateKey: string) => {
+    const daySplits = playerAndTypeFilteredRows.filter((r) => r.date === dateKey);
+    if (daySplits.length === 1) {
+      setSelectedSplitId(daySplits[0].id);
+    } else if (daySplits.length > 1) {
+      setSelectedDayKey(dateKey);
+    }
+  };
+
+  // SplitLog completo (não SplitRow) — SplitsDayModal/SplitDetailContent precisam de
+  // members/transfers/rawLog, que a projeção enxuta de SplitRow não carrega.
+  const daySplitsForModal = useMemo(() => {
+    if (!selectedDayKey) return [];
+    const idsForDay = new Set(playerAndTypeFilteredRows.filter((r) => r.date === selectedDayKey).map((r) => r.id));
+    return splitLogs.filter((l) => idsForDay.has(l.id));
+  }, [selectedDayKey, playerAndTypeFilteredRows, splitLogs]);
+
   if (loading) return <div className="loading">Carregando...</div>;
   if (error) return <div className="empty-state">{error}</div>;
   if (rows.length === 0) {
@@ -255,26 +308,48 @@ export function SplitsHistoricoPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '10px' }}>
-        <span className="texto-mudo" style={{ fontSize: '12px' }}>Ver últimos:</span>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
         <div style={{ display: 'flex', gap: '6px' }}>
-          {WINDOW_OPTIONS.map((opt) => (
+          {(['table', 'calendar'] as ViewMode[]).map((mode) => (
             <button
-              key={opt}
+              key={mode}
               type="button"
-              onClick={() => setWindowDays(opt)}
+              onClick={() => setViewMode(mode)}
               style={{
                 padding: '5px 12px', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold',
-                border: windowDays === opt ? '1px solid var(--color-accent)' : '1px solid var(--color-border)',
-                background: windowDays === opt ? 'var(--color-accent-soft)' : 'var(--color-bg-input)',
-                color: windowDays === opt ? 'var(--color-accent)' : 'var(--color-text-muted)',
+                border: viewMode === mode ? '1px solid var(--color-accent)' : '1px solid var(--color-border)',
+                background: viewMode === mode ? 'var(--color-accent-soft)' : 'var(--color-bg-input)',
+                color: viewMode === mode ? 'var(--color-accent)' : 'var(--color-text-muted)',
               }}
             >
-              {opt}d
+              {mode === 'table' ? '📋 Lista' : '📅 Calendário'}
             </button>
           ))}
         </div>
       </div>
+
+      {viewMode === 'table' && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '10px' }}>
+          <span className="texto-mudo" style={{ fontSize: '12px' }}>Ver últimos:</span>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            {WINDOW_OPTIONS.map((opt) => (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => setWindowDays(opt)}
+                style={{
+                  padding: '5px 12px', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold',
+                  border: windowDays === opt ? '1px solid var(--color-accent)' : '1px solid var(--color-border)',
+                  background: windowDays === opt ? 'var(--color-accent-soft)' : 'var(--color-bg-input)',
+                  color: windowDays === opt ? 'var(--color-accent)' : 'var(--color-text-muted)',
+                }}
+              >
+                {opt}d
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
         <select
@@ -288,34 +363,60 @@ export function SplitsHistoricoPage() {
           ))}
         </select>
 
-        <button
-          type="button"
-          onClick={toggleDamageRecord}
-          style={{
-            padding: '6px 14px', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold',
-            border: isDamageActive ? '1px solid var(--color-danger)' : '1px solid var(--color-border)',
-            background: isDamageActive ? 'var(--color-danger-soft)' : 'var(--color-bg-input)',
-            color: isDamageActive ? 'var(--color-danger)' : 'var(--color-text-muted)',
-          }}
-        >
-          🎯 Maior Dano
-        </button>
+        <div style={{ display: 'flex', gap: '6px' }}>
+          {TYPE_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setTypeFilter(opt.value)}
+              style={{
+                padding: '6px 14px', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold',
+                border: typeFilter === opt.value ? '1px solid var(--color-accent)' : '1px solid var(--color-border)',
+                background: typeFilter === opt.value ? 'var(--color-accent-soft)' : 'var(--color-bg-input)',
+                color: typeFilter === opt.value ? 'var(--color-accent)' : 'var(--color-text-muted)',
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
 
-        <button
-          type="button"
-          onClick={toggleHealingRecord}
-          style={{
-            padding: '6px 14px', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold',
-            border: isHealingActive ? '1px solid var(--color-success)' : '1px solid var(--color-border)',
-            background: isHealingActive ? 'var(--color-success-soft)' : 'var(--color-bg-input)',
-            color: isHealingActive ? 'var(--color-success)' : 'var(--color-text-muted)',
-          }}
-        >
-          💚 Maior Cura
-        </button>
+        {viewMode === 'table' && (
+          <>
+            <button
+              type="button"
+              onClick={toggleDamageRecord}
+              style={{
+                padding: '6px 14px', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold',
+                border: isDamageActive ? '1px solid var(--color-danger)' : '1px solid var(--color-border)',
+                background: isDamageActive ? 'var(--color-danger-soft)' : 'var(--color-bg-input)',
+                color: isDamageActive ? 'var(--color-danger)' : 'var(--color-text-muted)',
+              }}
+            >
+              🎯 Maior Dano
+            </button>
+
+            <button
+              type="button"
+              onClick={toggleHealingRecord}
+              style={{
+                padding: '6px 14px', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold',
+                border: isHealingActive ? '1px solid var(--color-success)' : '1px solid var(--color-border)',
+                background: isHealingActive ? 'var(--color-success-soft)' : 'var(--color-bg-input)',
+                color: isHealingActive ? 'var(--color-success)' : 'var(--color-text-muted)',
+              }}
+            >
+              💚 Maior Cura
+            </button>
+          </>
+        )}
       </div>
 
-      {(playerAveragesByType.hunt.length > 0 || playerAveragesByType.boss.length > 0) && (
+      {viewMode === 'calendar' && (
+        <SplitsCalendarView rows={playerAndTypeFilteredRows} onSelectDate={handleSelectDate} />
+      )}
+
+      {viewMode === 'table' && (playerAveragesByType.hunt.length > 0 || playerAveragesByType.boss.length > 0) && (
         <div className="responsive-grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '15px', marginBottom: '16px' }}>
           {playerAveragesByType.hunt.length > 0 && (
             <div className="card-compacto">
@@ -354,7 +455,7 @@ export function SplitsHistoricoPage() {
         </div>
       )}
 
-      {records ? (
+      {viewMode === 'table' && (records ? (
         records.length === 0 ? (
           <p className="estado-vazio">Nenhum recorde encontrado com esses filtros.</p>
         ) : (
@@ -429,6 +530,16 @@ export function SplitsHistoricoPage() {
             </tbody>
           </table>
         </div>
+      ))}
+
+      {selectedDayKey && daySplitsForModal.length > 0 && (
+        <SplitsDayModal
+          dateKey={selectedDayKey}
+          splits={daySplitsForModal}
+          onClose={() => setSelectedDayKey(null)}
+          onDeleteSplit={handleDeleteSplit}
+          deleteError={deleteError}
+        />
       )}
 
       {selectedSplit && (

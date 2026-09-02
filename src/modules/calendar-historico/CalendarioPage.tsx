@@ -10,7 +10,7 @@ import { usePartyEvents } from '@/hooks/usePartyEvents';
 import { CalendarDayDetailsModal } from './components/CalendarDayDetailsModal';
 import { PARTY_EVENT_CATEGORY_ICON, PARTY_EVENT_CATEGORY_LABEL } from '@/services/party-events/party-event-display';
 import { formatTibiaGold } from '@/services/split';
-import { formatDateKey, findLatestActivityDate, groupActivityByDate, parseDateKey } from '@/services/calendar';
+import { formatDateKey, findLatestActivityDate, groupActivityByDate, parseDateKey, buildMonthCells } from '@/services/calendar';
 import type { PartyEvent, TibiaEventCategory } from '@/types';
 
 function formatXp(value: number): string {
@@ -44,24 +44,6 @@ const MONTH_NAMES = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
 ];
-
-interface Cell {
-  day: number | null;
-  dateKey: string | null;
-}
-
-function buildMonthCells(year: number, month: number): Cell[] {
-  const firstWeekday = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-  const cells: Cell[] = [];
-  for (let i = 0; i < firstWeekday; i++) cells.push({ day: null, dateKey: null });
-  for (let day = 1; day <= daysInMonth; day++) {
-    cells.push({ day, dateKey: formatDateKey(day, month + 1, year) });
-  }
-  while (cells.length % 7 !== 0) cells.push({ day: null, dateKey: null });
-  return cells;
-}
 
 export function CalendarioPage() {
   const { accountId } = useAccount();
@@ -103,9 +85,16 @@ export function CalendarioPage() {
   const activityByDate = useMemo(() => groupActivityByDate(hunts, drops), [hunts, drops]);
   const cells = useMemo(() => buildMonthCells(viewYear, viewMonth), [viewYear, viewMonth]);
 
-  /** Eventos oficiais fixos (rapid respawn/XP/poção — ver useTibiaEvents) que caem
-   * nesse dia do mês em exibição, independente do ano (a data é recorrente). */
-  const eventsForDay = (day: number) => tibiaEvents.filter((ev) => isDayInTibiaEvent(viewMonth + 1, day, ev));
+  /** Eventos oficiais fixos (rapid respawn/XP/poção — ver useTibiaEvents) que caem nesse
+   * dia, independente do ano (a data é recorrente). Recebe o dateKey (não só o número do
+   * dia + `viewMonth`) desde 2026-09-02 — com o grid agora mostrando dias reais do mês
+   * anterior/seguinte (ver buildMonthCells), um dia de padding pode pertencer a um mês
+   * DIFERENTE do `viewMonth` em exibição; usar sempre o mês do próprio dateKey evita checar
+   * o evento contra o mês errado (mesmo padrão já usado em `selectedEvents` abaixo). */
+  const eventsForDay = (dateKey: string) => {
+    const [day, month] = dateKey.split('/').map(Number);
+    return tibiaEvents.filter((ev) => isDayInTibiaEvent(month, day, ev));
+  };
 
   /** Eventos da PRÓPRIA party (cadastrados pelo usuário) que caem nesse dia — diferente de
    * eventsForDay acima, a data aqui é concreta (compara timestamp, não só mês/dia). */
@@ -200,11 +189,7 @@ export function CalendarioPage() {
 
         <div className="calendar-grid">
           {cells.map((cell, idx) => {
-            if (cell.day === null) {
-              return <div key={idx} className="calendar-day empty" />;
-            }
-
-            const activity = activityByDate.get(cell.dateKey!);
+            const activity = activityByDate.get(cell.dateKey);
             // Existência de split salvo naquele dia (split_logs) — cada tipo (hunt/boss) é
             // independente e null quando não há split daquele tipo salvo nesse dia, sem
             // ambiguidade com "lucro genuinamente zerado" (diferente da leitura antiga da
@@ -213,9 +198,9 @@ export function CalendarioPage() {
             const hasBoss = splitDailyEntry?.boss != null;
             const hasHunt = splitDailyEntry?.hunt != null;
             const hasActivity = !!activity && (activity.hunts.length > 0 || activity.drops.length > 0);
-            const dayEvents = eventsForDay(cell.day);
+            const dayEvents = eventsForDay(cell.dateKey);
             const hasEvent = dayEvents.length > 0;
-            const dayPartyEvents = partyEventsForDay(cell.dateKey!);
+            const dayPartyEvents = partyEventsForDay(cell.dateKey);
             const hasPartyEvent = dayPartyEvents.length > 0;
             const hasAnyIndicator = hasActivity || hasBoss || hasHunt || hasEvent || hasPartyEvent;
 
@@ -224,7 +209,7 @@ export function CalendarioPage() {
                 key={idx}
                 onClick={() => { setSelectedDateKey(cell.dateKey); setHideError(null); }}
                 title="Clique para ver os detalhes do dia"
-                className={`calendar-day${hasAnyIndicator ? ' has-activity' : ''}${hasEvent ? ' has-event' : ''}${hasPartyEvent ? ' has-party-event' : ''}${cell.dateKey === todayKey ? ' today' : ''}`}
+                className={`calendar-day${cell.inCurrentMonth ? '' : ' outside-month'}${hasAnyIndicator ? ' has-activity' : ''}${hasEvent ? ' has-event' : ''}${hasPartyEvent ? ' has-party-event' : ''}${cell.dateKey === todayKey ? ' today' : ''}`}
                 style={{ cursor: 'pointer' }}
               >
                 <span className="calendar-day-number">{cell.day}</span>

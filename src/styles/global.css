@@ -1094,6 +1094,35 @@ table {
   border-color: transparent;
 }
 
+/* Dias de padding do mês anterior/seguinte (2026-09-02, pedido do usuário: "deixe ver os
+   ultimos dias do mes anterior... e do mes seguinte tambem até completar a linha") —
+   continuam totalmente funcionais (clicáveis, com atividade real), só ficam visualmente
+   apagados pra não competir com os dias do mês em exibição.
+   NUNCA usar `opacity`/`filter`/`transform` aqui (2026-09-02, bug real reportado pelo
+   usuário: "quando passa o mouse no mes anterior o balaozinho fica por baixo dos dias") —
+   qualquer uma dessas propriedades cria um novo stacking context no `.calendar-day`, o que
+   PRENDE o `.calendar-tooltip` (z-index:20, absolute, estoura pra fora da célula) dentro
+   desse contexto local — ele deixa de competir por z-index com as células da linha
+   SEGUINTE (que não têm stacking context próprio) e passa a ser pintado como parte da
+   camada inteira da célula de origem, que perde pra elas na ordem normal do DOM. Dimmed só
+   com cor/background sólidos (sem opacity), que não criam stacking context. */
+.calendar-day.outside-month {
+  background: var(--color-bg);
+  border-color: transparent;
+}
+
+.calendar-day.outside-month .calendar-day-number {
+  color: var(--color-text-faint);
+}
+
+.calendar-day.outside-month .calendar-dot {
+  opacity: 0.55;
+}
+
+.calendar-day.outside-month .calendar-day-dots span:not(.calendar-dot) {
+  opacity: 0.55;
+}
+
 .calendar-day.has-activity {
   border-color: var(--color-accent);
   cursor: default;
