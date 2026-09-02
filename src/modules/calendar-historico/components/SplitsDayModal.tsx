@@ -20,12 +20,21 @@ interface SplitsDayModalProps {
  * lado (grid responsivo), reaproveitando SplitDetailContent com `showTransfers={false}` (a
  * seção "Transferências"/comandos de pagamento não faz sentido dobrada quando o usuário só
  * quer comparar os detalhes dos 2 splits do dia). Dia com só 1 split não passa por aqui —
- * SplitsHistoricoPage.tsx pula direto pro SplitDetailModal normal (com transferências). */
+ * SplitsHistoricoPage.tsx pula direto pro SplitDetailModal normal (com transferências).
+ *
+ * **Ordem fixa Boss/Hunt (2026-09-02, pedido do usuário: "sempre aparecera boss na
+ * esquerda e hunt na direita")** — `orderedSplits` ordena por tipo antes de renderizar,
+ * independente da ordem em que os splits vieram de `splitLogs`. */
 export function SplitsDayModal({ dateKey, splits, onClose, onDeleteSplit, deleteError }: SplitsDayModalProps) {
+  // Boss sempre à esquerda, Hunt sempre à direita (2026-09-02, pedido do usuário) —
+  // independente da ordem em que os splits vieram de `splitLogs`. `sort` é estável, então
+  // 2 splits do mesmo tipo (ex: 2 Hunts no mesmo dia) mantêm a ordem relativa original.
+  const orderedSplits = [...splits].sort((a, b) => (a.type === b.type ? 0 : a.type === 'boss' ? -1 : 1));
+
   return (
     <Modal title={`Splits de ${dateKey}`} onClose={onClose} maxWidth={1000}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '18px' }}>
-        {splits.map((log) => (
+        {orderedSplits.map((log) => (
           <div key={log.id}>
             <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', color: log.type === 'boss' ? 'var(--color-accent)' : 'var(--color-warning)' }}>
               {log.type === 'boss' ? '🐲 Boss' : '🗡️ Hunt'}
