@@ -6,7 +6,9 @@ import { usePartySettings } from '@/hooks/usePartySettings';
 import { useSplitLogs } from '@/hooks/useSplitLogs';
 import { formatTibiaGold } from '@/services/split';
 import { parsePartyHuntLog } from '@/services/split/party-hunt-log-parser';
+import { addUnsavedSplitDraft, removeUnsavedSplitDraft } from '@/services/split/unsaved-split-drafts';
 import { RecentSplitsList } from './components/RecentSplitsList';
+import { UnsavedDraftsList } from './components/UnsavedDraftsList';
 import type { SplitLogType } from '@/types';
 
 interface PartyMember {
@@ -147,6 +149,10 @@ export function SplitCalculatorPage() {
   // split pra mandar para todos pagarem") — mesmo padrão de botão-permanente já usado em
   // doneIndices/savedTypes, reseta só ao reprocessar um log novo.
   const [discordCopied, setDiscordCopied] = useState(false);
+  // localStorage não é reativo — esse contador só força o UnsavedDraftsList a reler a
+  // lista depois de addUnsavedSplitDraft/removeUnsavedSplitDraft (ver handleParseLog/
+  // handleSaveSplit abaixo), sem precisar de um hook próprio pra isso.
+  const [draftsVersion, setDraftsVersion] = useState(0);
 
   // Cola sempre SUBSTITUI o conteúdo inteiro do campo, nunca insere no meio/fim do que
   // já estava digitado — evita o caso real reportado pelo usuário: um caractere solto
@@ -166,9 +172,13 @@ export function SplitCalculatorPage() {
     if (settings && readCachedTcRate() === null) setTcRateState(settings.tcGoldRate);
   }, [settings]);
 
-  // Parser robusto para o formato real do Party Hunt Analyzer do Tibia
-  const handleParseLog = () => {
-    const text = rawLog.trim() ? rawLog : `Session data: From 2026-08-04, 18:59:52 to 2026-08-04, 20:11:17
+  // Parser robusto para o formato real do Party Hunt Analyzer do Tibia. `overrideText`
+  // (2026-09-04, ver handleLoadDraft abaixo) processa um texto direto em vez do state
+  // `rawLog` — setState é assíncrono, então "Carregar" um rascunho precisa processar o
+  // texto na hora, sem esperar um re-render pra `rawLog` refletir o valor novo primeiro.
+  const handleParseLog = (overrideText?: string) => {
+    const source = overrideText ?? rawLog;
+    const text = source.trim() ? source : `Session data: From 2026-08-04, 18:59:52 to 2026-08-04, 20:11:17
 Session: 01:11h
 Loot Type: Leader
 Loot: 20,006,452
@@ -221,6 +231,26 @@ Zo Tis
     setParsedRawLog(text);
     setSavedTypes(new Set());
     setSaveError(null);
+
+    // Rascunho local (2026-09-04, pedido do usuário) — só quando o texto veio de verdade
+    // do que o usuário colou (rawLog.trim()), não do log de exemplo usado como fallback
+    // quando o campo está vazio. Balance/Cota aqui são os BASE (sem Gastos Extras — esses
+    // só existem depois, editados na tela) — serve só de preview no card do rascunho, o
+    // recálculo exato de verdade acontece de novo ao "Carregar" e reprocessar.
+    if (source.trim()) {
+      const totalBalance = parsed.members.reduce((sum, m) => sum + m.balance, 0);
+      const equalShare = parsed.members.length > 0 ? Math.round(totalBalance / parsed.members.length) : 0;
+      addUnsavedSplitDraft({ rawLog: text, sessionDate: parsed.sessionDate, totalBalance, equalShare });
+      setDraftsVersion((v) => v + 1);
+    }
+  };
+
+  // "Carregar" um rascunho não salvo (2026-09-04, ver UnsavedDraftsList.tsx) — repopula o
+  // textarea E reprocessa na hora (via overrideText, ver handleParseLog acima), como se o
+  // usuário tivesse colado de novo.
+  const handleLoadDraft = (draftRawLog: string) => {
+    setRawLog(draftRawLog);
+    handleParseLog(draftRawLog);
   };
 
   const handleExtraChange = (index: number, field: 'extraTc' | 'extraGold', valueStr: string) => {
@@ -360,6 +390,9 @@ Zo Tis
         durationMinutes: sessionDurationMinutes,
       });
       setSavedTypes((prev) => new Set(prev).add(type));
+      // Salvo de verdade no banco — não precisa mais da rede de segurança local.
+      removeUnsavedSplitDraft(parsedRawLog);
+      setDraftsVersion((v) => v + 1);
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'Erro ao salvar split.');
     } finally {
@@ -409,7 +442,7 @@ Zo Tis
                 ⚠ {parseError}
               </p>
             )}
-            <button onClick={handleParseLog} className="botao-primario" style={{ marginTop: '10px', width: '100%' }}>
+            <button onClick={() => handleParseLog()} className="botao-primario" style={{ marginTop: '10px', width: '100%' }}>
               Processar Log & Calcular Split
             </button>
           </div>
@@ -630,6 +663,8 @@ Zo Tis
         </div>
 
       </div>
+
+      <UnsavedDraftsList version={draftsVersion} onLoad={handleLoadDraft} />
 
       {!isAuthLoading && isAuthenticated && <RecentSplitsList accountId={accountId} />}
     </div>

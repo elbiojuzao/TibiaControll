@@ -22,15 +22,17 @@ export function SplitDetailModal({
   onClose,
   onDelete,
   deleteError,
+  allowDelete = true,
 }: {
   log: SplitLog;
   onClose: () => void;
-  onDelete: () => void;
-  deleteError: string | null;
+  onDelete?: () => void;
+  deleteError?: string | null;
+  allowDelete?: boolean;
 }) {
   return (
     <Modal title={`${log.type === 'boss' ? '🐲 Boss' : '🗡️ Hunt'} — ${log.date}`} onClose={onClose} maxWidth={680}>
-      <SplitDetailContent log={log} onDelete={onDelete} deleteError={deleteError} />
+      <SplitDetailContent log={log} onDelete={onDelete} deleteError={deleteError} allowDelete={allowDelete} />
     </Modal>
   );
 }

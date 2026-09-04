@@ -26,11 +26,17 @@ export function SplitDetailContent({
   onDelete,
   deleteError,
   showTransfers = true,
+  allowDelete = true,
 }: {
   log: SplitLog;
-  onDelete: () => void;
-  deleteError: string | null;
+  onDelete?: () => void;
+  deleteError?: string | null;
   showTransfers?: boolean;
+  /** false esconde o botão 🗑️ inteiro (2026-09-04, pedido do usuário: "sessões recentes"
+   * na Calculadora de Split Loot é só um atalho de leitura rápida, não pode excluir por
+   * ali — quem quiser excluir de verdade usa o Histórico de Splits, onde esse botão
+   * continua aparecendo normalmente). */
+  allowDelete?: boolean;
 }) {
   const [copiedIndices, setCopiedIndices] = useState<Set<number>>(new Set());
   const [showRawLog, setShowRawLog] = useState(false);
@@ -55,9 +61,11 @@ export function SplitDetailContent({
             <strong style={{ color: 'var(--color-accent)' }}>{formatTibiaGold(log.equalShare)}</strong>
           </div>
         </div>
-        <button type="button" onClick={onDelete} title="Excluir este split (soft delete)" className="botao-icone">
-          🗑️
-        </button>
+        {allowDelete && (
+          <button type="button" onClick={onDelete} title="Excluir este split (soft delete)" className="botao-icone">
+            🗑️
+          </button>
+        )}
       </div>
 
       <div>
