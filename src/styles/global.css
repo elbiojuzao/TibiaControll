@@ -1053,14 +1053,18 @@ table {
 /* max-width + margin auto (2026-08-30, pedido do usuário: "os dias terem tamanho fixo
    ainda ser um retângulo... não fica muito espichado na tela que é maior") — sem isso,
    .calendar-day esticava até preencher o .card inteiro (até 1300px de container), virando
-   um retângulo bem mais largo que alto em telas grandes. Cap de 560px mantém as células
-   num tamanho compacto e consistente, centralizado no card. Vale igual pra este grid (dias)
-   e pro de cima (cabeçalho dos dias da semana), que usam a mesma classe. */
+   um retângulo bem mais largo que alto em telas grandes. Cap mantém as células num tamanho
+   compacto e consistente, centralizado no card. Vale igual pra este grid (dias) e pro de
+   cima (cabeçalho dos dias da semana), que usam a mesma classe.
+   **630px (2026-09-04, refinamento — pedido do usuário: "achei eles um pouco curto de
+   mais... alguns pixels a mais de largura ficando mais retangular")** — era 560px (célula
+   ~75px de largura x 64px de altura); subiu pra ~85px de largura, retângulo mais evidente
+   sem voltar a esticar demais. */
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 6px;
-  max-width: 560px;
+  max-width: 630px;
   margin-left: auto;
   margin-right: auto;
 }
