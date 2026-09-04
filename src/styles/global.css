@@ -590,6 +590,14 @@ table {
   gap: 12px;
 }
 
+/* Roda de Destino — coluna da roda maior que a do painel de detalhes (2026-09-03, pedido
+   do usuário: "deixe tambem maior a roda para ser mais visível"). Empilha em 1 coluna no
+   mobile igual .grid-2col (ver media query abaixo). */
+.wheel-layout-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(260px, 2fr);
+}
+
 .grid-3col {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
@@ -1683,7 +1691,8 @@ table {
   /* Formulários (DropFormModal, ServiceiroFormModal, MemberFormModal etc.) —
      campos lado a lado ficam apertados demais dentro de um modal de ~330px. */
   .grid-2col,
-  .grid-3col {
+  .grid-3col,
+  .wheel-layout-grid {
     grid-template-columns: 1fr;
   }
 

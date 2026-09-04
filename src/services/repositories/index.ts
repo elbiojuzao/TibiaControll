@@ -14,6 +14,7 @@ import type {
   IServiceiroRepository,
   IDashboardRepository,
   ISettingsRepository,
+  IWheelBuildRepository,
 } from './interfaces';
 
 import { MockAccountRepository } from './mock/mock-account-repository';
@@ -27,6 +28,7 @@ import { MockPartyEventRepository } from './mock/mock-party-event-repository';
 import { MockServiceiroRepository } from './mock/mock-serviceiro-repository';
 import { MockDashboardRepository } from './mock/mock-dashboard-repository';
 import { MockSettingsRepository } from './mock/mock-settings-repository';
+import { MockWheelBuildRepository } from './mock/mock-wheel-build-repository';
 import { HttpServiceiroRepository } from './http/http-serviceiro-repository';
 import { HttpLootDropRepository } from './http/http-loot-drop-repository';
 import { HttpSplitLogRepository } from './http/http-split-log-repository';
@@ -46,6 +48,7 @@ export interface RepositoryContainer {
   serviceiro: IServiceiroRepository;
   dashboard: IDashboardRepository;
   settings: ISettingsRepository;
+  wheelBuild: IWheelBuildRepository;
 }
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false';
@@ -93,6 +96,7 @@ function createRepositories(): RepositoryContainer {
       serviceiro: SERVICEIROS_USE_SUPABASE ? new HttpServiceiroRepository() : new MockServiceiroRepository(),
       dashboard: new MockDashboardRepository(),
       settings: new MockSettingsRepository(),
+      wheelBuild: new MockWheelBuildRepository(),
     };
   }
 
