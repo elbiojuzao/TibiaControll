@@ -86,21 +86,28 @@ export function CalendarioPage() {
   const activityByDate = useMemo(() => groupActivityByDate(hunts, drops), [hunts, drops]);
   const cells = useMemo(() => buildMonthCells(viewYear, viewMonth), [viewYear, viewMonth]);
 
-  /** Soma de Boss+Hunt (Cota por Membro) de todo dia do MÊS EM EXIBIÇÃO — pedido do
-   * usuário (2026-09-04, a partir de um print de app concorrente que mostra "TOTAL GOLD
-   * COINS" do mês acima do grid). Filtra `splitDailySeries` (que é da conta inteira, sem
-   * filtro de mês) pelo mês/ano do próprio `date` de cada entrada — mesmo padrão de
-   * comparar mês/dia usado em `eventsForDay` acima. */
+  /** Soma de Boss+Hunt (Cota por Membro) + Itens (Valor CADA, não o Valor Total — mesmo
+   * padrão dos outros KPIs individuais do app, ver kpiFormulas.kksPlunderInd/kksBagsInd no
+   * Dashboard: usar totalValue superestimaria o ganho por pessoa) de todo dia do MÊS EM
+   * EXIBIÇÃO — pedido do usuário (2026-09-04, a partir de um print de app concorrente que
+   * mostra "TOTAL GOLD COINS" do mês acima do grid; refinamento no mesmo dia: "no
+   * calendario precisamos que ele some os itens tambem" + correção logo em seguida: "o
+   * valor a ser somado do item não é o valor total dele... é o valor individual (valor
+   * cada)"). Itera `cells` (não `splitDailySeries` sozinho) pra cobrir também dias que só
+   * têm drop, sem split salvo — `splitDailySeries` é da conta inteira sem filtro de mês,
+   * `activityByDate` idem, os dois são consultados por `dateKey` só pros dias do mês em
+   * exibição (`cell.inCurrentMonth`). */
   const monthTotal = useMemo(() => {
     let sum = 0;
-    for (const entry of splitDailySeries) {
-      const [, month, year] = entry.date.split('/').map(Number);
-      if (month === viewMonth + 1 && year === viewYear) {
-        sum += (entry.hunt ?? 0) + (entry.boss ?? 0);
-      }
+    for (const cell of cells) {
+      if (!cell.inCurrentMonth) continue;
+      const splitEntry = splitDailySeries.find((e) => e.date === cell.dateKey);
+      sum += (splitEntry?.hunt ?? 0) + (splitEntry?.boss ?? 0);
+      const dayActivity = activityByDate.get(cell.dateKey);
+      if (dayActivity) sum += dayActivity.drops.reduce((s, d) => s + d.unitValue, 0);
     }
     return sum;
-  }, [splitDailySeries, viewMonth, viewYear]);
+  }, [cells, splitDailySeries, activityByDate]);
 
   /** Eventos oficiais fixos (rapid respawn/XP/poção — ver useTibiaEvents) que caem nesse
    * dia, independente do ano (a data é recorrente). Recebe o dateKey (não só o número do
@@ -238,12 +245,14 @@ export function CalendarioPage() {
               >
                 <span className="calendar-day-number">{cell.day}</span>
 
-                {(hasBoss || hasHunt) && (() => {
+                {(hasBoss || hasHunt || (activity?.drops.length ?? 0) > 0) && (() => {
                   // Valor do dia direto na célula (2026-09-04, pedido do usuário a partir
                   // de um print de app concorrente) — formatGoldKK (compacto, ex "+6.7kk")
                   // em vez de formatTibiaGold (por extenso, não cabe numa célula de ~38px
-                  // no mobile). Soma Boss+Hunt do dia, mesmo valor usado em monthTotal.
-                  const dayValue = (splitDailyEntry!.boss ?? 0) + (splitDailyEntry!.hunt ?? 0);
+                  // no mobile). Soma Boss+Hunt+Itens do dia — Itens usa unitValue (Valor
+                  // Cada), não totalValue, ver doc de monthTotal acima — mesmo valor usado ali.
+                  const itemsValue = activity?.drops.reduce((s, d) => s + d.unitValue, 0) ?? 0;
+                  const dayValue = (splitDailyEntry?.boss ?? 0) + (splitDailyEntry?.hunt ?? 0) + itemsValue;
                   return (
                     <span className="calendar-day-value" style={{ color: dayValue < 0 ? 'var(--color-danger)' : 'var(--color-success)' }}>
                       {formatGoldKK(dayValue)}

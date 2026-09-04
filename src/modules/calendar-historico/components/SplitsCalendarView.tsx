@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { buildMonthCells } from '@/services/calendar';
 import { formatTibiaGold } from '@/services/split';
+import { formatGoldKK } from '@/services/common/gold-format';
 import type { SplitRow } from '../SplitsHistoricoPage';
 
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
@@ -42,6 +43,21 @@ export function SplitsCalendarView({ rows, onSelectDate }: SplitsCalendarViewPro
     return map;
   }, [rows]);
 
+  /** Total do MÊS EM EXIBIÇÃO (2026-09-04, pedido do usuário: "no calendario entrou a nova
+   * funcionalidade de valor feito no dia porem precisamos da mesma no splits (no splits
+   * apenas a somatoria dos splits)") — mesma ideia do "Total do mês" do Calendário
+   * principal (CalendarioPage.tsx), mas aqui é só soma de equalShare dos splits
+   * (Boss+Hunt), sem item — não tem conceito de drop nessa tela. */
+  const monthTotal = useMemo(() => {
+    let sum = 0;
+    for (const cell of cells) {
+      if (!cell.inCurrentMonth || !cell.dateKey) continue;
+      const daySplits = rowsByDate.get(cell.dateKey) ?? [];
+      sum += daySplits.reduce((s, r) => s + r.equalShare, 0);
+    }
+    return sum;
+  }, [cells, rowsByDate]);
+
   const goToPrevMonth = () => {
     setView((v) => {
       const d = new Date(v.year, v.month - 1, 1);
@@ -69,6 +85,13 @@ export function SplitsCalendarView({ rows, onSelectDate }: SplitsCalendarViewPro
           <button className="calendar-nav-btn" onClick={goToToday}>Hoje</button>
         </div>
         <button className="calendar-nav-btn" onClick={goToNextMonth}>Próximo ›</button>
+      </div>
+
+      <div className="stat-box" style={{ maxWidth: '220px', margin: '0 auto 14px' }}>
+        <span className="stat-box-rotulo">Total do mês (splits)</span>
+        <strong style={{ fontSize: '15px', color: monthTotal < 0 ? 'var(--color-danger)' : 'var(--color-success)' }}>
+          {formatTibiaGold(monthTotal)}
+        </strong>
       </div>
 
       <div className="calendar-legend">
@@ -100,6 +123,15 @@ export function SplitsCalendarView({ rows, onSelectDate }: SplitsCalendarViewPro
               style={{ cursor: hasAnyIndicator ? 'pointer' : 'default' }}
             >
               <span className="calendar-day-number">{cell.day}</span>
+
+              {hasAnyIndicator && (() => {
+                const dayValue = daySplits.reduce((s, r) => s + r.equalShare, 0);
+                return (
+                  <span className="calendar-day-value" style={{ color: dayValue < 0 ? 'var(--color-danger)' : 'var(--color-success)' }}>
+                    {formatGoldKK(dayValue)}
+                  </span>
+                );
+              })()}
 
               {hasAnyIndicator && (
                 <div className="calendar-day-dots">
