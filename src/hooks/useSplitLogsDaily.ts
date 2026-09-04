@@ -61,5 +61,20 @@ export function useSplitLogsDaily(accountId: string) {
     setSeries((prev) => prev.map((entry) => (entry.date === date ? { ...entry, [type]: null } : entry)));
   }, [accountId]);
 
-  return { series, loading, error, hideDay };
+  // Atualização otimista depois de salvar um split novo pelo "+ Adicionar Split" do modal
+  // de dia (2026-09-04, ver QuickAddSplitForm.tsx) — soma `equalShare` ao valor já existente
+  // daquele tipo/dia (pode já ter split salvo naquele dia — useSplitLogsDaily soma quando
+  // tem mais de um, ver docblock do hook), sem refetch. Se o dia ainda não existia na
+  // série, cria uma entrada nova.
+  const addSplitOptimistic = useCallback((date: string, type: SplitLogType, equalShare: number) => {
+    setSeries((prev) => {
+      const existing = prev.find((entry) => entry.date === date);
+      if (!existing) {
+        return [...prev, { date, hunt: null, boss: null, [type]: equalShare }];
+      }
+      return prev.map((entry) => (entry.date === date ? { ...entry, [type]: (entry[type] ?? 0) + equalShare } : entry));
+    });
+  }, []);
+
+  return { series, loading, error, hideDay, addSplitOptimistic };
 }

@@ -1153,6 +1153,19 @@ table {
   color: var(--color-text);
 }
 
+/* Valor em gold direto na célula (2026-09-04) — display:block + white-space:nowrap com
+   overflow escondido em vez de permitir quebra de linha, pra nunca esticar a altura da
+   célula (min-height fixo, ver .calendar-day) mesmo num valor mais longo tipo "+123kk". */
+.calendar-day-value {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .calendar-day-dots {
   display: flex;
   flex-wrap: wrap;
@@ -1723,6 +1736,10 @@ table {
 
   .calendar-day-number {
     font-size: 0.7rem;
+  }
+
+  .calendar-day-value {
+    font-size: 0.55rem;
   }
 
   .calendar-dot {

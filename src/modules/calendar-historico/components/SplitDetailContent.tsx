@@ -1,6 +1,18 @@
 import { useState } from 'react';
 import { formatTibiaGold } from '@/services/split';
+import { splitHoursForType } from '@/services/split/session-date';
 import type { SplitLog } from '@/types';
+
+/** Dano/Cura por HORA desse split específico (2026-09-04, pedido do usuário a partir de
+ * um print de app concorrente que mostra "Dmg/h" já no detalhe de UMA sessão, não só como
+ * média histórica agregada — ver businessLogic.splitPerHourStats). Usa a mesma regra de
+ * arredondamento de `playerAveragesByType` em SplitsHistoricoPage.tsx (hunt arredonda pra
+ * hora cheia abaixo), agora compartilhada via `splitHoursForType`. `null` (mostrado como
+ * "—") quando o log não tem duração ou a hunt não chegou a 1h completa — nunca inventa. */
+function formatPerHour(total: number, hours: number | null): string {
+  if (hours === null) return '—';
+  return Math.round(total / hours).toLocaleString('pt-BR');
+}
 
 /** Corpo do detalhe de 1 split — extraído de SplitDetailModal.tsx em 2026-09-02 pra poder
  * ser reaproveitado também no modo calendário do Histórico de Splits, mostrando 2+ splits
@@ -22,6 +34,7 @@ export function SplitDetailContent({
 }) {
   const [copiedIndices, setCopiedIndices] = useState<Set<number>>(new Set());
   const [showRawLog, setShowRawLog] = useState(false);
+  const hours = splitHoursForType(log.type, log.durationMinutes);
 
   const handleCopy = (commandText: string, idx: number) => {
     navigator.clipboard.writeText(commandText);
@@ -59,6 +72,8 @@ export function SplitDetailContent({
                 <th>Balance</th>
                 <th>Dano</th>
                 <th>Cura</th>
+                <th title="Dano por hora — considera a duração da sessão (hunt arredonda pra hora cheia abaixo)">Dano/h</th>
+                <th title="Cura por hora — considera a duração da sessão (hunt arredonda pra hora cheia abaixo)">Cura/h</th>
               </tr>
             </thead>
             <tbody>
@@ -70,6 +85,8 @@ export function SplitDetailContent({
                   <td className="col-gold positive">{formatTibiaGold(m.balance)}</td>
                   <td>{m.damage.toLocaleString('pt-BR')}</td>
                   <td>{m.healing.toLocaleString('pt-BR')}</td>
+                  <td className="texto-mudo">{formatPerHour(m.damage, hours)}</td>
+                  <td className="texto-mudo">{formatPerHour(m.healing, hours)}</td>
                 </tr>
               ))}
             </tbody>

@@ -5,7 +5,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { usePartySettings } from '@/hooks/usePartySettings';
 import { useSplitLogs } from '@/hooks/useSplitLogs';
 import { formatTibiaGold } from '@/services/split';
-import { extractSplitSessionDate, extractSplitDurationMinutes } from '@/services/split/session-date';
+import { parsePartyHuntLog } from '@/services/split/party-hunt-log-parser';
+import { RecentSplitsList } from './components/RecentSplitsList';
 import type { SplitLogType } from '@/types';
 
 interface PartyMember {
@@ -194,117 +195,21 @@ Zo Tis
 	Supplies: 0
 	Balance: 5,723,548`;
 
-    // Segunda camada de proteção (além do onPaste que substitui o campo inteiro): se a
-    // primeira linha não-vazia não for o cabeçalho esperado, o parser trataria ela como
-    // nome de jogador e inflaria o Balance total silenciosamente — melhor avisar e não
-    // calcular nada do que devolver um split errado sem o usuário perceber.
-    const firstLine = text.split('\n').find((l) => l.trim())?.trim() ?? '';
-    if (!/^Session data:/i.test(firstLine)) {
-      setParseError(`Log não reconhecido — a primeira linha deveria começar com "Session data:", mas veio "${firstLine.slice(0, 40)}${firstLine.length > 40 ? '...' : ''}". Confira se colou o texto completo do Party Hunt Analyzer, sem caracteres extras no início.`);
+    // Parser extraído pra services/split/party-hunt-log-parser.ts em 2026-09-04 (função
+    // pura, reusada também no formulário de "adicionar split rápido" do Calendário) —
+    // mesmo comportamento de antes, só movido de lugar. Ver docblock daquele módulo pro
+    // histórico dos 2 bugs reais já corrigidos (caractere solto / jogador fantasma).
+    const parsed = parsePartyHuntLog(text);
+    if ('error' in parsed) {
+      setParseError(parsed.error);
       setMembers([]);
       return;
     }
     setParseError(null);
 
-    const lines = text.split('\n');
-    const parsedMembers: PartyMember[] = [];
-    
-    let currentName = '';
-    let currentLoot = 0;
-    let currentSupplies = 0;
-    let currentBalance = 0;
-    let currentDamage = 0;
-    let currentHealing = 0;
+    const parsedMembers: PartyMember[] = parsed.members.map((m) => ({ ...m, extraTc: '', extraGold: '' }));
 
-    const cleanNumber = (str: string) => parseInt(str.replace(/[,.]/g, ''), 10) || 0;
-
-    // Cabeçalho global (nunca é player, nem campo de player) e campos conhecidos de
-    // cada player. Damage/Healing entram no "Damage Split" da mensagem de resumo (ver
-    // buildPartySplitMessage) e no Histórico de Splits (ordenação por dano/cura,
-    // 2026-08-21) — antes só Damage era capturado, Healing era reconhecido só pra não
-    // virar "jogador fantasma", sem uso no app.
-    const HEADER_PREFIXES = ['Session', 'Loot Type'];
-    const FIELD_PREFIXES = ['Loot:', 'Supplies:', 'Balance:', 'Damage:', 'Healing:'];
-
-    lines.forEach((line) => {
-      const trimmed = line.trim();
-      if (!trimmed) return;
-      if (HEADER_PREFIXES.some((p) => trimmed.startsWith(p))) return;
-
-      const isFieldLine = FIELD_PREFIXES.some((p) => trimmed.startsWith(p));
-
-      // Detecta se a linha é o início de um bloco de player: qualquer linha que não seja
-      // cabeçalho nem um campo conhecido (Loot/Supplies/Balance/Damage/Healing). Antes
-      // essa decisão também exigia "não começar com tab" — mas o log real às vezes chega
-      // com a indentação virando espaços em vez de tab (dependendo de onde foi copiado),
-      // e "Damage:"/"Healing:" nem estavam na lista de campos reconhecidos. Nesse caso a
-      // linha "Damage: ..." não batia com tab nem com nenhum prefixo excluído e virava um
-      // jogador fantasma com Balance 0 — inflava o número de membros na divisão (Cota
-      // Justa = Balance total ÷ nº de membros) sem inflar o Balance, gerando transferências
-      // erradas mesmo sem nenhum caractere sobrando no início do log (bug reportado pelo
-      // usuário em 2026-08-15, além do caso do caractere solto). Detectar só pelo prefixo
-      // do campo (sem depender de tab) resolve os dois casos.
-      if (!isFieldLine) {
-        // Se já tínhamos um player em andamento, salva antes
-        if (currentName) {
-          parsedMembers.push({
-            name: currentName,
-            loot: currentLoot,
-            supplies: currentSupplies,
-            balance: currentBalance,
-            damage: currentDamage,
-            healing: currentHealing,
-            extraTc: '',
-            extraGold: '',
-          });
-        }
-        // Limpa o nome removendo sufixos como (Leader) ou similar se houver
-        currentName = trimmed.replace(/\s*\(Leader\).*$/i, '').trim();
-        currentLoot = 0;
-        currentSupplies = 0;
-        currentBalance = 0;
-        currentDamage = 0;
-        currentHealing = 0;
-      } else if (currentName) {
-        if (trimmed.startsWith('Loot:')) {
-          const match = trimmed.match(/[\d,.]+/);
-          if (match) currentLoot = cleanNumber(match[0]);
-        } else if (trimmed.startsWith('Supplies:')) {
-          const match = trimmed.match(/[\d,.]+/);
-          if (match) currentSupplies = cleanNumber(match[0]);
-        } else if (trimmed.startsWith('Balance:')) {
-          const match = trimmed.match(/[\d,.]+/);
-          if (match) currentBalance = cleanNumber(match[0]);
-        } else if (trimmed.startsWith('Damage:')) {
-          const match = trimmed.match(/[\d,.]+/);
-          if (match) currentDamage = cleanNumber(match[0]);
-        } else if (trimmed.startsWith('Healing:')) {
-          const match = trimmed.match(/[\d,.]+/);
-          if (match) currentHealing = cleanNumber(match[0]);
-        }
-      }
-    });
-
-    // Insere o último player processado
-    if (currentName) {
-      parsedMembers.push({
-        name: currentName,
-        loot: currentLoot,
-        supplies: currentSupplies,
-        balance: currentBalance,
-        damage: currentDamage,
-        healing: currentHealing,
-        extraTc: '',
-        extraGold: '',
-      });
-    }
-
-    // "Session: HH:MMh" — linha de cabeçalho global com a duração da sessão, diferente de
-    // "Session data: From ... to ..." (que dá a data/hora de início-fim, usada só pra
-    // extractSplitSessionDate). Usada na mensagem de resumo pro Discord (profit/hora) e,
-    // desde 2026-08-23, salva junto do split (durationMinutes) pra normalizar as médias de
-    // dano/cura por hora no Histórico de Splits — ver extractSplitDurationMinutes.
-    const durationMinutes = extractSplitDurationMinutes(text);
+    const { durationMinutes } = parsed;
     setSessionDurationMinutes(durationMinutes);
     setSessionDurationHours(durationMinutes != null ? durationMinutes / 60 : null);
     setSessionDurationLabel(durationMinutes != null ? `${String(Math.floor(durationMinutes / 60)).padStart(2, '0')}:${String(durationMinutes % 60).padStart(2, '0')}h` : null);
@@ -312,7 +217,7 @@ Zo Tis
     setMembers(parsedMembers);
     setDoneIndices(new Set());
     setDiscordCopied(false);
-    setSessionDate(extractSplitSessionDate(text));
+    setSessionDate(parsed.sessionDate);
     setParsedRawLog(text);
     setSavedTypes(new Set());
     setSaveError(null);
@@ -578,7 +483,7 @@ Zo Tis
               Resumo do Split & Transferências
             </h3>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
+            <div className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginBottom: '20px' }}>
               <div style={{ background: 'var(--color-bg-input)', padding: '12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
                 <span className="label-padrao">Lucro Total (Balance)</span>
                 <strong className="texto-sucesso" style={{ fontSize: '15px' }}>{formatTibiaGold(calculation.totalBalance)}</strong>
@@ -586,6 +491,15 @@ Zo Tis
               <div style={{ background: 'var(--color-bg-input)', padding: '12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
                 <span className="label-padrao">Cota por Membro (Equal Share)</span>
                 <strong style={{ fontSize: '15px', color: 'var(--color-accent)' }}>{formatTibiaGold(Math.round(calculation.equalShare))}</strong>
+              </div>
+              {/* "Duração" (2026-09-04, pedido do usuário a partir de um print de app
+                  concorrente com stat box "Time Hunting") — sessionDurationLabel já era
+                  calculado desde 2026-08-21, só usado até agora dentro da mensagem de
+                  texto pro Discord; agora também aparece como stat box. "—" (nunca
+                  inventa) quando o log não tem a linha "Session: HH:MMh". */}
+              <div style={{ background: 'var(--color-bg-input)', padding: '12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
+                <span className="label-padrao">Duração</span>
+                <strong style={{ fontSize: '15px', color: 'var(--color-text)' }}>{sessionDurationLabel ?? '—'}</strong>
               </div>
             </div>
 
@@ -716,6 +630,8 @@ Zo Tis
         </div>
 
       </div>
+
+      {!isAuthLoading && isAuthenticated && <RecentSplitsList accountId={accountId} />}
     </div>
   );
 }

@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { Modal } from '@/components/common/Modal';
 import { PARTY_EVENT_CATEGORY_ICON, PARTY_EVENT_CATEGORY_LABEL } from '@/services/party-events/party-event-display';
 import { formatTibiaGold } from '@/services/split';
-import type { DayActivity, PartyEvent, TibiaEvent, TibiaEventCategory } from '@/types';
+import { QuickAddSplitForm } from './QuickAddSplitForm';
+import type { DayActivity, PartyEvent, SplitLogType, TibiaEvent, TibiaEventCategory } from '@/types';
 import type { SplitLogDailyEntry } from '@/hooks/useSplitLogsDaily';
 
 const EVENT_CATEGORY_ICON: Record<TibiaEventCategory, string> = {
@@ -35,6 +37,7 @@ function formatXp(value: number): string {
  * fetch novo dentro do modal. */
 export function CalendarDayDetailsModal({
   dateKey,
+  accountId,
   activity,
   partyEvents,
   tibiaEvents,
@@ -44,8 +47,10 @@ export function CalendarDayDetailsModal({
   hideError,
   onClose,
   onHideSplit,
+  onSplitAdded,
 }: {
   dateKey: string;
+  accountId: string;
   activity: DayActivity | undefined;
   partyEvents: PartyEvent[];
   tibiaEvents: TibiaEvent[];
@@ -55,7 +60,13 @@ export function CalendarDayDetailsModal({
   hideError: string | null;
   onClose: () => void;
   onHideSplit: (type: 'hunt' | 'boss') => void;
+  /** Split salvo pelo formulário rápido dentro deste modal (2026-09-04, ver
+   * QuickAddSplitForm.tsx) — o pai (CalendarioPage.tsx) atualiza splitDailySeries via
+   * useSplitLogsDaily().addSplitOptimistic, sem refetch. */
+  onSplitAdded: (date: string, type: SplitLogType, equalShare: number) => void;
 }) {
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
+
   return (
     <Modal title={`Detalhes de ${dateKey}`} onClose={onClose}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '13px' }}>
@@ -142,6 +153,24 @@ export function CalendarDayDetailsModal({
           </div>
         </div>
         {hideError && <span className="texto-perigo" style={{ fontSize: '12px' }}>⚠ {hideError}</span>}
+
+        <div>
+          {!showQuickAdd ? (
+            <button type="button" onClick={() => setShowQuickAdd(true)} className="botao-secundario" style={{ fontSize: '12px', padding: '6px 12px' }}>
+              + Adicionar Split
+            </button>
+          ) : (
+            <QuickAddSplitForm
+              dateKey={dateKey}
+              accountId={accountId}
+              onCancel={() => setShowQuickAdd(false)}
+              onSaved={(date, type, equalShare) => {
+                onSplitAdded(date, type, equalShare);
+                setShowQuickAdd(false);
+              }}
+            />
+          )}
+        </div>
 
         <div>
           <h4 style={{ margin: '0 0 8px 0', fontSize: '13px', color: 'var(--color-accent)' }}>XP do dia</h4>

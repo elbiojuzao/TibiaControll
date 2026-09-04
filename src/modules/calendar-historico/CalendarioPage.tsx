@@ -10,6 +10,7 @@ import { usePartyEvents } from '@/hooks/usePartyEvents';
 import { CalendarDayDetailsModal } from './components/CalendarDayDetailsModal';
 import { PARTY_EVENT_CATEGORY_ICON, PARTY_EVENT_CATEGORY_LABEL } from '@/services/party-events/party-event-display';
 import { formatTibiaGold } from '@/services/split';
+import { formatGoldKK } from '@/services/common/gold-format';
 import { formatDateKey, findLatestActivityDate, groupActivityByDate, parseDateKey, buildMonthCells } from '@/services/calendar';
 import type { PartyEvent, TibiaEventCategory } from '@/types';
 
@@ -53,7 +54,7 @@ export function CalendarioPage() {
   const { data: xpData } = useXpSheet();
   // Perfil individual de Hunt/Boss do dia (2026-08-19, pedido do usuário: puxar direto de
   // split_logs em vez da planilha externa) — ver useSplitLogsDaily.
-  const { series: splitDailySeries, hideDay } = useSplitLogsDaily(accountId);
+  const { series: splitDailySeries, hideDay, addSplitOptimistic } = useSplitLogsDaily(accountId);
   const [hidingType, setHidingType] = useState<'hunt' | 'boss' | null>(null);
   const [hideError, setHideError] = useState<string | null>(null);
   const { events: tibiaEvents } = useTibiaEvents();
@@ -84,6 +85,22 @@ export function CalendarioPage() {
 
   const activityByDate = useMemo(() => groupActivityByDate(hunts, drops), [hunts, drops]);
   const cells = useMemo(() => buildMonthCells(viewYear, viewMonth), [viewYear, viewMonth]);
+
+  /** Soma de Boss+Hunt (Cota por Membro) de todo dia do MÊS EM EXIBIÇÃO — pedido do
+   * usuário (2026-09-04, a partir de um print de app concorrente que mostra "TOTAL GOLD
+   * COINS" do mês acima do grid). Filtra `splitDailySeries` (que é da conta inteira, sem
+   * filtro de mês) pelo mês/ano do próprio `date` de cada entrada — mesmo padrão de
+   * comparar mês/dia usado em `eventsForDay` acima. */
+  const monthTotal = useMemo(() => {
+    let sum = 0;
+    for (const entry of splitDailySeries) {
+      const [, month, year] = entry.date.split('/').map(Number);
+      if (month === viewMonth + 1 && year === viewYear) {
+        sum += (entry.hunt ?? 0) + (entry.boss ?? 0);
+      }
+    }
+    return sum;
+  }, [splitDailySeries, viewMonth, viewYear]);
 
   /** Eventos oficiais fixos (rapid respawn/XP/poção — ver useTibiaEvents) que caem nesse
    * dia, independente do ano (a data é recorrente). Recebe o dateKey (não só o número do
@@ -173,6 +190,13 @@ export function CalendarioPage() {
           <button className="calendar-nav-btn" onClick={goToNextMonth}>Próximo ›</button>
         </div>
 
+        <div className="stat-box" style={{ maxWidth: '220px', margin: '0 auto 14px' }}>
+          <span className="stat-box-rotulo">Total do mês (Boss + Hunt)</span>
+          <strong style={{ fontSize: '15px', color: monthTotal < 0 ? 'var(--color-danger)' : 'var(--color-success)' }}>
+            {formatTibiaGold(monthTotal)}
+          </strong>
+        </div>
+
         <div className="calendar-legend">
           <span className="calendar-legend-item"><span className="calendar-dot boss" /> Boss</span>
           <span className="calendar-legend-item"><span className="calendar-dot hunt" /> Hunt</span>
@@ -213,6 +237,19 @@ export function CalendarioPage() {
                 style={{ cursor: 'pointer' }}
               >
                 <span className="calendar-day-number">{cell.day}</span>
+
+                {(hasBoss || hasHunt) && (() => {
+                  // Valor do dia direto na célula (2026-09-04, pedido do usuário a partir
+                  // de um print de app concorrente) — formatGoldKK (compacto, ex "+6.7kk")
+                  // em vez de formatTibiaGold (por extenso, não cabe numa célula de ~38px
+                  // no mobile). Soma Boss+Hunt do dia, mesmo valor usado em monthTotal.
+                  const dayValue = (splitDailyEntry!.boss ?? 0) + (splitDailyEntry!.hunt ?? 0);
+                  return (
+                    <span className="calendar-day-value" style={{ color: dayValue < 0 ? 'var(--color-danger)' : 'var(--color-success)' }}>
+                      {formatGoldKK(dayValue)}
+                    </span>
+                  );
+                })()}
 
                 {hasAnyIndicator && (
                   <div className="calendar-day-dots">
@@ -281,6 +318,7 @@ export function CalendarioPage() {
       {selectedDateKey && (
         <CalendarDayDetailsModal
           dateKey={selectedDateKey}
+          accountId={accountId}
           activity={selectedActivity}
           partyEvents={selectedPartyEvents}
           tibiaEvents={selectedEvents}
@@ -290,6 +328,7 @@ export function CalendarioPage() {
           hideError={hideError}
           onClose={() => setSelectedDateKey(null)}
           onHideSplit={handleHideSplit}
+          onSplitAdded={addSplitOptimistic}
         />
       )}
     </>

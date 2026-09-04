@@ -4,6 +4,7 @@ import { useSplitLogsList } from '@/hooks/useSplitLogsList';
 import { brToIso } from '@/services/common/br-date';
 import { parseDateKey } from '@/services/calendar';
 import { formatTibiaGold } from '@/services/split';
+import { splitHoursForType } from '@/services/split/session-date';
 import type { SplitLog, SplitLogPlayerSlot } from '@/types';
 import { SplitDetailModal } from './components/SplitDetailModal';
 import { SplitsCalendarView } from './components/SplitsCalendarView';
@@ -209,9 +210,8 @@ export function SplitsHistoricoPage() {
       const totals = new Map<string, { damage: number; healing: number; hours: number; splitCount: number }>();
       for (const row of filteredRows) {
         if (row.type !== type) continue;
-        if (!row.durationMinutes) continue;
-        const hours = type === 'hunt' ? Math.floor(row.durationMinutes / 60) : row.durationMinutes / 60;
-        if (hours <= 0) continue;
+        const hours = splitHoursForType(type, row.durationMinutes);
+        if (hours === null) continue;
         for (const p of row.players) {
           const cur = totals.get(p.name) ?? { damage: 0, healing: 0, hours: 0, splitCount: 0 };
           cur.damage += p.damage;

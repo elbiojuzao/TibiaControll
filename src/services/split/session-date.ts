@@ -1,4 +1,5 @@
 import { dateAsBr } from '@/services/common/br-date';
+import type { SplitLogType } from '@/types';
 
 /** Extrai a data de TÉRMINO da sessão a partir do cabeçalho "Session data: From
  * YYYY-MM-DD, HH:MM:SS to YYYY-MM-DD, HH:MM:SS" do Party Hunt Analyzer, já aplicando a
@@ -33,4 +34,19 @@ export function extractSplitDurationMinutes(rawLog: string): number | null {
   const match = rawLog.match(/^Session:\s*(\d{1,2}):(\d{2})h/im);
   if (!match) return null;
   return Number(match[1]) * 60 + Number(match[2]);
+}
+
+/** Converte `durationMinutes` de um split em HORAS pra normalizar dano/cura por hora,
+ * aplicando a mesma regra já usada em `SplitsHistoricoPage.tsx` (extraída de lá em
+ * 2026-09-04 pra reusar no detalhe de UM split individual, não só na média agregada
+ * histórica): Hunt arredonda pra hora CHEIA abaixo (`Math.floor`) — "Session: HH:MMh" mede
+ * tempo de relógio do início ao fim, não tempo de caça ativa, e os minutos que sobram
+ * depois da última hora completa costumam ser pausa (abastecer poção/soul), não hunt de
+ * verdade. Boss usa a duração exata (geralmente dura menos de 1h — o floor zeraria a
+ * maioria). Retorna `null` (nunca um valor inventado) se `durationMinutes` for `null` ou
+ * se o arredondamento zerar a duração (hunt com menos de 1h completa). */
+export function splitHoursForType(type: SplitLogType, durationMinutes: number | null): number | null {
+  if (!durationMinutes) return null;
+  const hours = type === 'hunt' ? Math.floor(durationMinutes / 60) : durationMinutes / 60;
+  return hours > 0 ? hours : null;
 }
