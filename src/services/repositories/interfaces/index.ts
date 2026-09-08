@@ -89,3 +89,11 @@ export interface IPartyEventRepository {
   update(id: string, dto: Partial<import('@/types').CreatePartyEventDto>): Promise<import('@/types').PartyEvent>;
   delete(id: string): Promise<void>;
 }
+
+/** Presets salvos da Roda de Destino (2026-09-08) — privado por conta, mesmo padrão de
+ * findByAccount/create/delete de Membros/Serviceiros/Builds antigos. */
+export interface IWheelPresetRepository {
+  findByAccount(accountId: string): Promise<import('@/types').WheelPreset[]>;
+  create(accountId: string, dto: import('@/types').CreateWheelPresetDto): Promise<import('@/types').WheelPreset>;
+  delete(id: string): Promise<void>;
+}

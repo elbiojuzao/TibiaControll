@@ -1,0 +1,18 @@
+/* Cores da máscara de cada domínio da roda (2026-09-05) — extraídas do `:root` de
+ * `../index.css` (arquivo original do gitlab.com/klhio/tibia-wheel). Não importamos
+ * `index.css` inteiro porque ele estiliza `body`/`#root`/`button`/`input`/`footer`
+ * GLOBALMENTE (vazaria pro app inteiro — ver comentário em `src/modules/wheel-planner/index.tsx`),
+ * mas essas 8 variáveis são as únicas que `WheelSlice.module.css` e
+ * `WheelRevelation.module.css` realmente usam (a máscara de cor que preenche cada fatia
+ * conforme os pontos investidos). Valores idênticos ao original, só isolados num arquivo
+ * próprio pra poder importar sem o resto. */
+:root {
+  --section-0-inner: #b129a9;
+  --section-0-outer: #7a2374;
+  --section-1-inner: #29a178;
+  --section-1-outer: #236f55;
+  --section-2-inner: #587d24;
+  --section-2-outer: #576b21;
+  --section-3-inner: #b12a3d;
+  --section-3-outer: #7a2430;
+}

@@ -1,0 +1,97 @@
+/* 
+ * This file is part of Tibia Wheel.
+ * Copyright (c) 2022 Maciej Sopyło
+ * 
+ * Tibia Wheel is free software: you can redistribute it and/or modify  
+ * it under the terms of the GNU Lesser General Public License as published by  
+ * the Free Software Foundation, version 3.
+ *
+ * Tibia Wheel is distributed in the hope that it will be useful, but 
+ * WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License 
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+:root {
+  --section-0-inner: #b129a9;
+  --section-0-outer: #7a2374;
+  --section-1-inner: #29a178;
+  --section-1-outer: #236f55;
+  --section-2-inner: #587d24;
+  --section-2-outer: #576b21;
+  --section-3-inner: #b12a3d;
+  --section-3-outer: #7a2430;
+}
+
+body {
+  background: url(assets/background.png?as=webp);
+  font-family: monospace;
+  color: lightgray;
+  margin: 0;
+  padding: 0 1rem;
+}
+
+#root {
+  display: flex;
+  align-content: flex-start;
+  margin-top: 1rem;
+  flex-direction: column;
+  max-height: calc(100vh - 5rem);
+  flex-wrap: wrap;
+  gap: 1rem;
+
+  & > section {
+    width: 320px;
+  }
+}
+
+button {
+  color: lightgray;
+  border: 1px solid;
+  border-image: url(./assets/button-9grid-idle.png?as=webp);
+  border-image-slice: 1 fill;
+  font-family: monospace;
+  
+  &:active {
+    border-image: url(./assets/button-9grid-pressed.png?as=webp);
+    border-image-slice: 1 fill;
+  }
+}
+
+p {
+  margin: 0;
+}
+
+ul {
+  margin: 0;
+  padding: 0;
+}
+
+footer {
+  position: fixed;
+  left: 0;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  text-align: right;
+  pointer-events: none;
+
+  & a {
+    pointer-events: all;
+  }
+}
+
+input {
+  padding: 0.25rem;
+  box-sizing: border-box;
+  width: 100%;
+  border-width: 1px;
+  background: url(./assets/background-dark.png?as=webp);
+  outline: none;
+  color: white;
+  font-family: monospace;
+  border: 1px inset;
+  border-color: #2d2d2d #767676 #767676 #2d2d2d;
+}

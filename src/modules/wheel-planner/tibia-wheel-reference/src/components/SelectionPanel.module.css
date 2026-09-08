@@ -1,0 +1,86 @@
+/* Empilha o card de pontos + o card do Ateliê de Gemas (2026-09-05, pedido do usuário:
+   "separe o card do sloot selecionado da gema") — 2 Widgets separados, não mais 1 só. */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-grid);
+}
+
+/* CSS equivalente ao que existia em Wheel.module.css (escopado antes via
+ * `.wheel section article:first-child/nth-child(2)` e `.wheel fieldset`, porque este painel
+ * ficava DENTRO da seção da roda) — replicado aqui, escopado a este componente, depois da
+ * extração pra coluna própria (ver comentário em SelectionPanel.tsx). Nenhuma regra nova,
+ * só relocada. */
+.selectionPanel {
+  position: relative;
+
+  /* minmax(2rem, auto) (2026-09-05, mesmo bug de PerkSummary.module.css: título com
+   * altura de linha fixa vazava por cima da descrição quando o nome do perk quebrava em
+   * 2 linhas) — cresce a linha do título quando precisa, sem afetar o caso de 1 linha. */
+  & article:first-child {
+    grid-template-rows: minmax(2rem, auto) auto;
+    grid-template-columns: 2rem 1fr;
+
+    & pre {
+      max-width: 100%;
+      grid-column-start: 1;
+      padding-left: 0.5rem;
+    }
+
+    & em {
+      --size: 30px;
+    }
+  }
+
+  & article:nth-child(2) {
+    padding-left: 0.5rem;
+  }
+
+  /* Os 6 botões ficam TODOS numa linha só (2026-09-05, pedido do usuário: "os botões de
+   * adicionar pontos tem que ficar tudo na mesma linha"). Precisa continuar com
+   * `flex-wrap: wrap` (não nowrap) porque o contador (span, `flex-basis: 100%` +
+   * `order: -1` logo abaixo) depende do wrap pra cair sozinho na 1ª linha — com nowrap
+   * ele fica NA MESMA linha dos botões e, querendo 100% da largura, espreme todo o
+   * resto a quase nada (bug visto ao vivo: botões de ~5px de largura). Com wrap, o
+   * contador ainda vai sozinho pra 1ª linha, e os botões (compactos o bastante — ver
+   * padding/font abaixo) cabem todos juntos na linha seguinte. */
+  & fieldset {
+    border: none;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem;
+    margin-top: 0.5rem;
+
+    /* Botões +1/+10/+max/-max/-10/-1 no padrão do sistema (2026-09-05, pedido do
+       usuário: "revisar todos os botões dessa tela") — mesma linguagem visual dos
+       botões de vocação (borda sutil, fundo elevado, hover), só bem mais compactos por
+       serem 6 numa fileira estreita. */
+    & button {
+      padding: 0.3rem 0.1rem;
+      flex: 1 1 0;
+      min-width: 0;
+      background: var(--color-bg-elevated);
+      color: var(--color-text-muted);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      font-size: 0.65rem;
+      white-space: nowrap;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+
+      &:hover {
+        background: var(--color-bg-hover);
+        color: var(--color-text);
+        border-color: var(--color-border-strong);
+      }
+    }
+
+    & span {
+      order: -1;
+      flex-basis: 100%;
+      text-align: center;
+      font-size: 1.1em;
+      padding: 0 0 0.25rem;
+    }
+  }
+}

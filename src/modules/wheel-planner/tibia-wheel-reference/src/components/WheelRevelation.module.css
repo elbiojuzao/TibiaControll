@@ -1,0 +1,58 @@
+/* 
+ * This file is part of Tibia Wheel.
+ * Copyright (c) 2022 Maciej Sopyło
+ * 
+ * Tibia Wheel is free software: you can redistribute it and/or modify  
+ * it under the terms of the GNU Lesser General Public License as published by  
+ * the Free Software Foundation, version 3.
+ *
+ * Tibia Wheel is distributed in the hope that it will be useful, but 
+ * WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License 
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+ .section-0 {
+  filter: invert(18%) sepia(87%) saturate(1496%) hue-rotate(278deg) brightness(120%) contrast(95%);
+}
+
+.section-1 {
+  filter: invert(30%) sepia(82%) saturate(366%) hue-rotate(108deg) brightness(97%) contrast(85%);
+}
+
+.section-2 {
+  filter: invert(32%) sepia(87%) saturate(311%) hue-rotate(35deg) brightness(130%) contrast(110%);
+}
+
+.section-3 {
+  filter: invert(21%) sepia(9%) saturate(7185%) hue-rotate(313deg) brightness(110%) contrast(105%);
+}
+
+.progress {
+  &.psection-0 {
+    --circle: var(--section-0-outer);
+    --path: var(--section-0-inner);
+  }
+  &.psection-1 {
+    --circle: var(--section-1-outer);
+    --path: var(--section-1-inner);
+  }
+  &.psection-2 {
+    --circle: var(--section-2-outer);
+    --path: var(--section-2-inner);
+  }
+  &.psection-3 {
+    --circle: var(--section-3-outer);
+    --path: var(--section-3-inner);
+  }
+
+  & circle {
+    fill: var(--circle);
+  }
+  & path {
+    fill: var(--path);
+  }
+}

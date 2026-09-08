@@ -5,6 +5,7 @@
 import { defineConfig } from 'vitest/config'
 import { loadEnv, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
+import yaml from '@rollup/plugin-yaml'
 import path from 'path'
 import { fetchXpStatsFromSheet } from './api/_lib/xp-sheet'
 import { checkRateLimit, clientKeyFromRequest } from './api/_lib/rate-limit'
@@ -53,7 +54,10 @@ export default defineConfig(({ mode }) => {
   process.env = { ...process.env, ...env }
 
   return {
-    plugins: [react(), sheetDevApiPlugin()],
+    // yaml(): só pro `import data from '../../data.yaml'` do módulo copiado do tibia-wheel
+    // (gitlab.com/klhio/tibia-wheel) rodar sem alterar esse import — o Parcel (bundler
+    // original deles) entende .yaml nativo, o Vite não.
+    plugins: [react(), yaml(), sheetDevApiPlugin()],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),

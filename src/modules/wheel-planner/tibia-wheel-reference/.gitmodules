@@ -1,0 +1,3 @@
+[submodule "rccextended"]
+	path = rccextended
+	url = https://github.com/zedxxx/rccextended.git

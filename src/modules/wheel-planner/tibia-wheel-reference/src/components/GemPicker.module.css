@@ -1,0 +1,111 @@
+/* Card próprio (Widget), não mais colado no card de pontos da fatia — 2026-09-05, pedido
+   do usuário: "separe o card do sloot selecionado da gema". */
+.gemPicker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Indicativo de qual das 3 fatias de Vessel Resonance do domínio está selecionada
+   (2026-09-05, pedido do usuário: "coloque um indicativo de onde esta selecionado a
+   gema") — as 3 têm o mesmo nome/ícone na roda, só o domínio + tamanho da gema
+   diferenciam qual é qual. */
+.slotIndicator {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 6px 10px;
+  background: var(--color-accent-soft);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+}
+
+.slotDomain {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+.slotGrade {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+}
+
+.hint {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.gradeButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+
+  & button {
+    flex: 1 1 auto;
+    padding: 0.3rem 0.4rem;
+    font-size: 0.68rem;
+  }
+}
+
+.active {
+  background: var(--color-accent-soft) !important;
+  color: var(--color-accent) !important;
+  border-color: var(--color-accent) !important;
+}
+
+.modRow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.modGradeLabel {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+}
+
+.modGrades {
+  display: flex;
+  gap: 0.2rem;
+
+  & button {
+    padding: 0.15rem 0.4rem;
+    font-size: 0.65rem;
+    min-width: 1.4rem;
+  }
+}
+
+.modValue {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+}
+
+/* Grade de ícones reais pra escolher o mod (2026-09-05, pedido do usuário: "tem alguns
+   mods que tu não tem a imagem" — trocou o <select> de texto por botões com o ícone real
+   de cada mod, ver gem-mod-icons.ts). */
+.modIconGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.modIconButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border-radius: 50%;
+  overflow: hidden;
+
+  & img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+}

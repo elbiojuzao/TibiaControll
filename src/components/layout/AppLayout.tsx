@@ -11,6 +11,7 @@ const navItems = [
   { to: '/timers', label: 'Timers', icon: '⏱️', gated: false },
   { to: '/tier-calculator', label: 'Calculadora Tier', icon: '⚒️', gated: false },
   { to: '/charm-planner', label: 'Charm Planner', icon: '🔮', gated: false },
+  { to: '/roda-destino', label: 'Roda de Destino', icon: '🎡', gated: false },
   { to: '/calendario', label: 'Histórico', icon: '📅', gated: true },
   { to: '/serviceiros', label: 'Serviceiros', icon: '🤝', gated: true },
   // Configurações (2026-08-16) mora só no menu do avatar, não duplica aqui no nav.

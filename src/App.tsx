@@ -16,6 +16,7 @@ const SplitCalculatorPage = lazy(() => import('@/modules/split-calculator').then
 const TimersPage = lazy(() => import('@/modules/timers').then((m) => ({ default: m.TimersPage })));
 const TierCalculatorPage = lazy(() => import('@/modules/tier-calculator').then((m) => ({ default: m.TierCalculatorPage })));
 const CharmPlannerPage = lazy(() => import('@/modules/charm-planner').then((m) => ({ default: m.CharmPlannerPage })));
+const WheelPlannerPage = lazy(() => import('@/modules/wheel-planner').then((m) => ({ default: m.WheelPlannerPage })));
 const HistoricoPage = lazy(() => import('@/modules/calendar-historico').then((m) => ({ default: m.HistoricoPage })));
 const ServiceirosPage = lazy(() => import('@/modules/serviceiros').then((m) => ({ default: m.ServiceirosPage })));
 const SettingsPage = lazy(() => import('@/modules/settings').then((m) => ({ default: m.SettingsPage })));
@@ -41,6 +42,7 @@ export function AppRouter() {
             <Route path="timers" element={<TimersPage />} />
             <Route path="tier-calculator" element={<TierCalculatorPage />} />
             <Route path="charm-planner" element={<CharmPlannerPage />} />
+            <Route path="roda-destino" element={<WheelPlannerPage />} />
           </Route>
         </Routes>
       </Suspense>

@@ -85,6 +85,24 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
     return bossName && !filtered.includes(bossName) ? [bossName, ...filtered] : filtered;
   }, [allBosses, bossToQuest, isQuestChecked, bossName]);
 
+  // Agrupa o dropdown de Boss por quest (2026-09-08, pedido do usuário: "colocar um
+  // titulo com o nome da quest e o nome do boss em baixo... rotten blood tem 5 bosses e
+  // a soul war tem 6 então como ficam junto fica dificil de identificar as vezes") — usa
+  // <optgroup> (nativamente não-selecionável) como título, quests e bosses em ordem
+  // alfabética dentro de cada grupo.
+  const bossGroups = useMemo(() => {
+    const byQuest = new Map<string, string[]>();
+    for (const boss of bossOptions) {
+      const quest = bossToQuest[boss] ?? boss;
+      const bosses = byQuest.get(quest) ?? [];
+      bosses.push(boss);
+      byQuest.set(quest, bosses);
+    }
+    return Array.from(byQuest.entries())
+      .map(([quest, bosses]) => [quest, bosses.slice().sort((a, b) => a.localeCompare(b))] as const)
+      .sort((a, b) => a[0].localeCompare(b[0]));
+  }, [bossOptions, bossToQuest]);
+
   const itemOptions = useMemo(() => {
     const base = bossName ? itemsByBoss[bossName] ?? [] : [];
     return itemName && !base.includes(itemName) ? [itemName, ...base] : base;
@@ -275,9 +293,19 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
           <label className="label-padrao">
             Boss:
             <select value={bossName} onChange={(e) => handleBossChange(e.target.value)} className="campo-input">
-              <option value={VAZIO}>-- Vazio --</option>
-              {bossOptions.map((boss) => (
-                <option key={boss} value={boss}>{boss}</option>
+              {/* `hidden` (não `disabled`/removida) — pedido do usuário: "nunca pode ser
+                  vazio ele so fica em branco até abrir o dropdown depois ele é
+                  obrigatório". Sem isso o <select> não teria nenhuma option
+                  correspondente a value="" e o navegador selecionaria o 1º boss real
+                  sozinho; com `hidden` o campo aparece em branco antes de escolher, mas
+                  "-- Vazio --" nunca aparece como opção clicável na lista. */}
+              <option value={VAZIO} hidden></option>
+              {bossGroups.map(([quest, bosses]) => (
+                <optgroup key={quest} label={quest}>
+                  {bosses.map((boss) => (
+                    <option key={boss} value={boss}>{boss}</option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </label>
