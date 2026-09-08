@@ -282,9 +282,11 @@ export function SplitsHistoricoPage() {
 
   // Clique num dia do modo calendário — pula direto pro detalhe (com transferências) se só
   // tem 1 split naquele dia; com mais de 1, abre os dois lado a lado sem a parte de
-  // pagamento (SplitsDayModal, pedido do usuário em 2026-09-02).
+  // pagamento (SplitsDayModal, pedido do usuário em 2026-09-02). Usa `rows` (SEM filtro de
+  // player/tipo, 2026-09-08) — o modo calendário não filtra mais por esses 2 controles,
+  // ver doc de `viewMode === 'calendar'` mais abaixo.
   const handleSelectDate = (dateKey: string) => {
-    const daySplits = playerAndTypeFilteredRows.filter((r) => r.date === dateKey);
+    const daySplits = rows.filter((r) => r.date === dateKey);
     if (daySplits.length === 1) {
       setSelectedSplitId(daySplits[0].id);
     } else if (daySplits.length > 1) {
@@ -296,9 +298,9 @@ export function SplitsHistoricoPage() {
   // members/transfers/rawLog, que a projeção enxuta de SplitRow não carrega.
   const daySplitsForModal = useMemo(() => {
     if (!selectedDayKey) return [];
-    const idsForDay = new Set(playerAndTypeFilteredRows.filter((r) => r.date === selectedDayKey).map((r) => r.id));
+    const idsForDay = new Set(rows.filter((r) => r.date === selectedDayKey).map((r) => r.id));
     return splitLogs.filter((l) => idsForDay.has(l.id));
-  }, [selectedDayKey, playerAndTypeFilteredRows, splitLogs]);
+  }, [selectedDayKey, rows, splitLogs]);
 
   if (loading) return <div className="loading">Carregando...</div>;
   if (error) return <div className="empty-state">{error}</div>;
@@ -351,69 +353,72 @@ export function SplitsHistoricoPage() {
         </div>
       )}
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
-        <select
-          value={selectedPlayer}
-          onChange={(e) => setSelectedPlayer(e.target.value)}
-          style={{ background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', padding: '6px 10px', borderRadius: 'var(--radius-sm)', fontSize: '13px' }}
-        >
-          <option value={TODOS_PLAYERS}>Todos os players</option>
-          {playerOptions.map((name) => (
-            <option key={name} value={name}>{name}</option>
-          ))}
-        </select>
+      {/* Dropdown de player + pills de tipo + Maior Dano/Cura só fazem sentido no modo
+          Lista (2026-09-08, pedido do usuário: com o total de Boss/Hunt já separado no
+          calendário, "podemos tirar os 3 botões e esse dropdown de player" desse modo —
+          ver doc em SplitsCalendarView.tsx). No modo Lista continuam do jeito que sempre
+          foram. */}
+      {viewMode === 'table' && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
+          <select
+            value={selectedPlayer}
+            onChange={(e) => setSelectedPlayer(e.target.value)}
+            style={{ background: 'var(--color-bg-input)', color: 'var(--color-text)', border: '1px solid var(--color-border)', padding: '6px 10px', borderRadius: 'var(--radius-sm)', fontSize: '13px' }}
+          >
+            <option value={TODOS_PLAYERS}>Todos os players</option>
+            {playerOptions.map((name) => (
+              <option key={name} value={name}>{name}</option>
+            ))}
+          </select>
 
-        <div style={{ display: 'flex', gap: '6px' }}>
-          {TYPE_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => setTypeFilter(opt.value)}
-              style={{
-                padding: '6px 14px', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold',
-                border: typeFilter === opt.value ? '1px solid var(--color-accent)' : '1px solid var(--color-border)',
-                background: typeFilter === opt.value ? 'var(--color-accent-soft)' : 'var(--color-bg-input)',
-                color: typeFilter === opt.value ? 'var(--color-accent)' : 'var(--color-text-muted)',
-              }}
-            >
-              {opt.label}
-            </button>
-          ))}
+          <div style={{ display: 'flex', gap: '6px' }}>
+            {TYPE_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setTypeFilter(opt.value)}
+                style={{
+                  padding: '6px 14px', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold',
+                  border: typeFilter === opt.value ? '1px solid var(--color-accent)' : '1px solid var(--color-border)',
+                  background: typeFilter === opt.value ? 'var(--color-accent-soft)' : 'var(--color-bg-input)',
+                  color: typeFilter === opt.value ? 'var(--color-accent)' : 'var(--color-text-muted)',
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={toggleDamageRecord}
+            style={{
+              padding: '6px 14px', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold',
+              border: isDamageActive ? '1px solid var(--color-danger)' : '1px solid var(--color-border)',
+              background: isDamageActive ? 'var(--color-danger-soft)' : 'var(--color-bg-input)',
+              color: isDamageActive ? 'var(--color-danger)' : 'var(--color-text-muted)',
+            }}
+          >
+            🎯 Maior Dano
+          </button>
+
+          <button
+            type="button"
+            onClick={toggleHealingRecord}
+            style={{
+              padding: '6px 14px', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold',
+              border: isHealingActive ? '1px solid var(--color-success)' : '1px solid var(--color-border)',
+              background: isHealingActive ? 'var(--color-success-soft)' : 'var(--color-bg-input)',
+              color: isHealingActive ? 'var(--color-success)' : 'var(--color-text-muted)',
+            }}
+          >
+            💚 Maior Cura
+          </button>
         </div>
-
-        {viewMode === 'table' && (
-          <>
-            <button
-              type="button"
-              onClick={toggleDamageRecord}
-              style={{
-                padding: '6px 14px', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold',
-                border: isDamageActive ? '1px solid var(--color-danger)' : '1px solid var(--color-border)',
-                background: isDamageActive ? 'var(--color-danger-soft)' : 'var(--color-bg-input)',
-                color: isDamageActive ? 'var(--color-danger)' : 'var(--color-text-muted)',
-              }}
-            >
-              🎯 Maior Dano
-            </button>
-
-            <button
-              type="button"
-              onClick={toggleHealingRecord}
-              style={{
-                padding: '6px 14px', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold',
-                border: isHealingActive ? '1px solid var(--color-success)' : '1px solid var(--color-border)',
-                background: isHealingActive ? 'var(--color-success-soft)' : 'var(--color-bg-input)',
-                color: isHealingActive ? 'var(--color-success)' : 'var(--color-text-muted)',
-              }}
-            >
-              💚 Maior Cura
-            </button>
-          </>
-        )}
-      </div>
+      )}
 
       {viewMode === 'calendar' && (
-        <SplitsCalendarView rows={playerAndTypeFilteredRows} onSelectDate={handleSelectDate} />
+        <SplitsCalendarView rows={rows} onSelectDate={handleSelectDate} />
       )}
 
       {viewMode === 'table' && (playerAveragesByType.hunt.length > 0 || playerAveragesByType.boss.length > 0) && (
