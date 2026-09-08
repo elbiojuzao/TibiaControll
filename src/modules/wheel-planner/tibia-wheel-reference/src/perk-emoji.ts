@@ -15,7 +15,12 @@ export function dedicationEmoji(index: number): string {
 }
 
 export function convictionEmoji(name: string): string {
-  if (name.startsWith('Vessel Resonance')) return '🔮';
+  // Sem ícone nenhum pro Vessel Resonance (2026-09-08, pedido do usuário: "aonde tem o
+  // icone do vessel resonance seria bom tirar o icone deixar vazio") — antes caía no
+  // emoji genérico 🔮 igual qualquer outro Conviction Perk sem sprite/ícone real; usado
+  // tanto na fatia da roda (WheelSlice.tsx) quanto na lista de Conviction Perks
+  // (Summary.tsx via PerkIcon.tsx), os 2 lugares que chamam essa função.
+  if (name.startsWith('Vessel Resonance')) return '';
   if (name === 'Mana Leech') return '🔷';
   if (name === 'Life Leech') return '🩸';
   if (name.includes('Skill Boost')) return '⚔️';

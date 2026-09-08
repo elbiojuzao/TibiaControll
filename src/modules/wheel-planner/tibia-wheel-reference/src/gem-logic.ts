@@ -291,3 +291,74 @@ export function wheelPointsBonus(gems: Record<number, GemState | null>, perks: R
 
   return total;
 }
+
+export interface BasicModTotal {
+  effectId: number;
+  /** Já formatado (ex.: "+2%", "+300", "27.50%") — soma de todas as gemas ativas que dão
+   * esse efeito, no mesmo formato (`BASIC_EFFECTS[effectId].format`) do efeito original. */
+  text: string;
+}
+
+/** Extrai o número (com sinal) do início de um valor já formatado tipo "+1.5%"/"-2%"/"+300"
+ * — os valores de BASIC_MODS já vêm formatados por vocação/grau (sem campo numérico cru
+ * separado), então somar 2 gemas com o mesmo efeito exige reconverter texto->número->texto. */
+function parseSignedNumber(value: string): number {
+  const match = /^([+-]?\d+(?:\.\d+)?)/.exec(value.trim());
+  return match ? parseFloat(match[1]) : 0;
+}
+
+function formatEffectTotal(effectId: number, sum: number): string {
+  const format = BASIC_EFFECTS[effectId].format;
+  if (format === 'PlusInteger') {
+    return `${sum >= 0 ? '+' : ''}${Math.round(sum)}`;
+  }
+  if (format === 'PercentWithTwoFloatingpoints') {
+    return `${sum.toFixed(2)}%`;
+  }
+  // PlusPercentWithUpToTwoFloatingpoints (resistências) — arredonda pra 2 casas e tira
+  // zero à direita desnecessário (Number() já faz isso na conversão de volta pra string).
+  const rounded = Number(sum.toFixed(2));
+  return `${rounded >= 0 ? '+' : ''}${rounded}%`;
+}
+
+/** Soma os mods BÁSICOS ativos de todas as gemas equipadas, agrupados por efeito (ex.: 2
+ * domínios dando Fire Resistance viram um "+2%" só) — usado pro Summary.tsx juntar esses
+ * valores no card de Dedication Perks, igual o jogo real faz (2026-09-08, pedido do
+ * usuário com print de referência do client oficial: "a gema selecionada deve aparecer em
+ * dedications perks somando todos os valores"). Só mods SUPREMOS ficam de fora (não são
+ * stats simples tipo dedication, são bônus de dano/crítico/cooldown). Mesma regra de
+ * ativação por posição de `wheelPointsBonus`/`gemElementIconUrlAtPosition` — só conta
+ * quando a fatia de Vessel Resonance daquela posição já está maxada. */
+export function activeBasicModTotals(
+  gems: Record<number, GemState | null>,
+  perks: Record<number, number>,
+  vocation: Vocation,
+): BasicModTotal[] {
+  const sums = new Map<number, number>();
+
+  for (let domain = 0; domain < 4; domain++) {
+    const gem = gems[domain];
+    if (!gem) {
+      continue;
+    }
+
+    gem.basicMods.forEach((slot, position) => {
+      if (slot.modIndex === null) {
+        return;
+      }
+      const vesselIndex = domainVesselIndices(domain)[position];
+      if (vesselIndex === undefined || !vesselSlotUnlocked(perks, vesselIndex)) {
+        return;
+      }
+
+      for (const effect of BASIC_MODS[slot.modIndex].effects) {
+        const value = parseSignedNumber(effect.values[vocation][gem.tier]);
+        sums.set(effect.effectId, (sums.get(effect.effectId) ?? 0) + value);
+      }
+    });
+  }
+
+  return Array.from(sums.entries())
+    .filter(([, sum]) => sum !== 0)
+    .map(([effectId, sum]) => ({ effectId, text: formatEffectTotal(effectId, sum) }));
+}
