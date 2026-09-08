@@ -35,21 +35,3 @@ export type { SplitLog, SplitLogMember, SplitLogPlayerSlot, SplitLogTransfer, Sp
 export type { PartyEvent, CreatePartyEventDto, PartyEventCategory } from './party-event';
 
 export type { Vocation } from './account';
-export type {
-  WheelVocation,
-  WheelDomainId,
-  WheelRing,
-  WheelSliceGeometry,
-  WheelConvictionKind,
-  DedicationPerkId,
-  GenericConvictionId,
-  WheelAugmentation,
-  WheelRevelationPerk,
-  WheelUniqueConviction,
-  WheelSliceAllocation,
-  GemSize,
-  WheelGemVessel,
-  WheelGem,
-  WheelBuild,
-  CreateWheelBuildDto,
-} from './wheel';

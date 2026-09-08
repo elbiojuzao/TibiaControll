@@ -1,0 +1,64 @@
+/* 
+ * This file is part of Tibia Wheel.
+ * Copyright (c) 2022 Maciej Sopyło
+ * 
+ * Tibia Wheel is free software: you can redistribute it and/or modify  
+ * it under the terms of the GNU Lesser General Public License as published by  
+ * the Free Software Foundation, version 3.
+ *
+ * Tibia Wheel is distributed in the hope that it will be useful, but 
+ * WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License 
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+ .slice {
+  &.section-0 {
+    --inner: var(--section-0-inner);
+    --outer: var(--section-0-outer);
+  }
+  &.section-1 {
+    --inner: var(--section-1-inner);
+    --outer: var(--section-1-outer);
+  }
+  &.section-2 {
+    --inner: var(--section-2-inner);
+    --outer: var(--section-2-outer);
+  }
+  &.section-3 {
+    --inner: var(--section-3-inner);
+    --outer: var(--section-3-outer);
+  }
+  &.locked {
+    --inner: transparent;
+    --outer: transparent;
+  }
+
+  & path {
+    mix-blend-mode: screen;
+
+    stroke: transparent;
+    stroke-width: 0;
+
+    &.inner {
+      opacity: 0.85;
+      fill: var(--inner);
+    }
+    &.outer {
+      opacity: 0.35;
+      fill: var(--outer);
+    }
+  }
+
+  &.selected path.hover {
+    stroke-width: 6;
+    stroke: white;
+  }
+
+  &:hover path.hover {
+    fill: rgba(255, 255, 255, 0.2);
+  }
+}

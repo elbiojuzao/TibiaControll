@@ -83,6 +83,28 @@ const WHEEL_ICON_URLS = {
   lord_of_destruction: 'https://www.tibiawiki.com.br/images/f/f9/Lord_of_Destruction.gif',
   avatar_of_storm: 'https://www.tibiawiki.com.br/images/9/9a/Avatar_of_Storm.gif',
   gift_of_life: 'https://www.tibiawiki.com.br/images/7/7f/Gift_of_Life.gif',
+  // Monk (2026-09-05, pedido do usuário: "a roda do monk esta com os icones em vez das
+  // imagens das magias" — Monk não existia quando o resto desta lista foi baixado do
+  // tibiawiki.com.br, então usa tibia.fandom.com como o resto do Skill Boost/Leech acima;
+  // URLs confirmadas em https://tibia.fandom.com/wiki/Wheel_of_Destiny/Conviction_Perks).
+  // "Thousand Fist Blows" não tem ícone publicado na wiki ainda -- continua emoji.
+  guiding_presence: 'https://static.wikia.nocookie.net/tibia/images/f/f5/Guiding_Presence_Icon.gif/revision/latest?cb=20251026202801&path-prefix=en&format=original',
+  sanctuary: 'https://static.wikia.nocookie.net/tibia/images/f/f0/Sanctuary_Icon.gif/revision/latest?cb=20251026202946&path-prefix=en&format=original',
+  mass_spirit_mend: 'https://static.wikia.nocookie.net/tibia/images/1/15/Augmented_Mass_Spirit_Mend_Icon.gif/revision/latest?cb=20251026203204&path-prefix=en&format=original',
+  flurry_of_blows: 'https://static.wikia.nocookie.net/tibia/images/2/22/Augmented_Flurry_of_Blows_Icon.gif/revision/latest?cb=20251026203203&path-prefix=en&format=original',
+  mystic_repulse: 'https://static.wikia.nocookie.net/tibia/images/9/9f/Augmented_Mystic_Repulse_Icon.gif/revision/latest?cb=20251026203205&path-prefix=en&format=original',
+  chained_penance: 'https://static.wikia.nocookie.net/tibia/images/1/11/Augmented_Chained_Penance_Icon.gif/revision/latest?cb=20251026203203&path-prefix=en&format=original',
+  // Ícones de proteção elemental pras gemas do Ateliê (2026-09-05, pedido do usuário:
+  // "quando usuario selecionar uma gema que tem proteção elemental substituir a imagem
+  // do vessel vazio pela imagem da proteção") — mesma wiki, mesma página de Conviction
+  // Perks. Não existe ícone próprio de "Physical" nem "Holy"/"Death" separados na wiki
+  // (só um ícone combinado "Holy & Death"; "Physical" nem aparece como resistência da
+  // Roda) -- por isso o filtro é só os 4 elementos clássicos + o combinado.
+  resistance_fire: 'https://static.wikia.nocookie.net/tibia/images/8/8c/Resistance_to_Fire_Icon.gif/revision/latest?cb=20221115113613&path-prefix=en&format=original',
+  resistance_earth: 'https://static.wikia.nocookie.net/tibia/images/6/66/Resistance_to_Earth_Icon.gif/revision/latest?cb=20221115113613&path-prefix=en&format=original',
+  resistance_ice: 'https://static.wikia.nocookie.net/tibia/images/7/72/Resistance_to_Ice_Icon.gif/revision/latest?cb=20221115113557&path-prefix=en&format=original',
+  resistance_energy: 'https://static.wikia.nocookie.net/tibia/images/2/28/Resistance_to_Energy_Icon.gif/revision/latest?cb=20221115113612&path-prefix=en&format=original',
+  resistance_holy_death: 'https://static.wikia.nocookie.net/tibia/images/8/82/Resistance_to_Holy_%26_Death_Icon.gif/revision/latest?cb=20221115113556&path-prefix=en&format=original',
 };
 
 async function fetchWithRetry(url, retries = 3) {

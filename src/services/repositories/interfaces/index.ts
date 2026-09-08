@@ -89,13 +89,3 @@ export interface IPartyEventRepository {
   update(id: string, dto: Partial<import('@/types').CreatePartyEventDto>): Promise<import('@/types').PartyEvent>;
   delete(id: string): Promise<void>;
 }
-
-/** Builds salvos da Roda de Destino (2026-09-02) — privado por conta (diferente do mural de
- * party_events), mesmo padrão de "criar um novo registro por vez" do split_logs (não edita
- * um build salvo, salva de novo se mudar algo). Exclusão sempre com confirmação (ver
- * [[feedback_confirmacao_exclusao]]). */
-export interface IWheelBuildRepository {
-  findByAccount(accountId: string): Promise<import('@/types').WheelBuild[]>;
-  create(accountId: string, dto: import('@/types').CreateWheelBuildDto): Promise<import('@/types').WheelBuild>;
-  delete(id: string): Promise<void>;
-}

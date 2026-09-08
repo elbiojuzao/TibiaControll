@@ -1,0 +1,83 @@
+/* 
+ * This file is part of Tibia Wheel.
+ * Copyright (c) 2022 Maciej Sopyło
+ * 
+ * Tibia Wheel is free software: you can redistribute it and/or modify  
+ * it under the terms of the GNU Lesser General Public License as published by  
+ * the Free Software Foundation, version 3.
+ *
+ * Tibia Wheel is distributed in the hope that it will be useful, but 
+ * WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License 
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/* grid-template-rows: minmax(1rem, auto) (2026-09-05, bug real reportado pelo usuário:
+ * "as mensagens de Conviction perks estão encavalando") — a 1ª linha (ícone+título) era
+ * altura FIXA de 1rem (só 1 linha de texto); com um nome de perk longo o bastante pra
+ * quebrar em 2 linhas (ex.: "Augmented Intense Wound Cleansing"), a 2ª linha vazava por
+ * cima da descrição da linha de baixo em vez de empurrá-la. `minmax(1rem, auto)` cresce
+ * a linha quando o título quebra, sem afetar o caso normal de 1 linha só. */
+.perk {
+  display: grid;
+  color: white;
+  list-style: none;
+  gap: 0.15rem 0.25rem;
+  margin-bottom: 0.35rem;
+  grid-template:
+    "icon title" minmax(1rem, auto)
+    ". text" auto / 1rem 1fr;
+
+  & > em {
+    grid-area: icon;
+    align-self: center;
+  }
+
+  & > h2 {
+    align-self: center;
+    grid-area: title;
+    font-weight: normal;
+    font-size: 1em;
+    margin: 0;
+  }
+
+  &.revelation > h2, & h2.special {
+    text-decoration: underline;
+  }
+
+  & > pre {
+    grid-area: text;
+    display: inline-block;
+    margin: 0.25rem 0;
+    word-wrap: normal;
+    white-space: pre-wrap;
+    max-width: 300px;
+    line-height: 1.1;
+
+    & span {
+      padding-left: 1rem;
+      display: block;
+      background-repeat: no-repeat;
+      background-position-y: 2px;
+
+      &.tier1 {
+        background-image: url(../../assets/skillwheel/icon-augmentation1-inactive.webp);
+
+        &.active {
+          background-image: url(../../assets/skillwheel/icon-augmentation1-active.webp);
+        }
+      }
+
+      &.tier2 {
+        background-image: url(../../assets/skillwheel/icon-augmentation2-inactive.webp);
+
+        &.active {
+          background-image: url(../../assets/skillwheel/icon-augmentation2-active.webp);
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,46 @@
+/* 
+ * This file is part of Tibia Wheel.
+ * Copyright (c) 2022 Maciej Sopyło
+ * 
+ * Tibia Wheel is free software: you can redistribute it and/or modify  
+ * it under the terms of the GNU Lesser General Public License as published by  
+ * the Free Software Foundation, version 3.
+ *
+ * Tibia Wheel is distributed in the hope that it will be useful, but 
+ * WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License 
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/* Caixa restilizada pro padrão do sistema (2026-09-05, pedido do usuário: "remova essas
+ * bordas cinzas pois não faz parte do modelo do nosso sistema") — era a borda ornamentada
+ * do jogo original (`border-image: url(widget-borderimage.webp)`), trocada pelo mesmo
+ * padrão de card usado no resto do app (fundo elevado + borda 1px sutil + raio), ver
+ * `.card`/`.card-compacto` em global.css. */
+.widget {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 100%;
+  gap: 0.5rem;
+
+  /* Rótulo de seção (ex.: "Dedication perks:" no Summary) — mesmo padrão de
+     .form-section-title do sistema, no lugar do "selo" sobreposto na borda ornamentada
+     antiga (que dependia da moldura removida acima). */
+  & > span:first-child {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-text-faint);
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--color-border);
+  }
+}

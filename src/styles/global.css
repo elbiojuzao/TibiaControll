@@ -598,6 +598,47 @@ table {
   grid-template-columns: minmax(0, 3fr) minmax(260px, 2fr);
 }
 
+/* Layout de 3 colunas da Roda de Destino (2026-09-05, pedido do usuário: painel de
+   pontos do perk selecionado à esquerda, roda no centro, soma dos buffs à direita —
+   baseado num print de referência do tibiapal.com). Colunas laterais com largura fixa
+   (não crescem além de 280px), coluna central (roda) ocupa o resto. Empilha em 1
+   coluna no mobile (ver media query abaixo) E também abaixo de 1100px (ver media query
+   própria mais abaixo) — a roda tem largura FIXA de 522px (Wheel.module.css), então com
+   as 2 colunas laterais de ~220px cada + gaps ela precisa de ~1000px pra caber sem
+   espremer/derrubar as laterais pra fora da tela (2026-09-05, pedido do usuário: "a roda
+   [tem] que ficar no centro sempre porque as abas laterais tem que sempre estar
+   mostrando" — sem essa margem de segurança, numa largura intermediária a coluna central
+   ficava espremida e a lateral direita saía da área visível, exigindo scroll horizontal). */
+.wheel-layout-3col {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr) minmax(220px, 280px);
+  gap: var(--gap-grid);
+  align-items: start;
+}
+
+/* Centraliza a roda (largura fixa) dentro da coluna central, que normalmente é mais
+   larga que ela — sem isso a roda ficava colada na coluna esquerda em vez de centralizada
+   entre as duas laterais. */
+.wheel-center-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+@media (max-width: 1100px) {
+  .wheel-layout-3col {
+    grid-template-columns: 1fr;
+  }
+}
+
+.wheel-slice {
+  transition: filter 0.1s ease;
+}
+
+.wheel-slice:hover {
+  filter: brightness(1.25);
+}
+
 .grid-3col {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
@@ -1692,7 +1733,8 @@ table {
      campos lado a lado ficam apertados demais dentro de um modal de ~330px. */
   .grid-2col,
   .grid-3col,
-  .wheel-layout-grid {
+  .wheel-layout-grid,
+  .wheel-layout-3col {
     grid-template-columns: 1fr;
   }
 

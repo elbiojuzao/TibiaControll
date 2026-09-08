@@ -1,0 +1,71 @@
+/* 
+ * This file is part of Tibia Wheel.
+ * Copyright (c) 2022 Maciej Sopyło
+ * 
+ * Tibia Wheel is free software: you can redistribute it and/or modify  
+ * it under the terms of the GNU Lesser General Public License as published by  
+ * the Free Software Foundation, version 3.
+ *
+ * Tibia Wheel is distributed in the hope that it will be useful, but 
+ * WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License 
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+:root {
+  --size: 522px;
+}
+
+section.wheel {
+  user-select: none;
+  position: relative;
+  width: var(--size) !important;
+  height: calc(100vh - 2rem);
+  background: url(../../assets/skillwheel/backdrop_skillwheel.webp) no-repeat center top;
+
+  &::before {
+    content: '';
+    display: block;
+    position: absolute;
+    pointer-events: none;
+    left: 0;
+    right: 0;
+    width: var(--size);
+    height: var(--size);
+    transform: rotate(var(--rotation));
+    transition: transform 0.25s;
+    background: url(../../assets/skillwheel/backdrop_skillwheel_front.webp) no-repeat center top;
+  }
+
+  /* article:first-child/nth-child(2) e fieldset (detalhe do perk selecionado) foram
+   * relocados pra SelectionPanel.module.css junto com o JSX que estilizavam (ver
+   * comentário em SelectionPanel.tsx) — esse painel morou aqui até 2026-09-05, agora
+   * fica na coluna esquerda do layout (App.tsx). */
+  & section {
+    margin-top: 1rem;
+    position: relative;
+
+    /* Toggle "Usage" no padrão do sistema (2026-09-05, pedido do usuário: "revisar
+       todos os botões dessa tela") — cor apagada + hover, mesma linguagem de
+       .card-title .info-icon (global.css). O texto do resumo usa --color-text-muted
+       em vez do branco padrão, pra parecer conteúdo secundário. */
+    & summary {
+      cursor: pointer;
+      color: var(--color-text-muted);
+      font-size: 0.8rem;
+
+      &:hover {
+        color: var(--color-text);
+      }
+    }
+
+    & details p {
+      color: var(--color-text-muted);
+      font-size: 0.78rem;
+      margin-top: 0.4rem;
+    }
+  }
+}
