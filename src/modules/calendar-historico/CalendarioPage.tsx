@@ -54,7 +54,7 @@ export function CalendarioPage() {
   const { data: xpData } = useXpSheet();
   // Perfil individual de Hunt/Boss do dia (2026-08-19, pedido do usuário: puxar direto de
   // split_logs em vez da planilha externa) — ver useSplitLogsDaily.
-  const { series: splitDailySeries, hideDay, addSplitOptimistic } = useSplitLogsDaily(accountId);
+  const { series: splitDailySeries, loading: splitDailyLoading, hideDay, addSplitOptimistic } = useSplitLogsDaily(accountId);
   const [hidingType, setHidingType] = useState<'hunt' | 'boss' | null>(null);
   const [hideError, setHideError] = useState<string | null>(null);
   const { events: tibiaEvents } = useTibiaEvents();
@@ -184,6 +184,17 @@ export function CalendarioPage() {
       setHidingType(null);
     }
   };
+
+  // Espera os 3 hooks (hunts/drops/splits) carregarem antes de mostrar a página — sem
+  // isso, dava pra ver o valor do dia/mês "piscar" incompleto (ex.: só Boss+Hunt, sem o
+  // item ainda) no instante entre um hook resolver e o outro, já que cada um busca em
+  // paralelo e cada resposta dispara um re-render próprio (2026-09-08, pedido do usuário:
+  // dia 6/09 mostrou só a soma dos splits sem o item por um instante — "assim o calculo
+  // nunca mostrara errado"). Mesmo padrão de `if (loading) return <div
+  // className="loading">Carregando...</div>` já usado em SplitsHistoricoPage.tsx.
+  if (huntsLoading || dropsLoading || splitDailyLoading) {
+    return <div className="loading">Carregando...</div>;
+  }
 
   return (
     <>
