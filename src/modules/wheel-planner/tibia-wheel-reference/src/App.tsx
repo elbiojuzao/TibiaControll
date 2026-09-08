@@ -22,6 +22,7 @@ import { Wheel } from './components/Wheel';
 import { VocationSelector } from './components/VocationSelector';
 import { Summary } from './components/Summary';
 import { SelectionPanel } from './components/SelectionPanel';
+import { WheelPresets } from './components/WheelPresets';
 
 /** Layout em 3 colunas (2026-09-05, pedido do usuário, baseado num print de referência do
  * tibiapal.com): painel de adicionar/remover pontos do perk selecionado na ESQUERDA
@@ -46,6 +47,9 @@ export const App: React.FC = () => {
         </div>
         <div><Summary /></div>
       </div>
+      {/* Presets salvos (2026-09-08, pedido do usuário) — não é código original, ver
+          WheelPresets.tsx. Fica embaixo das 3 colunas, ocupando a largura toda. */}
+      <WheelPresets/>
     </RootContextProvider>
   </>;
 };

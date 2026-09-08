@@ -33,5 +33,6 @@ export type { PartySettings } from './party-settings';
 export type { XpCharacterStats, XpDailyEntry } from './xp-sheet';
 export type { SplitLog, SplitLogMember, SplitLogPlayerSlot, SplitLogTransfer, SplitLogType, CreateSplitLogDto } from './split-log';
 export type { PartyEvent, CreatePartyEventDto, PartyEventCategory } from './party-event';
+export type { WheelPreset, CreateWheelPresetDto } from './wheel-preset';
 
 export type { Vocation } from './account';

@@ -14,6 +14,7 @@ import type {
   IServiceiroRepository,
   IDashboardRepository,
   ISettingsRepository,
+  IWheelPresetRepository,
 } from './interfaces';
 
 import { MockAccountRepository } from './mock/mock-account-repository';
@@ -27,12 +28,14 @@ import { MockPartyEventRepository } from './mock/mock-party-event-repository';
 import { MockServiceiroRepository } from './mock/mock-serviceiro-repository';
 import { MockDashboardRepository } from './mock/mock-dashboard-repository';
 import { MockSettingsRepository } from './mock/mock-settings-repository';
+import { MockWheelPresetRepository } from './mock/mock-wheel-preset-repository';
 import { HttpServiceiroRepository } from './http/http-serviceiro-repository';
 import { HttpLootDropRepository } from './http/http-loot-drop-repository';
 import { HttpSplitLogRepository } from './http/http-split-log-repository';
 import { HttpPartyEventRepository } from './http/http-party-event-repository';
 import { HttpAccountRepository } from './http/http-account-repository';
 import { HttpMemberRepository } from './http/http-member-repository';
+import { HttpWheelPresetRepository } from './http/http-wheel-preset-repository';
 
 export interface RepositoryContainer {
   account: IAccountRepository;
@@ -46,6 +49,7 @@ export interface RepositoryContainer {
   serviceiro: IServiceiroRepository;
   dashboard: IDashboardRepository;
   settings: ISettingsRepository;
+  wheelPreset: IWheelPresetRepository;
 }
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false';
@@ -79,6 +83,10 @@ export const SPLIT_LOGS_USE_SUPABASE = import.meta.env.VITE_SPLIT_LOGS_USE_SUPAB
  * (2026-08-25) — ver migration 20260825000000_create_party_events_table.sql. */
 export const PARTY_EVENTS_USE_SUPABASE = import.meta.env.VITE_PARTY_EVENTS_USE_SUPABASE === 'true';
 
+/** Mesma ideia, mas para os presets salvos da Roda de Destino (2026-09-08) — ver migration
+ * 20260908010000_create_wheel_presets_table.sql. */
+export const WHEEL_PRESETS_USE_SUPABASE = import.meta.env.VITE_WHEEL_PRESETS_USE_SUPABASE === 'true';
+
 function createRepositories(): RepositoryContainer {
   if (USE_MOCK) {
     return {
@@ -93,6 +101,7 @@ function createRepositories(): RepositoryContainer {
       serviceiro: SERVICEIROS_USE_SUPABASE ? new HttpServiceiroRepository() : new MockServiceiroRepository(),
       dashboard: new MockDashboardRepository(),
       settings: new MockSettingsRepository(),
+      wheelPreset: WHEEL_PRESETS_USE_SUPABASE ? new HttpWheelPresetRepository() : new MockWheelPresetRepository(),
     };
   }
 
