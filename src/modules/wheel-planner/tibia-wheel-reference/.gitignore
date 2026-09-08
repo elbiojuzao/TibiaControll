@@ -2,7 +2,12 @@ node_modules
 .parcel-cache
 .tmp
 dist
-assets/*
-!assets/.gitkeep
 .vercel
 .vscode
+
+# `assets/*` (com exceção só de .gitkeep) foi removido daqui (2026-09-08) — regra do
+# projeto original, que não redistribui arte do jogo de propósito (busca do client do
+# próprio usuário). Nosso port PRECISA desses arquivos comitados (backdrop/sprites da
+# roda) pra buildar — sem isso o Vite não resolve os imports em Wheel.tsx/WheelRevelation.tsx
+# num clone limpo (funcionava só localmente, onde os arquivos já existiam em disco sem
+# nunca terem ido pro git — causa real de vários deploys falhando na Vercel em silêncio).
