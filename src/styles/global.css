@@ -569,6 +569,18 @@ table {
   outline-offset: -1px;
 }
 
+/* Campos numéricos sem as setinhas de subir/descer — gerou erro de valor trocado
+   sem querer ao clicar ou rolar o mouse por cima (pedido do usuário, 2026-09-12). */
+input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 .label-checkbox {
   display: flex;
   align-items: center;
