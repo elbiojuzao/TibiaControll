@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAccount } from '@/hooks/useAccount';
 import { useLootDrops } from '@/hooks/useLootDrops';
 import { useMembers } from '@/hooks/useMembers';
+import { useServiceiros } from '@/hooks/useServiceiros';
 import { useMemberLiveStats } from '@/hooks/useMemberLiveStats';
 import { useMemberXpStats } from '@/hooks/useMemberXpStats';
 import { useSplitLogsDaily } from '@/hooks/useSplitLogsDaily';
@@ -14,6 +15,7 @@ import { monthRangeAsBr } from '@/services/common/months';
 import { dateAsBr, todayAsBr } from '@/services/common/br-date';
 import { parseDateKey } from '@/services/calendar';
 import { buildLast12Months, computeMonthlyTrends, type DashboardMetricKey } from '@/services/dashboard/monthly-trend';
+import { DropFormModal } from './components/DropFormModal';
 import { UnsoldItemsShareModal } from './components/UnsoldItemsShareModal';
 import { MonthlyTrendModal, type StackedSeries } from './components/MonthlyTrendModal';
 import { PlayerDropsModal } from './components/PlayerDropsModal';
@@ -23,7 +25,8 @@ import { KpiGrid } from './components/KpiGrid';
 import { MembersXpTable } from './components/MembersXpTable';
 import { UnsoldItemsCard } from './components/UnsoldItemsCard';
 import { TopDropCard } from './components/TopDropCard';
-import type { LootDropFilters } from '@/types';
+import { brToIso } from '@/services/common/br-date';
+import type { LootDrop, LootDropFilters } from '@/types';
 
 /** Rótulo + tipo de valor (gold vs contagem) de cada KPI clicável do grid — usado pra
  * título/formatação da modal de tendência mensal (MonthlyTrendModal, 2026-08-21). */
@@ -43,6 +46,7 @@ const METRIC_META: Record<DashboardMetricKey, { label: string; isCurrency: boole
 export function DashboardPage() {
   const { accountId, loading: accountLoading } = useAccount();
   const { members } = useMembers(accountId);
+  const { serviceiros } = useServiceiros(accountId);
   const liveStats = useMemberLiveStats(members);
   const { statsByName } = useMemberXpStats(accountId);
   const { series: splitDailySeries } = useSplitLogsDaily(accountId);
@@ -94,6 +98,7 @@ export function DashboardPage() {
   const [bossFilter] = useState('');
   const [soldFilter] = useState<string>('all');
   const [showUnsoldShareModal, setShowUnsoldShareModal] = useState(false);
+  const [editingUnsoldDrop, setEditingUnsoldDrop] = useState<LootDrop | null>(null);
   const [activeTrendMetric, setActiveTrendMetric] = useState<DashboardMetricKey | null>(null);
   const [activePlayerDrops, setActivePlayerDrops] = useState<string | null>(null);
   const [activeItemName, setActiveItemName] = useState<string | null>(null);
@@ -189,11 +194,12 @@ export function DashboardPage() {
 
   // Independente do mês selecionado — "todos os itens não vendidos" é de todos os meses,
   // não só do mês em exibição na tabela "Drops no mês".
-  const { drops: allUnsoldDrops, loading: unsoldLoading, error: unsoldError } = useLootDrops(accountId, { sold: false });
+  const { drops: allUnsoldDrops, loading: unsoldLoading, error: unsoldError, updateDrop: updateUnsoldDrop } = useLootDrops(accountId, { sold: false });
 
   const unsoldGrouped = useMemo(() => {
     const byItem = new Map<string, { count: number; totalValue: number; bosses: Set<string> }>();
     for (const d of allUnsoldDrops) {
+      if (d.sold) continue;
       const existing = byItem.get(d.itemName) ?? { count: 0, totalValue: 0, bosses: new Set<string>() };
       existing.count += 1;
       existing.totalValue += d.totalValue;
@@ -204,6 +210,16 @@ export function DashboardPage() {
       .map(([itemName, { count, totalValue, bosses }]) => ({ itemName, count, totalValue, bosses: Array.from(bosses) }))
       .sort((a, b) => b.count - a.count || a.itemName.localeCompare(b.itemName));
   }, [allUnsoldDrops]);
+
+  // Clicar num item do card "TODOS os Itens não vendidos" abre a edição do drop MAIS
+  // ANTIGO daquele item (pedido do usuário, 2026-09-13) — quando o mesmo item tem vários
+  // drops pendentes, é o mais velho que faz mais sentido resolver primeiro.
+  const handleUnsoldItemClick = (itemName: string) => {
+    const candidates = allUnsoldDrops.filter((d) => !d.sold && d.itemName === itemName);
+    if (candidates.length === 0) return;
+    const oldest = candidates.reduce((older, d) => (brToIso(d.date) < brToIso(older.date) ? d : older));
+    setEditingUnsoldDrop(oldest);
+  };
 
   // KKs Plunder(ind) / Qtd Plunders = soma do Valor CADA (unitValue — "(ind)" é individual,
   // não o valor total do drop inteiro, ver fix de 2026-08-20 abaixo) e contagem dos drops
@@ -391,6 +407,7 @@ export function DashboardPage() {
             loading={unsoldLoading}
             error={unsoldError}
             onShareClick={() => setShowUnsoldShareModal(true)}
+            onItemClick={handleUnsoldItemClick}
           />
 
           <TopDropCard ranking={topDropRanking} loading={topDropLoading} onPlayerClick={setActivePlayerDrops} />
@@ -401,6 +418,17 @@ export function DashboardPage() {
 
       {showUnsoldShareModal && (
         <UnsoldItemsShareModal items={unsoldGrouped} onClose={() => setShowUnsoldShareModal(false)} />
+      )}
+      {editingUnsoldDrop && (
+        <DropFormModal
+          key={editingUnsoldDrop.id}
+          mode="edit"
+          drop={editingUnsoldDrop}
+          members={members}
+          serviceiros={serviceiros}
+          onClose={() => setEditingUnsoldDrop(null)}
+          onSubmit={(dto) => updateUnsoldDrop(editingUnsoldDrop.id, dto)}
+        />
       )}
       {activeTrendMetric && (
         <MonthlyTrendModal

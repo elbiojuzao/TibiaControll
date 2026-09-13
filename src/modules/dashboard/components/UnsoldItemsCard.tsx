@@ -19,6 +19,8 @@ interface UnsoldItemsCardProps {
   loading: boolean;
   error: string | null;
   onShareClick: () => void;
+  /** Clicar numa linha do item abre a edição do drop mais antigo daquele item (2026-09-13) */
+  onItemClick: (itemName: string) => void;
 }
 
 /** Card "TODOS os Itens não vendidos" do Dashboard (Coluna 3) — extraído em 2026-08-27 pra
@@ -26,7 +28,7 @@ interface UnsoldItemsCardProps {
  * apresentação: agrupamento por item já vem pronto por props; o botão de compartilhar só
  * dispara onShareClick (abre o UnsoldItemsShareModal, que continua sendo chamado só na
  * página, ver [[feedback-modal-arquivo-separado]]). */
-export function UnsoldItemsCard({ items, totalCount, loading, error, onShareClick }: UnsoldItemsCardProps) {
+export function UnsoldItemsCard({ items, totalCount, loading, error, onShareClick, onItemClick }: UnsoldItemsCardProps) {
   return (
     <div className="card-compacto" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1px solid var(--color-border)', paddingBottom: '8px' }}>
@@ -66,7 +68,12 @@ export function UnsoldItemsCard({ items, totalCount, loading, error, onShareClic
             {items.map((item) => {
               const iconUrl = getItemIconUrl(item.itemName);
               return (
-                <div key={item.itemName} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 4px', borderBottom: '1px solid var(--color-bg-elevated)' }}>
+                <div
+                  key={item.itemName}
+                  onClick={() => onItemClick(item.itemName)}
+                  title="Editar o item pendente mais antigo"
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 4px', borderBottom: '1px solid var(--color-bg-elevated)', cursor: 'pointer' }}
+                >
                   {iconUrl
                     ? <img src={iconUrl} alt="" className="h20 w20" style={{ objectFit: 'contain', imageRendering: 'pixelated', flexShrink: 0 }} />
                     : <span className="w20" style={{ flexShrink: 0 }} />}
