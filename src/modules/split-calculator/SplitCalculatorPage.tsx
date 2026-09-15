@@ -66,7 +66,11 @@ function formatAmountForMessage(value: number): string {
  * WhatsApp) — 2026-08-21, pedido do usuário: "eu precisava de um split pra mandar para
  * todos pagarem", com um print de exemplo de outra ferramenta ("X to pay Y to Z (Bank:
  * transfer N to Z)" + Total profit + Session duration + Damage Split). Formato replicado
- * o mais próximo possível do exemplo. `sessionDurationHours`/`Label` vêm null quando o
+ * o mais próximo possível do exemplo. **Parcialmente traduzido pra pt-BR em 2026-09-14**
+ * (pedido do usuário) — "Results:"→"Resultados:", "X to pay Y to Z"→"X paga Y para Z",
+ * "which is:"→"Total:"/":" e "for each player (per hour)"→"para cada player (por hora)";
+ * o resto ficou de propósito em inglês (o texto do comando "Bank: transfer N to Z", que é
+ * colado direto no jogo, "Total profit"/"Damage Split" e os nomes de jogador). `sessionDurationHours`/`Label` vêm null quando o
  * log colado não tem a linha "Session: HH:MMh" — nesse caso a linha de duração é omitida
  * (nunca inventa um valor). `damageSplit` vazio (log sem "Damage:") omite a última linha. */
 function buildPartySplitMessage(
@@ -80,17 +84,17 @@ function buildPartySplitMessage(
 ): string {
   if (memberCount === 0) return '';
 
-  const lines: string[] = ['Results:', ''];
+  const lines: string[] = ['Resultados:', ''];
 
   for (const t of transfers) {
-    lines.push(`${t.from} to pay ${formatAmountForMessage(t.amount)} to ${t.to} (Bank: transfer ${t.amount} to ${t.to})`, '');
+    lines.push(`${t.from} paga ${formatAmountForMessage(t.amount)} para ${t.to} (Bank: transfer ${t.amount} to ${t.to})`, '');
   }
 
-  lines.push(`Total profit: ${formatAmountForMessage(totalBalance)}~ which is: ${formatAmountForMessage(equalShare)}~ for each player.`, '');
+  lines.push(`Total profit: ${formatAmountForMessage(totalBalance)}~ Total: ${formatAmountForMessage(equalShare)}~ para cada player.`, '');
 
   if (sessionDurationHours && sessionDurationHours > 0 && sessionDurationLabel) {
     const perHour = equalShare / sessionDurationHours;
-    lines.push(`Session duration: ${sessionDurationLabel}, which is: ${formatAmountForMessage(perHour)}~ for each player per hour.`, '');
+    lines.push(`Duração da sessão : ${sessionDurationLabel}: ${formatAmountForMessage(perHour)}~ para cada player por hora.`, '');
   }
 
   if (damageSplit.length > 0) {
