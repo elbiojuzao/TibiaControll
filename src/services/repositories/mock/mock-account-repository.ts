@@ -19,4 +19,10 @@ export class MockAccountRepository implements IAccountRepository {
     accountStore = { ...accountStore, partyName };
     return accountStore;
   }
+
+  async updateWorld(_accountId: string, world: string): Promise<Account> {
+    await delay();
+    accountStore = { ...accountStore, world };
+    return accountStore;
+  }
 }

@@ -5,13 +5,14 @@ import { usePartyEvents } from '@/hooks/usePartyEvents';
 import { useAccountSecurity } from '@/hooks/useAccountSecurity';
 import { VOCATION_ICON, VOCATION_LABEL } from '@/services/vocation/vocation-display';
 import { SKILL_CATEGORY_LABEL } from '@/services/tibiadata/tibiadata-client';
+import { fetchWorldNamesCached } from '@/services/tibiadata/world-list-cache';
 import { PARTY_EVENT_CATEGORY_ICON, PARTY_EVENT_CATEGORY_LABEL } from '@/services/party-events/party-event-display';
 import { MemberFormModal } from './components/MemberFormModal';
 import { PartyEventFormModal } from './components/PartyEventFormModal';
 import type { Member, PartyEvent } from '@/types';
 
 export function SettingsPage() {
-  const { accountId, account, updatePartyName } = useAccount();
+  const { accountId, account, updatePartyName, updateWorld } = useAccount();
   const { members, loading, error, createMember, updateMember, removeMember } = useMembers(accountId);
   const { emailInfo, changePassword, changeEmail } = useAccountSecurity();
 
@@ -162,6 +163,43 @@ export function SettingsPage() {
       setPartyNameError(err instanceof Error ? err.message : 'Erro ao salvar nome da party.');
     } finally {
       setSavingPartyName(false);
+    }
+  };
+
+  // Mundo (servidor) do Tibia (2026-09-16, pedido do usuário) — mesmo padrão de "Nome da
+  // Party" acima. Usado só pra consultar kill statistics do TibiaData por criatura (ver
+  // CreatureKillCounter na topbar) — sem isso configurado, aquele widget fica escondido.
+  const [formWorld, setFormWorld] = useState('');
+  const [savingWorld, setSavingWorld] = useState(false);
+  const [worldError, setWorldError] = useState<string | null>(null);
+  const [worldSaved, setWorldSaved] = useState(false);
+  // Dropdown em vez de texto livre (2026-09-16, pedido do usuário) — lista real vinda do
+  // TibiaData (GET /worlds), cacheada 7 dias (ver world-list-cache.ts). Se a busca falhar,
+  // worldOptions fica [] e o <select> cai pra só mostrar o valor já salvo (ver JSX abaixo).
+  const [worldOptions, setWorldOptions] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (account) setFormWorld(account.world ?? '');
+  }, [account]);
+
+  useEffect(() => {
+    fetchWorldNamesCached().then(setWorldOptions).catch(() => setWorldOptions([]));
+  }, []);
+
+  const handleSaveWorld = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = formWorld.trim();
+    if (!trimmed) return setWorldError('Selecione o mundo.');
+    setWorldError(null);
+    setSavingWorld(true);
+    try {
+      await updateWorld(trimmed);
+      setWorldSaved(true);
+      setTimeout(() => setWorldSaved(false), 2000);
+    } catch (err) {
+      setWorldError(err instanceof Error ? err.message : 'Erro ao salvar mundo.');
+    } finally {
+      setSavingWorld(false);
     }
   };
 
@@ -321,6 +359,40 @@ export function SettingsPage() {
           </button>
         </form>
         {partyNameError && <span className="texto-perigo" style={{ display: 'block', marginTop: '8px', fontSize: '12px' }}>{partyNameError}</span>}
+      </div>
+
+      <div className="card" style={{ marginBottom: '20px' }}>
+        <h3 style={{ margin: '0 0 4px 0', fontSize: '13px', color: 'var(--color-accent)' }}>Mundo do Servidor (Tibia)</h3>
+        <p className="texto-mudo" style={{ margin: '0 0 12px 0', fontSize: '12px' }}>
+          Usado só pra consultar kill statistics do TibiaData por criatura (ex: contador de Plunder Patriarches na topbar).
+        </p>
+        <form onSubmit={handleSaveWorld} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+          <select
+            value={formWorld}
+            onChange={(e) => setFormWorld(e.target.value)}
+            className="campo-input"
+            style={{ flex: '1 1 240px', minWidth: '200px', marginTop: 0 }}
+          >
+            {/* `hidden` (não `disabled`) — mesmo truque do dropdown de Boss do DropFormModal:
+                nasce em branco antes de escolher, sem "-- Selecione --" aparecer clicável. */}
+            <option value="" hidden></option>
+            {/* Sempre inclui o valor já salvo, mesmo que a busca de mundos tenha falhado ou
+                (improvável) o mundo não esteja na lista — nunca perde o dado já configurado. */}
+            {formWorld && !worldOptions.includes(formWorld) && <option value={formWorld}>{formWorld}</option>}
+            {worldOptions.map((w) => (
+              <option key={w} value={w}>{w}</option>
+            ))}
+          </select>
+          <button
+            type="submit"
+            disabled={savingWorld || !account}
+            className="botao-primario"
+            style={{ background: worldSaved ? 'var(--color-success)' : 'var(--color-accent)', opacity: savingWorld ? 0.7 : 1 }}
+          >
+            {savingWorld ? 'Salvando...' : worldSaved ? 'Salvo!' : 'Salvar Mundo'}
+          </button>
+        </form>
+        {worldError && <span className="texto-perigo" style={{ display: 'block', marginTop: '8px', fontSize: '12px' }}>{worldError}</span>}
       </div>
 
       {/* "Adicionar Eventos" — só pra conta Admin (2026-08-28, pedido do usuário: "a

@@ -11,4 +11,7 @@ export const mockAccount: Account = {
   // ver [[modulo-eventos-party]]) sem precisar mexer no banco real — produção nasce false
   // por padrão (migration 20260828000000), precisa de UPDATE manual pra virar admin.
   isAdmin: true,
+  // Mundo real da party (2026-09-16) — preenchido aqui só pra dev local já vir com o
+  // widget de kill statistics (CreatureKillCounter) funcionando sem precisar configurar.
+  world: 'Collabra',
 };

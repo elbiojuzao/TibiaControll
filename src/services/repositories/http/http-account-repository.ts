@@ -9,10 +9,18 @@ interface AccountRow {
   type: 'party' | 'solo';
   created_at: string;
   is_admin: boolean;
+  world: string | null;
 }
 
 function toDomain(row: AccountRow): Account {
-  return { id: row.id, partyName: row.party_name, type: row.type, createdAt: row.created_at, isAdmin: row.is_admin };
+  return {
+    id: row.id,
+    partyName: row.party_name,
+    type: row.type,
+    createdAt: row.created_at,
+    isAdmin: row.is_admin,
+    world: row.world ?? undefined,
+  };
 }
 
 /**
@@ -36,6 +44,18 @@ export class HttpAccountRepository implements IAccountRepository {
     const { data, error } = await getSupabaseClient()
       .from('accounts')
       .update({ party_name: partyName })
+      .eq('id', accountId)
+      .select()
+      .single();
+    if (error) throw new Error(friendlyErrorMessage(error));
+    return toDomain(data as AccountRow);
+  }
+
+  /** Mundo (servidor) do Tibia da party (2026-09-16) — mesma regra de RLS de updatePartyName. */
+  async updateWorld(accountId: string, world: string): Promise<Account> {
+    const { data, error } = await getSupabaseClient()
+      .from('accounts')
+      .update({ world })
       .eq('id', accountId)
       .select()
       .single();

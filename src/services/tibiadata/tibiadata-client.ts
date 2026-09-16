@@ -126,6 +126,59 @@ export async function findExperienceValue(world: string, characterName: string):
   return searchHighscoreValue(world, 'experience', characterName);
 }
 
+interface TibiaDataWorldsResponse {
+  worlds: {
+    regular_worlds: { name: string }[];
+    /** `null` (não `[]`) quando não há torneio ativo no momento — confirmado batendo na
+     * API real em 2026-09-16, não documentado no shape "óbvio". */
+    tournament_worlds: { name: string }[] | null;
+  };
+}
+
+/** Lista de mundos reais do Tibia (2026-09-16) — usada só pro dropdown de "Mundo do
+ * Servidor" em Configurações (ver businessLogic.creatureKillStats). Inclui mundos de
+ * torneio também quando existirem (raros, mas evita um mundo real não aparecer na lista). */
+export async function fetchWorldNames(): Promise<string[]> {
+  const res = await fetch(`${BASE_URL}/worlds`);
+  if (!res.ok) throw new Error('Falha ao buscar lista de mundos do TibiaData');
+  const data: TibiaDataWorldsResponse = await res.json();
+  const names = [...data.worlds.regular_worlds, ...(data.worlds.tournament_worlds ?? [])].map((w) => w.name);
+  return names.sort((a, b) => a.localeCompare(b));
+}
+
+export interface CreatureKillStats {
+  /** Mortos no último dia completo ("ontem", conforme a página oficial de Kill Statistics) */
+  lastDayKilled: number;
+  /** Mortos nos últimos 7 dias (janela rolante) */
+  lastWeekKilled: number;
+}
+
+interface TibiaDataKillStatisticsResponse {
+  killstatistics: {
+    world: string;
+    entries: { race: string; last_day_killed: number; last_week_killed: number }[];
+  };
+}
+
+/**
+ * Kill statistics são por MUNDO (não globais como boosted creature/boss) — pedido do
+ * usuário em 2026-09-16: "quantas [criatura] morreram no dia anterior e quantas na
+ * semana". A API devolve o nome da "race" em minúsculo e quase sempre no PLURAL (ex:
+ * "Plunder Patriarch" vira "plunder patriarches" na lista) — comparar com `startsWith`
+ * (case-insensitive) em vez de igualdade exata cobre plural em -s/-es sem precisar de
+ * uma tabela de exceções. Retorna null se a criatura não aparecer na lista desse mundo
+ * (nome errado, ou não é mais reconhecida como criatura "matável" nesse contexto).
+ */
+export async function fetchCreatureKillStats(world: string, creatureName: string): Promise<CreatureKillStats | null> {
+  const res = await fetch(`${BASE_URL}/killstatistics/${encodeURIComponent(world)}`);
+  if (!res.ok) throw new Error(`Falha ao buscar kill statistics de ${world}`);
+  const data: TibiaDataKillStatisticsResponse = await res.json();
+  const target = creatureName.toLowerCase();
+  const entry = data.killstatistics.entries.find((e) => e.race.toLowerCase().startsWith(target));
+  if (!entry) return null;
+  return { lastDayKilled: entry.last_day_killed, lastWeekKilled: entry.last_week_killed };
+}
+
 /** Deriva a categoria de Highscore a consultar a partir da vocação, quando o Member não define uma explícita */
 export function resolveSkillCategory(vocation: string, override?: HighscoreSkillCategory): HighscoreSkillCategory {
   if (override) return override;

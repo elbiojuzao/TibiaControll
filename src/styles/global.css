@@ -385,6 +385,37 @@ table {
   white-space: nowrap;
 }
 
+/* Contador de mortes de criatura (2026-09-16) — mesmo espírito visual do chip de
+   BoostedToday, mas com um badge numérico sobreposto no canto do ícone (a quantidade
+   morta NO DIA); dia+semana só aparecem no tooltip ao passar o mouse. */
+.creature-kill-chip {
+  position: relative;
+  display: flex;
+  align-items: center;
+  cursor: default;
+}
+
+.creature-kill-chip img {
+  flex-shrink: 0;
+  image-rendering: pixelated;
+}
+
+.creature-kill-badge {
+  position: absolute;
+  bottom: -4px;
+  right: -6px;
+  min-width: 16px;
+  padding: 1px 4px;
+  border-radius: 999px;
+  border: 1px solid var(--color-bg-hover);
+  background: var(--color-danger);
+  color: #fff;
+  font-size: 10px;
+  font-weight: bold;
+  line-height: 1.4;
+  text-align: center;
+}
+
 .main-content {
   flex: 1;
   padding: 2rem;
@@ -1696,6 +1727,11 @@ input[type='number']::-webkit-inner-spin-button {
   }
 
   .boosted-today-chip img {
+    width: 26px;
+    height: 26px;
+  }
+
+  .creature-kill-chip img {
     width: 26px;
     height: 26px;
   }

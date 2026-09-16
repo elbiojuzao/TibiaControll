@@ -88,5 +88,13 @@ export function useAccount() {
     return updated;
   };
 
-  return { account, loading, error, accountId: account?.id ?? MOCK_ACCOUNT_ID, updatePartyName };
+  const updateWorld = async (world: string): Promise<Account> => {
+    if (!account) throw new Error('Conta não carregada ainda.');
+    const updated = await repositories.account.updateWorld(account.id, world);
+    setAccount(updated);
+    writeCachedAccount(updated);
+    return updated;
+  };
+
+  return { account, loading, error, accountId: account?.id ?? MOCK_ACCOUNT_ID, updatePartyName, updateWorld };
 }

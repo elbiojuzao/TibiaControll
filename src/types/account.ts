@@ -15,4 +15,9 @@ export interface Account {
    * conta/party, mesmo modelo de login compartilhado. Hoje só controla quem vê/usa
    * "Adicionar Eventos" em Configurações (ver [[modulo-eventos-party]]). */
   isAdmin: boolean;
+  /** Mundo (servidor) do Tibia onde os personagens da party jogam (ex: 'Collabra') —
+   * 2026-09-16, pedido do usuário: usado só pra consultar kill statistics do TibiaData por
+   * criatura (ver [[integracao_tibiadata]] / componente CreatureKillCounter). Undefined/null
+   * até o usuário configurar em Configurações. */
+  world?: string;
 }

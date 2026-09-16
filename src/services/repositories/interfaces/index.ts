@@ -5,6 +5,7 @@ import type { Account } from '@/types';
 export interface IAccountRepository {
   getCurrentAccount(): Promise<Account | null>;
   updatePartyName(accountId: string, partyName: string): Promise<Account>;
+  updateWorld(accountId: string, world: string): Promise<Account>;
 }
 
 export interface IMemberRepository {

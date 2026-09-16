@@ -3,6 +3,7 @@ import { NavLink, Outlet } from 'react-router-dom';
 import { useAccount } from '@/hooks/useAccount';
 import { useAuth } from '@/hooks/useAuth';
 import { BoostedToday } from './BoostedToday';
+import { CreatureKillCounter } from './CreatureKillCounter';
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: '📊', gated: true },
@@ -93,6 +94,7 @@ export function AppLayout() {
         </nav>
 
         <div className="topbar-actions">
+          <CreatureKillCounter />
           <BoostedToday />
           <div className="avatar-trigger">
             <button type="button" className="avatar" title={account?.partyName ?? 'Party'} aria-label="Menu da conta">
