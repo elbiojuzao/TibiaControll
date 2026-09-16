@@ -1,18 +1,21 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAccount } from '@/hooks/useAccount';
 import { useAuth } from '@/hooks/useAuth';
 import { BoostedToday } from './BoostedToday';
 import { CreatureKillCounter } from './CreatureKillCounter';
+import wheelOfDestinyIcon from '@/assets/nav-icons/wheel-of-destiny.gif';
 
-const navItems = [
+const navItems: { to: string; label: string; icon: ReactNode; gated: boolean }[] = [
   { to: '/', label: 'Dashboard', icon: '📊', gated: true },
   { to: '/loot-log', label: 'Log de Drops', icon: '💎', gated: true },
   { to: '/split', label: 'Split Loot', icon: '💰', gated: false },
   { to: '/timers', label: 'Timers', icon: '⏱️', gated: false },
   { to: '/tier-calculator', label: 'Calculadora Tier', icon: '⚒️', gated: false },
   { to: '/charm-planner', label: 'Charm Planner', icon: '🔮', gated: false },
-  { to: '/roda-destino', label: 'Roda de Destino', icon: '🎡', gated: false },
+  // Ícone real (2026-09-16, sprite oficial do jogo via tibiawiki.com.br) no lugar do
+  // emoji 🎡 genérico — pedido do usuário, único item do nav com imagem em vez de emoji.
+  { to: '/roda-destino', label: 'Roda de Destino', icon: <img src={wheelOfDestinyIcon} alt="" className="h18 w18" style={{ imageRendering: 'pixelated' }} />, gated: false },
   { to: '/calendario', label: 'Histórico', icon: '📅', gated: true },
   { to: '/serviceiros', label: 'Serviceiros', icon: '🤝', gated: true },
   // Configurações (2026-08-16) mora só no menu do avatar, não duplica aqui no nav.
