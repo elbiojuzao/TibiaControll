@@ -32,6 +32,8 @@ interface DropRow {
   valor_total: number;
   vendido: boolean;
   data_venda: string | null;
+  valor_coin: number | null;
+  venda_valor_coin: number | null;
   drop_services: DropServiceRow[];
 }
 
@@ -67,6 +69,8 @@ function toDomain(row: DropRow): LootDrop {
     bossName: row.boss,
     sold: row.vendido,
     saleDate: row.data_venda ? isoToBr(row.data_venda) : undefined,
+    coinValue: row.valor_coin ?? undefined,
+    saleCoins: row.venda_valor_coin ?? undefined,
   };
 }
 
@@ -136,6 +140,8 @@ export class HttpLootDropRepository implements ILootDropRepository {
         valor_total: dto.totalValue,
         vendido: dto.sold ?? false,
         data_venda: dto.saleDate ? brToIso(dto.saleDate) : null,
+        valor_coin: dto.coinValue ?? null,
+        venda_valor_coin: dto.saleCoins ?? null,
       })
       .select()
       .single();
@@ -164,6 +170,8 @@ export class HttpLootDropRepository implements ILootDropRepository {
     if (dto.totalValue !== undefined) patch.valor_total = dto.totalValue;
     if (dto.sold !== undefined) patch.vendido = dto.sold;
     if (dto.saleDate !== undefined) patch.data_venda = dto.saleDate ? brToIso(dto.saleDate) : null;
+    if (dto.coinValue !== undefined) patch.valor_coin = dto.coinValue;
+    if (dto.saleCoins !== undefined) patch.venda_valor_coin = dto.saleCoins;
 
     if (Object.keys(patch).length > 0) {
       const { error } = await getSupabaseClient().from('drops').update(patch).eq('id', id);

@@ -42,6 +42,11 @@ export interface LootDrop {
   bossName: string;
   sold: boolean;
   saleDate?: string;
+  /** Cotação da Tibia Coin em gold no dia da venda (2026-09-21) — só preenchido quando o
+   * item foi vendido em coins; undefined = venda em kk/gold normal. */
+  coinValue?: number;
+  /** Quantas Tibia Coins o item foi vendido — totalValue = coinValue * saleCoins nesse caso. */
+  saleCoins?: number;
 }
 
 export interface CreateLootDropDto {
@@ -56,6 +61,9 @@ export interface CreateLootDropDto {
   sold?: boolean;
   saleDate?: string;
   huntId?: string;
+  /** null = limpa o campo no banco (voltou pro modo kk); undefined = não mexe. */
+  coinValue?: number | null;
+  saleCoins?: number | null;
 }
 
 export interface LootDropFilters {

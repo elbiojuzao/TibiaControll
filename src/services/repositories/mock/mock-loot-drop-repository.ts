@@ -51,6 +51,8 @@ export class MockLootDropRepository implements ILootDropRepository {
       accountId,
       ...dto,
       sold: dto.sold ?? false,
+      coinValue: dto.coinValue ?? undefined,
+      saleCoins: dto.saleCoins ?? undefined,
     };
     dropsStore.unshift(drop);
     return drop;
@@ -61,8 +63,15 @@ export class MockLootDropRepository implements ILootDropRepository {
     const index = dropsStore.findIndex((d) => d.id === id);
     if (index === -1) throw new Error('Drop nao encontrado');
     // '' e o sentinela usado pelo form pra "limpar" a data de venda (mesma semantica do HttpLootDropRepository)
-    const patch = dto.saleDate === '' ? { ...dto, saleDate: undefined } : dto;
-    dropsStore[index] = { ...dropsStore[index], ...patch };
+    const { coinValue, saleCoins, ...rest } = dto;
+    const patch = dto.saleDate === '' ? { ...rest, saleDate: undefined } : rest;
+    dropsStore[index] = {
+      ...dropsStore[index],
+      ...patch,
+      // null = limpar (voltou pro modo kk), undefined = não mexer — mesma semântica do Http
+      ...(coinValue !== undefined && { coinValue: coinValue ?? undefined }),
+      ...(saleCoins !== undefined && { saleCoins: saleCoins ?? undefined }),
+    };
     return dropsStore[index];
   }
 

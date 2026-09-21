@@ -10,6 +10,15 @@ export interface ServiceDraft {
   servedCharacterName: string;
 }
 
+/** Valor Total (em gold) de uma venda em Tibia Coins (2026-09-21): cotação da coin no dia ×
+ * quantidade de coins. Gold do Tibia é sempre inteiro, então arredonda; qualquer lado
+ * vazio/inválido/negativo zera o total em vez de propagar NaN pro resto do form. */
+export function computeCoinSaleTotal(coinValue: number, saleCoins: number): number {
+  if (!Number.isFinite(coinValue) || !Number.isFinite(saleCoins)) return 0;
+  if (coinValue <= 0 || saleCoins <= 0) return 0;
+  return Math.round(coinValue * saleCoins);
+}
+
 /** Nomes do vocation p/ o select, sempre incluindo o valor atual mesmo se ele não estiver mais na lista de Members (ex: drop histórico de um char que já saiu da PT) */
 export function vocationOptions(members: Member[], vocation: Vocation, current: string): string[] {
   const names = new Set(members.filter((m) => m.vocation === vocation).map((m) => m.characterName));

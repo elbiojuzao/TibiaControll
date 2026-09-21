@@ -6,13 +6,14 @@ import { useBossItems } from '@/hooks/useBossItems';
 import { todayAsBr } from '@/services/common/br-date';
 import { formatTibiaGold } from '@/services/split';
 import {
-  computeTransferInstructions, computeShareBreakdown, buildSaleMessage,
+  computeTransferInstructions, computeShareBreakdown, buildSaleMessage, computeCoinSaleTotal,
   type ServiceDraft,
 } from '@/services/lootdrop/drop-form-calculations';
 import { PartyCompositionFields } from './PartyCompositionFields';
 import { ServiceDraftsEditor } from './ServiceDraftsEditor';
 import { TransferCommandsPanel } from './TransferCommandsPanel';
 import { SaleMessagePanel } from './SaleMessagePanel';
+import { TotalValueField, type SaleValueMode } from './SaleValueFields';
 import type { CreateLootDropDto, LootDrop, Member, Serviceiro, Vocation } from '@/types';
 
 const VAZIO = '';
@@ -47,6 +48,13 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
       : [],
   );
   const [totalValue, setTotalValue] = useState(mode === 'edit' ? String(drop!.totalValue) : '');
+  // Venda em coins (2026-09-21): o modo nasce 'coins' quando o drop já foi salvo com algum
+  // dos dois campos preenchidos (não há coluna separada de "modo" no banco — ver migration
+  // 20260921000000). Voltar pra 'kk' e salvar limpa os dois campos no banco (null).
+  const hadCoinSale = mode === 'edit' && (drop!.coinValue != null || drop!.saleCoins != null);
+  const [valueMode, setValueMode] = useState<SaleValueMode>(hadCoinSale ? 'coins' : 'kk');
+  const [coinValue, setCoinValue] = useState(mode === 'edit' && drop!.coinValue != null ? String(drop!.coinValue) : '');
+  const [saleCoins, setSaleCoins] = useState(mode === 'edit' && drop!.saleCoins != null ? String(drop!.saleCoins) : '');
   const [bossName, setBossName] = useState(mode === 'edit' ? drop!.bossName : VAZIO);
   const [itemName, setItemName] = useState(mode === 'edit' ? drop!.itemName : VAZIO);
   const [looter, setLooter] = useState(mode === 'edit' ? drop!.looter : VAZIO);
@@ -68,8 +76,8 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
   // form contra o snapshot capturado na 1ª renderização (que é justamente o valor inicial,
   // já que o effect roda uma única vez). Campos só de UI (saving/formError/waMessage/
   // doneIndices/etc.) ficam de fora de propósito — não é dado que se perde de verdade.
-  const [initialSnapshot] = useState(() => JSON.stringify({ date, ek, ed, rp, ms, fifthPlayer, serviceDrafts, totalValue, bossName, itemName, looter, sold }));
-  const isDirty = JSON.stringify({ date, ek, ed, rp, ms, fifthPlayer, serviceDrafts, totalValue, bossName, itemName, looter, sold }) !== initialSnapshot;
+  const [initialSnapshot] = useState(() => JSON.stringify({ date, ek, ed, rp, ms, fifthPlayer, serviceDrafts, totalValue, valueMode, coinValue, saleCoins, bossName, itemName, looter, sold }));
+  const isDirty = JSON.stringify({ date, ek, ed, rp, ms, fifthPlayer, serviceDrafts, totalValue, valueMode, coinValue, saleCoins, bossName, itemName, looter, sold }) !== initialSnapshot;
 
   const { bosses: allBosses, bossToQuest, quests, error: bossQuestsError } = useBossQuests();
   const { isQuestChecked, toggleQuest } = useQuestFilter();
@@ -139,7 +147,12 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
   // nesse drop). Serviceiros não aumentam esse divisor: eles recebem 50% da cota de
   // quem estavam servindo, em vez de uma cota própria (regra de negócio do usuário).
   const playerCount = [ek, ed, rp, ms, fifthPlayer].filter(Boolean).length;
-  const totalNumber = Number(totalValue) || 0;
+  // Modo coins: o total em gold é a cotação da coin × coins vendidas (arredondados pra
+  // inteiro, as colunas são bigint); modo kk: o que foi digitado direto.
+  const coinValueNumber = Math.round(Number(coinValue)) || 0;
+  const saleCoinsNumber = Math.round(Number(saleCoins)) || 0;
+  const coinTotal = computeCoinSaleTotal(coinValueNumber, saleCoinsNumber);
+  const totalNumber = valueMode === 'coins' ? coinTotal : Number(totalValue) || 0;
   // Gold do Tibia é sempre inteiro (ver schema em supabase/migrations) — arredonda a cota.
   const unitValue = playerCount > 0 ? Math.round(totalNumber / playerCount) : 0;
 
@@ -191,6 +204,16 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
     setWaCopied(true);
   };
 
+  const handleToggleValueMode = () => {
+    if (valueMode === 'coins') {
+      // Volta pro kk levando o total já calculado, em vez de deixar o campo com o valor velho
+      if (coinTotal > 0) setTotalValue(String(coinTotal));
+      setValueMode('kk');
+    } else {
+      setValueMode('coins');
+    }
+  };
+
   const handleBossChange = (value: string) => {
     setBossName(value);
     setItemName(VAZIO);
@@ -200,7 +223,7 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
     e.preventDefault();
     setFormError(null);
 
-    const total = Number(totalValue);
+    const total = totalNumber;
 
     if (!bossName) return setFormError('Selecione o boss.');
     if (!itemName) return setFormError('Selecione o item.');
@@ -213,7 +236,12 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
     // ainda. Mesma regra que já valia pra editar um drop existente não-vendido.
     const requireValue = sold;
     if (requireValue) {
-      if (!totalValue || Number.isNaN(total) || total <= 0) return setFormError('Informe o Valor Total.');
+      if (valueMode === 'coins') {
+        if (coinValueNumber <= 0) return setFormError('Informe o Valor da Coin.');
+        if (saleCoinsNumber <= 0) return setFormError('Informe a Venda em Coins.');
+      } else if (!totalValue || Number.isNaN(total) || total <= 0) {
+        return setFormError('Informe o Valor Total.');
+      }
       if (playerCount === 0) return setFormError('Preencha ao menos um jogador (EK/ED/MS/RP/5º) pra calcular o Valor Cada.');
     } else if (Number.isNaN(total) || total < 0) {
       return setFormError('Valor Total inválido.');
@@ -231,6 +259,8 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
       },
       unitValue,
       totalValue: total,
+      coinValue: valueMode === 'coins' && coinValueNumber > 0 ? coinValueNumber : null,
+      saleCoins: valueMode === 'coins' && saleCoinsNumber > 0 ? saleCoinsNumber : null,
       looter,
       itemName,
       bossName,
@@ -346,10 +376,17 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
         <div className="form-section-title">Venda</div>
 
         <div className="grid-3col">
-          <label className="label-padrao">
-            Valor Total:
-            <input type="number" min={0} value={totalValue} onChange={(e) => setTotalValue(e.target.value)} placeholder="0" className="campo-input" />
-          </label>
+          <TotalValueField
+            mode={valueMode}
+            onToggleMode={handleToggleValueMode}
+            totalValue={totalValue}
+            onTotalValueChange={setTotalValue}
+            coinTotal={coinTotal}
+            coinValue={coinValue}
+            onCoinValueChange={setCoinValue}
+            saleCoins={saleCoins}
+            onSaleCoinsChange={setSaleCoins}
+          />
           <label className="label-padrao">
             Valor Cada (calculado):
             <div className="campo-input" style={{ color: 'var(--color-text-muted)', cursor: 'default' }} title="Valor Total dividido pelo número de jogadores (EK/ED/MS/RP/5º) preenchidos">
