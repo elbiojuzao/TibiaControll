@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { formatTibiaGold } from '@/services/split';
 
 export type SaleValueMode = 'kk' | 'coins';
@@ -73,6 +74,48 @@ export function TotalValueField({
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+interface CoinUnitValueFieldProps {
+  unitCoins: number;
+  playerCount: number;
+}
+
+/** "Valor Cada (coins)" (2026-09-21, pedido do usuário) — só no modo coins, logo abaixo do
+ * "Valor Cada (calculado)" em gold. Somente-leitura, com botão pra copiar o número puro (sem
+ * separador de milhar) e colar direto no campo de valor da transferência de coins do jogo. */
+export function CoinUnitValueField({ unitCoins, playerCount }: CoinUnitValueFieldProps) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(String(unitCoins));
+    setCopied(true);
+  };
+
+  return (
+    <div className="label-padrao" style={{ marginTop: '6px' }}>
+      Valor Cada (coins):
+      <div style={{ display: 'flex', gap: '6px' }}>
+        <div
+          className="campo-input"
+          style={{ flex: 1, minWidth: 0, color: 'var(--color-text-muted)', cursor: 'default' }}
+          title="Coins vendidas ÷ jogadores (arredondado pra baixo)"
+        >
+          {unitCoins.toLocaleString('pt-BR')} {playerCount > 0 ? `(÷ ${playerCount})` : ''}
+        </div>
+        <button
+          type="button"
+          onClick={handleCopy}
+          disabled={unitCoins <= 0}
+          className="botao-secundario"
+          title={copied ? 'Já copiado — clique pra copiar de novo' : 'Copiar valor'}
+          style={{ marginTop: '4px', padding: '0 10px', fontSize: '11px', whiteSpace: 'nowrap' }}
+        >
+          {copied ? '✓ Copiado' : 'Copiar'}
+        </button>
+      </div>
     </div>
   );
 }

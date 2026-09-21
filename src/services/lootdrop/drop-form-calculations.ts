@@ -19,6 +19,14 @@ export function computeCoinSaleTotal(coinValue: number, saleCoins: number): numb
   return Math.round(coinValue * saleCoins);
 }
 
+/** Valor Cada em COINS (2026-09-21): coins vendidas ÷ jogadores da party. Arredonda pra
+ * BAIXO (coin é inteira e o vendedor nunca pode pagar mais coins do que recebeu — o resto da
+ * divisão fica com quem vendeu). Sem jogador preenchido ou coins <= 0 devolve 0. */
+export function computeUnitCoins(saleCoins: number, playerCount: number): number {
+  if (!Number.isFinite(saleCoins) || saleCoins <= 0 || playerCount <= 0) return 0;
+  return Math.floor(saleCoins / playerCount);
+}
+
 /** Nomes do vocation p/ o select, sempre incluindo o valor atual mesmo se ele não estiver mais na lista de Members (ex: drop histórico de um char que já saiu da PT) */
 export function vocationOptions(members: Member[], vocation: Vocation, current: string): string[] {
   const names = new Set(members.filter((m) => m.vocation === vocation).map((m) => m.characterName));

@@ -6,14 +6,15 @@ import { useBossItems } from '@/hooks/useBossItems';
 import { todayAsBr } from '@/services/common/br-date';
 import { formatTibiaGold } from '@/services/split';
 import {
-  computeTransferInstructions, computeShareBreakdown, buildSaleMessage, computeCoinSaleTotal,
+  computeTransferInstructions, computeShareBreakdown, buildSaleMessage, computeCoinSaleTotal, computeUnitCoins,
   type ServiceDraft,
 } from '@/services/lootdrop/drop-form-calculations';
 import { PartyCompositionFields } from './PartyCompositionFields';
 import { ServiceDraftsEditor } from './ServiceDraftsEditor';
 import { TransferCommandsPanel } from './TransferCommandsPanel';
 import { SaleMessagePanel } from './SaleMessagePanel';
-import { TotalValueField, type SaleValueMode } from './SaleValueFields';
+import { TotalValueField, CoinUnitValueField, type SaleValueMode } from './SaleValueFields';
+import { CoinPayoutPanel } from './CoinPayoutPanel';
 import type { CreateLootDropDto, LootDrop, Member, Serviceiro, Vocation } from '@/types';
 
 const VAZIO = '';
@@ -170,6 +171,18 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
       ? computeTransferInstructions({ ek, ed, ms, rp, fifthPlayer }, serviceDrafts, serviceiros, unitValue, defaultSeller)
       : { instructions: [], missingCharacterShares: [] }),
     [sold, ek, ed, ms, rp, fifthPlayer, serviceDrafts, serviceiros, unitValue, defaultSeller],
+  );
+
+  // Modo coins (2026-09-21): a mesma divisão dos comandos acima (jogadores, serviceiros
+  // 50/50, vendedor fora), só que em COINS — Valor Cada em coins arredondado pra baixo (o
+  // resto da divisão fica com o vendedor). Alimenta o campo "Valor Cada (coins)" e o painel
+  // "Pagamento em coins" (nomes + quantidade pra copiar).
+  const unitCoins = valueMode === 'coins' ? computeUnitCoins(saleCoinsNumber, playerCount) : 0;
+  const { instructions: coinInstructions, missingCharacterShares: coinMissingShares } = useMemo(
+    () => (valueMode === 'coins' && sold
+      ? computeTransferInstructions({ ek, ed, ms, rp, fifthPlayer }, serviceDrafts, serviceiros, unitCoins, defaultSeller)
+      : { instructions: [], missingCharacterShares: [] }),
+    [valueMode, sold, ek, ed, ms, rp, fifthPlayer, serviceDrafts, serviceiros, unitCoins, defaultSeller],
   );
 
   // Quebra de cota por pessoa (inclui quem paga, diferente de transferInstructions) só
@@ -387,12 +400,15 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
             saleCoins={saleCoins}
             onSaleCoinsChange={setSaleCoins}
           />
-          <label className="label-padrao">
-            Valor Cada (calculado):
-            <div className="campo-input" style={{ color: 'var(--color-text-muted)', cursor: 'default' }} title="Valor Total dividido pelo número de jogadores (EK/ED/MS/RP/5º) preenchidos">
-              {formatTibiaGold(unitValue)} {playerCount > 0 ? `(÷ ${playerCount})` : ''}
-            </div>
-          </label>
+          <div>
+            <label className="label-padrao">
+              Valor Cada (calculado):
+              <div className="campo-input" style={{ color: 'var(--color-text-muted)', cursor: 'default' }} title="Valor Total dividido pelo número de jogadores (EK/ED/MS/RP/5º) preenchidos">
+                {formatTibiaGold(unitValue)} {playerCount > 0 ? `(÷ ${playerCount})` : ''}
+              </div>
+            </label>
+            {valueMode === 'coins' && <CoinUnitValueField unitCoins={unitCoins} playerCount={playerCount} />}
+          </div>
           <label className="label-padrao">
             Fragador:
             <select value={looter} onChange={(e) => setLooter(e.target.value)} className="campo-input">
@@ -426,7 +442,17 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
           </span>
         )}
 
-        {mode === 'edit' && sold && (transferInstructions.length > 0 || missingCharacterShares.length > 0) && (
+        {mode === 'edit' && sold && valueMode === 'coins' && (coinInstructions.length > 0 || coinMissingShares.length > 0) && (
+          <CoinPayoutPanel
+            instructions={coinInstructions}
+            missingCharacterShares={coinMissingShares}
+            defaultSeller={defaultSeller}
+          />
+        )}
+
+        {/* Venda em coins (2026-09-21, pedido do usuário): o pagamento é em coins, então os
+            comandos `transfer` em gold não fazem sentido e ficam escondidos. */}
+        {mode === 'edit' && sold && valueMode === 'kk' && (transferInstructions.length > 0 || missingCharacterShares.length > 0) && (
           <TransferCommandsPanel
             transferInstructions={transferInstructions}
             missingCharacterShares={missingCharacterShares}
