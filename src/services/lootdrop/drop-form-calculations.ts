@@ -1,5 +1,6 @@
 import { formatTibiaGold } from '@/services/split';
 import { shortBr } from '@/services/common/br-date';
+import { formatGoldKK } from '@/services/common/gold-format';
 import type { Member, Serviceiro, TransferInstruction, Vocation } from '@/types';
 
 /** Linha em edição do formulário — vira um DropService completo só quando serviceiro + vocação estão preenchidos */
@@ -189,6 +190,31 @@ export function computeShareBreakdown(
   }
 
   return { playerShares, serviceiroShares };
+}
+
+/** "750 coins (33.75kk)" (2026-09-21, pedido do usuário) — quantidade em coins com o
+ * equivalente em gold, em notação kk, entre parênteses. `coinValue` é a cotação da coin em
+ * gold no dia da venda; sem cotação (0) mostra só as coins. */
+export function formatCoinsWithKK(coins: number, coinValue: number): string {
+  const label = `${coins.toLocaleString('pt-BR')} coins`;
+  if (coinValue <= 0) return label;
+  return `${label} (${formatGoldKK(coins * coinValue).replace(/^\+/, '')})`;
+}
+
+/** Mesma mensagem de buildSaleMessage, pro caso de venda em COINS: diz que foi pago em
+ * coins e mostra cada quantia em coins com o equivalente em kk entre parênteses. */
+export function buildCoinSaleMessage(itemName: string, bossName: string, dropDate: string, totalCoins: number, coinValue: number, playerShares: ShareEntry[], serviceiroShares: ShareEntry[]): string {
+  const lines = [
+    `*${itemName} — ${bossName} ${shortBr(dropDate)}*`,
+    `💰 Venda: *${formatCoinsWithKK(totalCoins, coinValue)}* — pago em coins`,
+    '',
+    '',
+    ...playerShares.map((p) => `* ${p.name} — ${formatCoinsWithKK(p.amount, coinValue)}`),
+    ...serviceiroShares.map((s) => `* ${s.name} — ${formatCoinsWithKK(s.amount, coinValue)}`),
+    '',
+    `*Total: ${formatCoinsWithKK(totalCoins, coinValue)}*`,
+  ];
+  return lines.join('\n');
 }
 
 /** Mensagem pronta pra avisar a party da venda no WhatsApp — formato exato pedido pelo

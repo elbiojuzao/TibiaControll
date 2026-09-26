@@ -6,7 +6,7 @@ import { useBossItems } from '@/hooks/useBossItems';
 import { todayAsBr } from '@/services/common/br-date';
 import { formatTibiaGold } from '@/services/split';
 import {
-  computeTransferInstructions, computeShareBreakdown, buildSaleMessage, computeCoinSaleTotal, computeUnitCoins,
+  computeTransferInstructions, computeShareBreakdown, buildSaleMessage, buildCoinSaleMessage, computeCoinSaleTotal, computeUnitCoins,
   type ServiceDraft,
 } from '@/services/lootdrop/drop-form-calculations';
 import { PartyCompositionFields } from './PartyCompositionFields';
@@ -187,16 +187,20 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
 
   // Quebra de cota por pessoa (inclui quem paga, diferente de transferInstructions) só
   // pra montar a mensagem de aviso de venda — ver buildSaleMessage.
+  // No modo coins as cotas saem em COINS (Valor Cada em coins), e a mensagem diz que foi
+  // pago em coins com o equivalente em kk entre parênteses (2026-09-21, pedido do usuário).
   const { playerShares, serviceiroShares } = useMemo(
     () => (sold
-      ? computeShareBreakdown({ ek, ed, ms, rp, fifthPlayer }, serviceDrafts, serviceiros, unitValue)
+      ? computeShareBreakdown({ ek, ed, ms, rp, fifthPlayer }, serviceDrafts, serviceiros, valueMode === 'coins' ? unitCoins : unitValue)
       : { playerShares: [], serviceiroShares: [] }),
-    [sold, ek, ed, ms, rp, fifthPlayer, serviceDrafts, serviceiros, unitValue],
+    [sold, ek, ed, ms, rp, fifthPlayer, serviceDrafts, serviceiros, unitValue, valueMode, unitCoins],
   );
 
   const defaultSaleMessage = useMemo(
-    () => buildSaleMessage(itemName, bossName, date, totalNumber, playerShares, serviceiroShares),
-    [itemName, bossName, date, totalNumber, playerShares, serviceiroShares],
+    () => (valueMode === 'coins'
+      ? buildCoinSaleMessage(itemName, bossName, date, saleCoinsNumber, coinValueNumber, playerShares, serviceiroShares)
+      : buildSaleMessage(itemName, bossName, date, totalNumber, playerShares, serviceiroShares)),
+    [valueMode, itemName, bossName, date, totalNumber, saleCoinsNumber, coinValueNumber, playerShares, serviceiroShares],
   );
 
   // Mensagem editável — sincroniza com o texto gerado automaticamente sempre que os
@@ -447,6 +451,7 @@ export function DropFormModal({ mode, drop, members, serviceiros, onClose, onSub
             instructions={coinInstructions}
             missingCharacterShares={coinMissingShares}
             defaultSeller={defaultSeller}
+            coinValue={coinValueNumber}
           />
         )}
 

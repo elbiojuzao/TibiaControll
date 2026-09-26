@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { MissingCharacterShare } from '@/services/lootdrop/drop-form-calculations';
+import { formatCoinsWithKK, type MissingCharacterShare } from '@/services/lootdrop/drop-form-calculations';
 import type { TransferInstruction } from '@/types';
 
 interface CoinPayoutPanelProps {
@@ -9,6 +9,8 @@ interface CoinPayoutPanelProps {
   instructions: TransferInstruction[];
   missingCharacterShares: MissingCharacterShare[];
   defaultSeller: string;
+  /** Cotação da coin em gold no dia da venda — mostra o equivalente em kk ao lado das coins. */
+  coinValue: number;
 }
 
 const copyButtonStyle = (done: boolean) => ({
@@ -30,7 +32,7 @@ const copyButtonStyle = (done: boolean) => ({
  * fora): botão pra copiar o NOME (o char, pra colar no campo de destinatário) e outro pra
  * copiar a QUANTIDADE de coins. Só apresentação — a divisão vem calculada por props; o
  * estado de "já copiado" é local (só feedback visual, não é dado que se perde). */
-export function CoinPayoutPanel({ instructions, missingCharacterShares, defaultSeller }: CoinPayoutPanelProps) {
+export function CoinPayoutPanel({ instructions, missingCharacterShares, defaultSeller, coinValue }: CoinPayoutPanelProps) {
   const [copied, setCopied] = useState<Set<string>>(new Set());
 
   const copy = (text: string, key: string) => {
@@ -62,7 +64,7 @@ export function CoinPayoutPanel({ instructions, missingCharacterShares, defaultS
               </button>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span className="texto-mono" style={{ fontSize: '13px', color: 'var(--color-text)' }}>{t.amount.toLocaleString('pt-BR')} coins</span>
+              <span className="texto-mono" style={{ fontSize: '13px', color: 'var(--color-text)' }}>{formatCoinsWithKK(t.amount, coinValue)}</span>
               <button type="button" onClick={() => copy(String(t.amount), `amount-${idx}`)} title="Copiar quantidade de coins" style={copyButtonStyle(copied.has(`amount-${idx}`))}>
                 {copied.has(`amount-${idx}`) ? '✓ Valor' : 'Copiar valor'}
               </button>
@@ -81,7 +83,7 @@ export function CoinPayoutPanel({ instructions, missingCharacterShares, defaultS
               </span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span className="texto-mono" style={{ fontSize: '13px', color: 'var(--color-text)' }}>{m.amount.toLocaleString('pt-BR')} coins</span>
+              <span className="texto-mono" style={{ fontSize: '13px', color: 'var(--color-text)' }}>{formatCoinsWithKK(m.amount, coinValue)}</span>
               <button type="button" onClick={() => copy(String(m.amount), `missing-${idx}`)} title="Copiar quantidade de coins" style={copyButtonStyle(copied.has(`missing-${idx}`))}>
                 {copied.has(`missing-${idx}`) ? '✓ Valor' : 'Copiar valor'}
               </button>
