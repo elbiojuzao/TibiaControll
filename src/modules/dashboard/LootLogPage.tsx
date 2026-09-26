@@ -13,6 +13,16 @@ type SoldFilter = 'all' | 'sold' | 'unsold';
 
 const now = new Date();
 
+/** Ano do drop mais antigo registrado (12/08/2024) — o seletor de ano vai daqui até o ano
+ * atual. Drops com data futura continuam acessíveis pela opção "Todos". */
+const FIRST_YEAR = 2024;
+const YEAR_OPTIONS = Array.from({ length: Math.max(now.getFullYear() - FIRST_YEAR + 1, 1) }, (_, i) => String(FIRST_YEAR + i));
+
+/** Mês (1-12) de uma data DD/MM/YYYY */
+function monthOf(brDate: string): number {
+  return Number(brDate.split('/')[1]);
+}
+
 /** Junta todo texto pesquisável de um drop numa string só, pra busca livre por
  * "qualquer campo" (2026-08-19, pedido do usuário). */
 function buildSearchableText(drop: LootDrop): string {
@@ -40,6 +50,7 @@ function matchesServiceiroFilter(drop: LootDrop, query: string): boolean {
 
 export function LootLogPage() {
   const { accountId, loading: accountLoading } = useAccount();
+  // '' = "Todos" (2026-09-26, pedido do usuário) — vale tanto pro mês quanto pro ano.
   const [selectedMonth, setSelectedMonth] = useState(String(now.getMonth() + 1));
   const [selectedYear, setSelectedYear] = useState(String(now.getFullYear()));
   // Busca rápida (2026-08-19, pedido do usuário) — fora do "Filtro avançado", busca em
@@ -62,12 +73,21 @@ export function LootLogPage() {
   // filtram no client sobre o lote do mês já carregado (mesmo motivo: precisa poder casar
   // com QUALQUER campo, e um filtro assim não dá pra expressar como poucos parâmetros de
   // query fixos sem reescrever o repository/Supabase pra isso).
+  // Mês+ano -> só aquele mês; só ano -> o ano inteiro; ano "Todos" -> sem filtro de data no
+  // banco (uma faixa de datas não expressa "janeiro de qualquer ano" — o mês, se escolhido,
+  // é filtrado no client em `periodDrops` logo abaixo).
   const monthFilters: LootDropFilters = useMemo(() => {
+    if (!selectedYear) return {};
+    if (!selectedMonth) return { dateFrom: `01/01/${selectedYear}`, dateTo: `31/12/${selectedYear}` };
     const { from, to } = monthRangeAsBr(Number(selectedMonth), Number(selectedYear));
     return { dateFrom: from, dateTo: to };
   }, [selectedMonth, selectedYear]);
 
-  const { drops: monthDrops, loading, error, createDrop, updateDrop, removeDrop } = useLootDrops(accountId, monthFilters);
+  const { drops: loadedDrops, loading, error, createDrop, updateDrop, removeDrop } = useLootDrops(accountId, monthFilters);
+  const periodDrops = useMemo(
+    () => (!selectedYear && selectedMonth ? loadedDrops.filter((d) => monthOf(d.date) === Number(selectedMonth)) : loadedDrops),
+    [loadedDrops, selectedYear, selectedMonth],
+  );
   const { members } = useMembers(accountId);
   const { serviceiros } = useServiceiros(accountId);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -80,7 +100,7 @@ export function LootLogPage() {
     const looters = new Set<string>();
     const items = new Set<string>();
     const serviceirosNomes = new Set<string>();
-    for (const d of monthDrops) {
+    for (const d of periodDrops) {
       if (d.bossName) bosses.add(d.bossName);
       if (d.looter) looters.add(d.looter);
       if (d.itemName) items.add(d.itemName);
@@ -96,7 +116,7 @@ export function LootLogPage() {
       items: [...items].sort(sortBr),
       serviceiros: [...serviceirosNomes].sort(sortBr),
     };
-  }, [monthDrops]);
+  }, [periodDrops]);
 
   // Excluir drop (soft delete, 2026-08-26, pedido do usuário) — sempre com confirmação,
   // nunca apaga de verdade (ver useLootDrops.removeDrop/HttpLootDropRepository.delete).
@@ -113,7 +133,7 @@ export function LootLogPage() {
 
   const drops = useMemo(() => {
     const q = quickSearch.trim().toLowerCase();
-    return monthDrops.filter((d) => {
+    return periodDrops.filter((d) => {
       if (bossFilter && !d.bossName.toLowerCase().includes(bossFilter.toLowerCase())) return false;
       if (looterFilter && !d.looter.toLowerCase().includes(looterFilter.toLowerCase())) return false;
       if (itemFilter && !d.itemName.toLowerCase().includes(itemFilter.toLowerCase())) return false;
@@ -123,7 +143,7 @@ export function LootLogPage() {
       if (q && !buildSearchableText(d).includes(q)) return false;
       return true;
     });
-  }, [monthDrops, quickSearch, bossFilter, looterFilter, itemFilter, serviceiroFilter, soldFilter]);
+  }, [periodDrops, quickSearch, bossFilter, looterFilter, itemFilter, serviceiroFilter, soldFilter]);
 
   const stats = useMemo(() => {
     const totalValue = drops.reduce((sum, d) => sum + d.totalValue, 0);
@@ -178,16 +198,21 @@ export function LootLogPage() {
           value={selectedMonth}
           onChange={(e) => setSelectedMonth(e.target.value)}
         >
+          <option value="">Todos os meses</option>
           {MESES.map((m) => (
             <option key={m.value} value={m.value}>{m.label}</option>
           ))}
         </select>
-        <input
-          className="filter-input w90"
-          type="number"
+        <select
+          className="filter-select"
           value={selectedYear}
           onChange={(e) => setSelectedYear(e.target.value)}
-        />
+        >
+          <option value="">Todos os anos</option>
+          {YEAR_OPTIONS.map((y) => (
+            <option key={y} value={y}>{y}</option>
+          ))}
+        </select>
 
         <input
           className="filter-input"
