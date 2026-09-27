@@ -415,6 +415,19 @@ table {
   image-rendering: pixelated;
 }
 
+/* Fallback quando a criatura personalizada não tem ícone resolvido (não está no catálogo
+   oficial do TibiaData nem é uma das 4 com ícone local, ver CreatureKillCounter.tsx) —
+   iniciais coloridas no lugar do sprite, mesma paleta determinística de getBossBadgeStyle. */
+.creature-kill-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: bold;
+}
+
 .creature-kill-badge {
   position: absolute;
   bottom: -4px;

@@ -34,6 +34,31 @@ interface TibiaDataCreaturesResponse {
   };
 }
 
+export interface CreatureCatalogEntry {
+  name: string;
+  imageUrl: string;
+}
+
+interface TibiaDataCreatureListResponse {
+  creatures: {
+    creature_list: { name: string; race: string; image_url: string; featured: boolean }[];
+  };
+}
+
+/** Catálogo com TODAS as ~718 criaturas conhecidas pelo TibiaData (2026-09-27) — usado só
+ * pra resolver o ícone oficial (`image_url`, CDN `static.tibia.com`, o mesmo já usado pelo
+ * boosted creature/boss — sem bloqueio de Cloudflare, diferente do CDN da fandom/wikia) de
+ * uma criatura ESCOLHIDA PELO USUÁRIO em Configurações (kill statistics personalizado, ver
+ * businessLogic.creatureKillStats.customSelection). Algumas criaturas "boss" específicas
+ * (ex: Plunder Patriarches) não aparecem aqui — nesse caso não tem ícone oficial disponível
+ * e o chip cai no fallback de iniciais (ver kill-stats-icon-resolver.ts). */
+export async function fetchCreatureCatalog(): Promise<CreatureCatalogEntry[]> {
+  const res = await fetch(`${BASE_URL}/creatures`);
+  if (!res.ok) throw new Error('Falha ao buscar catálogo de criaturas do TibiaData');
+  const data: TibiaDataCreatureListResponse = await res.json();
+  return data.creatures.creature_list.map((c) => ({ name: c.name, imageUrl: c.image_url }));
+}
+
 interface TibiaDataBoostableBossesResponse {
   boostable_bosses: {
     boosted: { name: string; image_url: string; featured: boolean };

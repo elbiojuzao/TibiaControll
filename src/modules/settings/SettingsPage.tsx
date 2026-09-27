@@ -6,6 +6,9 @@ import { useAccountSecurity } from '@/hooks/useAccountSecurity';
 import { VOCATION_ICON, VOCATION_LABEL } from '@/services/vocation/vocation-display';
 import { SKILL_CATEGORY_LABEL } from '@/services/tibiadata/tibiadata-client';
 import { fetchWorldNamesCached } from '@/services/tibiadata/world-list-cache';
+import { useCreatureCatalog } from '@/hooks/useCreatureCatalog';
+import { useKillStatsPreference } from '@/hooks/useKillStatsPreference';
+import { writeKillStatsPreference, DEFAULT_CREATURE_NAMES } from '@/services/display/kill-stats-preference';
 import { PARTY_EVENT_CATEGORY_ICON, PARTY_EVENT_CATEGORY_LABEL } from '@/services/party-events/party-event-display';
 import { MemberFormModal } from './components/MemberFormModal';
 import { PartyEventFormModal } from './components/PartyEventFormModal';
@@ -203,6 +206,38 @@ export function SettingsPage() {
     }
   };
 
+  // Configurações de Exibição — Kill Statistics personalizado (2026-09-27, pedido do
+  // usuário) — PREFERÊNCIA POR NAVEGADOR (localStorage, não vai pra conta/banco). As 4
+  // criaturas originais ficam sempre disponíveis como checkbox (pedido do usuário: "eles
+  // sempre podem aparecer para todos"), todas marcadas por padrão; além delas, até 2
+  // criaturas quaisquer digitadas livremente. `useKillStatsPreference()` já devolve esse
+  // padrão quando nada foi salvo ainda neste navegador — ver kill-stats-preference.ts.
+  const killStatsPreference = useKillStatsPreference();
+  const creatureCatalog = useCreatureCatalog();
+  const [killStatsEnabled, setKillStatsEnabled] = useState(killStatsPreference.enabled);
+  const [defaultCreatureChecks, setDefaultCreatureChecks] = useState<Record<string, boolean>>(
+    () => Object.fromEntries(DEFAULT_CREATURE_NAMES.map((name) => [name, killStatsPreference.defaultCreatures.includes(name)])),
+  );
+  const [customCreature1, setCustomCreature1] = useState(killStatsPreference.customCreatures[0] ?? '');
+  const [customCreature2, setCustomCreature2] = useState(killStatsPreference.customCreatures[1] ?? '');
+  const [killStatsSaved, setKillStatsSaved] = useState(false);
+
+  useEffect(() => {
+    setKillStatsEnabled(killStatsPreference.enabled);
+    setDefaultCreatureChecks(Object.fromEntries(DEFAULT_CREATURE_NAMES.map((name) => [name, killStatsPreference.defaultCreatures.includes(name)])));
+    setCustomCreature1(killStatsPreference.customCreatures[0] ?? '');
+    setCustomCreature2(killStatsPreference.customCreatures[1] ?? '');
+  }, [killStatsPreference]);
+
+  const handleSaveKillStatsDisplay = (e: React.FormEvent) => {
+    e.preventDefault();
+    const defaultCreatures = DEFAULT_CREATURE_NAMES.filter((name) => defaultCreatureChecks[name]);
+    const customCreatures = [customCreature1, customCreature2].map((c) => c.trim()).filter(Boolean);
+    writeKillStatsPreference({ enabled: killStatsEnabled, defaultCreatures, customCreatures });
+    setKillStatsSaved(true);
+    setTimeout(() => setKillStatsSaved(false), 2000);
+  };
+
   // Modal de criar/editar membro (2026-08-16) — antes era um form inline na página;
   // virou padrão do sistema qualquer edição de item abrir em modal, mesmo padrão do
   // DropFormModal.tsx.
@@ -393,6 +428,80 @@ export function SettingsPage() {
           </button>
         </form>
         {worldError && <span className="texto-perigo" style={{ display: 'block', marginTop: '8px', fontSize: '12px' }}>{worldError}</span>}
+      </div>
+
+      <div className="card" style={{ marginBottom: '20px' }}>
+        <h3 style={{ margin: '0 0 4px 0', fontSize: '13px', color: 'var(--color-accent)' }}>Configurações de Exibição</h3>
+        <p className="texto-mudo" style={{ margin: '0 0 12px 0', fontSize: '12px' }}>
+          Só neste navegador (salvo no localStorage, não é compartilhado com o resto da party).
+        </p>
+        <form onSubmit={handleSaveKillStatsDisplay} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--color-text)', cursor: 'pointer' }}>
+            <input type="checkbox" checked={killStatsEnabled} onChange={(e) => setKillStatsEnabled(e.target.checked)} />
+            Mostrar Kill Statistics na topbar
+          </label>
+
+          {killStatsEnabled && (
+            <>
+              <div>
+                <span className="label-padrao" style={{ display: 'block', marginBottom: '6px' }}>Sempre disponíveis:</span>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px' }}>
+                  {DEFAULT_CREATURE_NAMES.map((name) => (
+                    <label key={name} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--color-text)', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={defaultCreatureChecks[name] ?? false}
+                        onChange={(e) => setDefaultCreatureChecks((prev) => ({ ...prev, [name]: e.target.checked }))}
+                      />
+                      {name}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid-2col">
+                <label className="label-padrao">
+                  Criatura personalizada 1:
+                  <input
+                    type="text"
+                    list="creature-catalog-options"
+                    value={customCreature1}
+                    onChange={(e) => setCustomCreature1(e.target.value)}
+                    placeholder="Ex: Ferumbras"
+                    className="campo-input"
+                  />
+                </label>
+                <label className="label-padrao">
+                  Criatura personalizada 2:
+                  <input
+                    type="text"
+                    list="creature-catalog-options"
+                    value={customCreature2}
+                    onChange={(e) => setCustomCreature2(e.target.value)}
+                    placeholder="Ex: Zushuka"
+                    className="campo-input"
+                  />
+                </label>
+                {/* Sugestão só — texto livre continua aceito (a criatura pode nem estar no
+                    catálogo, ex: as 4 "sempre disponíveis" acima). Sem dado nesse mundo, o
+                    chip simplesmente não aparece na topbar (ver CreatureKillCounter). */}
+                <datalist id="creature-catalog-options">
+                  {creatureCatalog.map((c) => (
+                    <option key={c.name} value={c.name} />
+                  ))}
+                </datalist>
+              </div>
+            </>
+          )}
+
+          <button
+            type="submit"
+            className="botao-primario"
+            style={{ alignSelf: 'flex-start', padding: '8px 16px', background: killStatsSaved ? 'var(--color-success)' : 'var(--color-accent)' }}
+          >
+            {killStatsSaved ? 'Salvo!' : 'Salvar Exibição'}
+          </button>
+        </form>
       </div>
 
       {/* "Adicionar Eventos" — só pra conta Admin (2026-08-28, pedido do usuário: "a
