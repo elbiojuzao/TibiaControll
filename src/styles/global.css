@@ -385,6 +385,21 @@ table {
   white-space: nowrap;
 }
 
+/* Agrupa os N chips de criatura monitorada (2026-09-27 — antes só existia 1) na mesma
+   caixa visual do widget de bostados. Não usa gap/borda quando vazio (sem mundo
+   configurado o componente inteiro retorna null, então isso nunca aparece "vazio" na
+   tela). */
+.creature-kill-group {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-hover);
+}
+
 /* Contador de mortes de criatura (2026-09-16) — mesmo espírito visual do chip de
    BoostedToday, mas com um badge numérico sobreposto no canto do ícone (a quantidade
    morta NO DIA); dia+semana só aparecem no tooltip ao passar o mouse. */
@@ -1729,6 +1744,11 @@ input[type='number']::-webkit-inner-spin-button {
   .boosted-today-chip img {
     width: 26px;
     height: 26px;
+  }
+
+  .creature-kill-group {
+    padding: 3px 6px;
+    gap: 5px;
   }
 
   .creature-kill-chip img {

@@ -337,7 +337,7 @@
 <div class="layout">
   <aside class="toc">
     <div class="toc-brand">Tibia PT Manager</div>
-    <div class="toc-sub">Mapa de arquitetura · gerado 2026-08-09 · atualizado 2026-09-21</div>
+    <div class="toc-sub">Mapa de arquitetura · gerado 2026-08-09 · atualizado 2026-09-27</div>
     <nav id="tocnav">
       <a href="#overview">Visão geral</a>
       <a href="#routes">Rotas &amp; navegação</a>
@@ -1146,7 +1146,8 @@
         <li><b>Dropdown de mundo (pedido seguinte do usuário)</b> — trocado de texto livre pra <code>&lt;select&gt;</code> populado por <code>GET /worlds</code> (<code>fetchWorldNamesCached()</code>, cache TTL 7 dias). <b>Bug real corrigido no processo</b>: <code>tournament_worlds</code> vem <code>null</code> (não <code>[]</code>) quando não há torneio ativo — espalhar com <code>[...regular, ...tournament]</code> quebrava com "is not iterable"; corrigido pra <code>...(tournament_worlds ?? [])</code>.</li>
         <li><b>Match de nome</b> — <code>fetchCreatureKillStats(world, name)</code> busca a lista inteira de <code>killstatistics.entries</code> e casa por <code>race.toLowerCase().startsWith(name.toLowerCase())</code>. Com o nome certo (plural) o match já é exato, mas o <code>startsWith</code> continua como rede de segurança pra criaturas futuras. Retorna <code>null</code> (não lança erro) se a criatura não aparecer nesse mundo.</li>
         <li><b>Ícone animado</b> — TibiaData não tem <code>image_url</code> pra essa criatura; sprite real de tibia.fandom.com. 1ª tentativa (canvas + <code>toDataURL()</code>) gerava só 1 frame — usuário pediu pra manter a animação do GIF original. Solução: <code>fetch()</code> direto (sem canvas) rodando na origem do app — o CDN <code>static.wikia.nocookie.net</code> devolve automaticamente um <b>WebP ANIMADO</b> (transcodifica o .gif, chunks <code>ANIM</code>/<code>ANMF</code> intactos); todo navegador moderno renderiza <code>&lt;img&gt;</code> de WebP animado igual GIF. Salvo em <code>src/assets/creature-icons/plunder-patriarch.webp</code> (64×64 com alpha). <code>curl</code>/Node <code>fetch</code> pro mesmo CDN continuou dando 403 (Cloudflare) nesta sessão — só funcionou via <code>fetch()</code> de dentro do Browser tool.</li>
-        <li><code>components/layout/CreatureKillCounter.tsx</code> — mesmo espírito visual de <code>BoostedToday.tsx</code>, com um badge circular vermelho no canto do ícone mostrando as mortes de ontem; tooltip mostra ontem+semana juntos. Retorna <code>null</code> (widget some da topbar) sem mundo configurado, em loading, erro, ou se a criatura não aparecer na lista — nunca mostra número errado. Cache diário (mesma janela de <code>boosted-cache.ts</code>), chave por mundo+criatura.</li>
+        <li><code>components/layout/CreatureKillCounter.tsx</code> — mesmo espírito visual de <code>BoostedToday.tsx</code>, com um badge circular vermelho no canto do ícone mostrando as mortes de ontem; tooltip mostra ontem+semana juntos. Cada chip retorna <code>null</code> em loading/erro/sem dado — nunca mostra número errado; o componente inteiro some sem mundo configurado. Cache diário (mesma janela de <code>boosted-cache.ts</code>), chave por mundo+criatura.</li>
+        <li><b>Virou lista de criaturas (2026-09-27, pedido do usuário: "com as imagens acima podemos usar o killstatistics igual fizemos do plunder pra fazer do phosphorus, bakragore e megalomania")</b> — <code>MONITORED_CREATURES</code> agora tem 4 entradas (Plunder Patriarches, Phosphorus, Bakragore, Goshnar's Megalomania); <code>CreatureChip</code> (extraído do corpo antigo) renderiza 1 chip por criatura, cada um com seu próprio <code>useCreatureKillStats()</code> — já era genérico por nome, nada mudou no hook/cache. Nomes das 3 novas conferidos direto na API antes de codar (bateram exato, sem surpresa de plural como o Plunder). <b>Ícones vieram como GIF de verdade dessa vez</b> (8 frames, via <code>curl</code> comum em <code>tibiawiki.com.br</code> — esse host não tem o bloqueio de Cloudflare do CDN da fandom usado pro ícone do Plunder, então não precisou do truque de WebP via browser). Container novo <code>.creature-kill-group</code> agrupa os chips lado a lado (mesmo visual de <code>.boosted-today-inline</code>). Testado contra o mundo real (Collabra): os 4 chips bateram com a API.</li>
       </ul>
     </section>
 
@@ -1328,7 +1329,7 @@
 </div>
 
 <footer>
-  <span>Gerado por Claude em 2026-08-09, atualizado 2026-09-21 · referência viva — regra permanente: toda mudança no app atualiza este arquivo e o architecture.json juntos</span>
+  <span>Gerado por Claude em 2026-08-09, atualizado 2026-09-27 · referência viva — regra permanente: toda mudança no app atualiza este arquivo e o architecture.json juntos</span>
   <span>JSON companion: <code>docs/architecture.json</code></span>
 </footer>
 
