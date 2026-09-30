@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Navigate, useLocation, type Location } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { LoginRequestError } from '@/services/supabase/supabase-auth';
 
 const SAVED_EMAIL_KEY = 'tibia-pts:saved-login-email-v1';
 
@@ -79,8 +80,14 @@ export function LoginPage() {
     try {
       await login(email, password);
       writeSavedEmail(rememberLogin ? email : null);
-    } catch {
-      setLocalError('E-mail ou senha inválidos.');
+    } catch (err) {
+      // Credencial errada (401) sempre vira a mensagem genérica abaixo — não confirma/nega
+      // detalhe nenhum da conta. Qualquer outro caso (429 "muitas tentativas", 400 campo
+      // faltando, erro de servidor) mostra a mensagem tal como veio de /api/login (2026-09-30,
+      // ver signInWithPassword) — sem isso, o aviso de limite de tentativas ficaria escondido
+      // atrás desse texto genérico, que era o comportamento de antes.
+      const isBadCredentials = err instanceof LoginRequestError && err.status === 401;
+      setLocalError(!isBadCredentials && err instanceof Error ? err.message : 'E-mail ou senha inválidos.');
     } finally {
       setSubmitting(false);
     }

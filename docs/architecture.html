@@ -337,7 +337,7 @@
 <div class="layout">
   <aside class="toc">
     <div class="toc-brand">Tibia PT Manager</div>
-    <div class="toc-sub">Mapa de arquitetura · gerado 2026-08-09 · atualizado 2026-09-27</div>
+    <div class="toc-sub">Mapa de arquitetura · gerado 2026-08-09 · atualizado 2026-09-30</div>
     <nav id="tocnav">
       <a href="#overview">Visão geral</a>
       <a href="#routes">Rotas &amp; navegação</a>
@@ -722,7 +722,7 @@
           <p>Login real (2026-08-14) via Supabase Auth — 1 única credencial compartilhada pela PT inteira (não é cadastro por pessoa). Gate pros módulos exclusivos de conta.</p>
           <dl class="kv-list">
             <dt>Rota</dt><dd><code>/login</code> — standalone, fora do <code>&lt;AppLayout&gt;</code> (sem topbar)</dd>
-            <dt>Dado</dt><dd><code>services/supabase/supabase-auth.ts</code> via <code>useAuth()</code> — <code>signInWithPassword</code>/<code>signOut</code>/<code>getSession</code>/<code>onAuthStateChange</code></dd>
+            <dt>Dado</dt><dd><code>services/supabase/supabase-auth.ts</code> via <code>useAuth()</code> — <code>signInWithPassword</code>/<code>signOut</code>/<code>getSession</code>/<code>onAuthStateChange</code>. <b>Desde 2026-09-30, <code>signInWithPassword()</code> passa por <code>/api/login</code> (proxy com rate limit) antes de hidratar a sessão no SDK via <code>auth.setSession()</code></b> — ver seção Regras de negócio, "Rate limit no login".</dd>
             <dt>"Lembrar login" (2026-08-15 → 2026-08-27)</dt><dd>2026-08-15: campos com <code>autoComplete="username"</code>/<code>"current-password"</code> pra ativar o gerenciador de senha nativo do navegador. <b>2026-08-26 (commit 319067a)</b>: checkbox "Salvar login neste dispositivo" adicionado, guardando e-mail+senha em TEXTO PURO no <code>localStorage</code> (<code>tibia-pts:saved-login-v1</code>). <b>2026-08-27, o PRÓPRIO usuário revisou e pediu a correção (commit 589ed0e)</b>: "vamos tirar do localstorage a senha... procurar uma maneira de salvar mais eficiente" — localStorage é texto puro, legível por qualquer script rodando na página e não é revogável como uma sessão. Agora só o E-MAIL é salvo (<code>tibia-pts:saved-login-email-v1</code>); a senha depende do gerenciador do navegador + da sessão do Supabase Auth já persistida sozinha (<code>persistSession:true</code>). Migração 1× apaga a chave antiga com senha de quem já tinha usado o checkbox. Checkbox renomeado pra "Lembrar meu e-mail neste dispositivo".</dd>
             <dt>Rotas protegidas</dt><dd><code>/</code>, <code>/loot-log</code>, <code>/calendario</code>, <code>/serviceiros</code>, <code>/configuracoes</code> — envolvidas por <code>RequireAuth</code> em <code>App.tsx</code></dd>
             <dt>Rotas abertas</dt><dd><code>/split</code>, <code>/timers</code>, <code>/tier-calculator</code>, <code>/charm-planner</code> — calculadoras sem dado de conta, não pedem login</dd>
@@ -1131,6 +1131,15 @@
         <li><b>RLS já estava correta</b> — a auditoria confirmou que não era um gap de acesso de verdade, só a documentação (card "RLS desligada" abaixo) que tinha ficado desatualizada desde 2026-08-06. Corrigida na mesma leva.</li>
       </ul>
 
+      <h3 style="margin-top:26px">Rate limit no login (2026-09-30)</h3>
+      <p style="color:var(--text-muted); font-size:13.5px; max-width:74ch">Pedido do usuário: "queria fazer uma camada de proteção nas requisições de login". Antes disso, <code>signInWithPassword()</code> chamava <code>auth.signInWithPassword()</code> do SDK do Supabase DIRETO do browser — sem limite nenhum nosso, só o que o próprio Supabase aplicasse por conta própria.</p>
+      <ul style="color:var(--text-muted); font-size:13.5px; max-width:74ch; margin:8px 0 0 18px; padding:0; line-height:1.7">
+        <li><b>Proxy server-side</b> — login passa primeiro por <code>/api/login</code> (<code>api/login.ts</code> em produção, <code>loginDevApiPlugin()</code> em <code>vite.config.ts</code> pro dev local, mesmo padrão de <code>sheetDevApiPlugin</code>/xp-sheet), que reúsa <code>api/_lib/rate-limit.ts</code> — esse arquivo ganhou parâmetros opcionais <code>{windowMs, maxRequests}</code> (sem eles, comportamento idêntico ao de sempre, xp-sheet não mudou). Login usa 5 tentativas a cada 15 minutos por IP, chave prefixada <code>login:{ip}</code> pra não compartilhar contador com outra rota. <code>api/_lib/login.ts</code> faz o POST real pro endpoint de token do GoTrue (Auth do Supabase) usando as mesmas <code>VITE_SUPABASE_URL</code>/<code>VITE_SUPABASE_PUBLISHABLE_KEY</code> do client, lidas via <code>process.env</code> (o prefixo <code>VITE_</code> só afeta o bundle do browser, não a leitura server-side) — nenhuma env var nova.</li>
+        <li><b>Sessão hidratada no SDK</b> — depois que o proxy confirma a credencial, <code>auth.setSession({access_token, refresh_token})</code> grava a sessão de verdade (mesmo storage/refresh automático de sempre) e dispara <code>SIGNED_IN</code> (confirmado lendo o código-fonte do <code>@supabase/auth-js</code> instalado). <code>useAuth.ts</code>/<code>RequireAuth</code> não precisaram mudar nada.</li>
+        <li><b>Bug real corrigido no processo</b> — <code>LoginPage.tsx</code> trocava QUALQUER erro por um genérico "E-mail ou senha inválidos.", o que escondia a mensagem nova de rate limit atrás desse texto. Corrigido com uma classe <code>LoginRequestError</code> (carrega o status HTTP) — só 401 (credencial errada) vira o genérico; 429/400/erro de servidor mostram a mensagem tal como veio do proxy.</li>
+        <li><b>Testado</b> sem digitar a senha real do usuário (regra do projeto): corpo vazio → 400; credencial fake → 401 "Invalid login credentials" (confirma que fala com o Supabase de verdade); 6 tentativas seguidas → a 6ª veio 429 com <code>Retry-After: 892</code>; repetido pela TELA de login real, o banner mostrou a mensagem de rate limit corretamente. O caminho de sucesso (credencial real) não foi testado no browser pelo mesmo motivo de sempre — só validado por leitura do SDK; <b>usuário precisa confirmar 1 login real por conta própria</b>.</li>
+      </ul>
+
       <h3 style="margin-top:26px">Correção global — setinhas e scroll do input numérico (2026-09-12)</h3>
       <p style="color:var(--text-muted); font-size:13.5px; max-width:74ch">Pedido do usuário: o campo "Valor Total" do modal de registro de drop gerou <b>2 bugs de valor trocado numa semana</b> — dava pra clicar nas setinhas de subir/descer de um <code>&lt;input type="number"&gt;</code> ou rolar o mouse por cima acidentalmente e mudar o valor sem perceber. Correção aplicada <b>GLOBALMENTE</b> no app (não só nesse campo — o mesmo padrão de input numérico aparece em Split Calculator, Tier Calculator, Charm Planner, Timers etc., e um fix pontual deixaria o mesmo bug latente em qualquer campo novo criado no futuro):</p>
       <ul style="color:var(--text-muted); font-size:13.5px; max-width:74ch; margin:8px 0 0 18px; padding:0; line-height:1.7">
@@ -1333,7 +1342,7 @@
 </div>
 
 <footer>
-  <span>Gerado por Claude em 2026-08-09, atualizado 2026-09-27 · referência viva — regra permanente: toda mudança no app atualiza este arquivo e o architecture.json juntos</span>
+  <span>Gerado por Claude em 2026-08-09, atualizado 2026-09-30 · referência viva — regra permanente: toda mudança no app atualiza este arquivo e o architecture.json juntos</span>
   <span>JSON companion: <code>docs/architecture.json</code></span>
 </footer>
 

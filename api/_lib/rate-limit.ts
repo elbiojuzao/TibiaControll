@@ -19,14 +19,21 @@ export interface RateLimitResult {
   retryAfterSeconds?: number;
 }
 
-export function checkRateLimit(key: string): RateLimitResult {
+/** `windowMs`/`maxRequests` opcionais (2026-09-30, pedido do usuário: limitar tentativas de
+ * login) — cada chamador pode ter sua própria janela/teto sem afetar os outros, já que o
+ * `Map` é compartilhado só pelo texto da `key` (por isso login usa chave prefixada
+ * `login:{ip}`, nunca colidindo com a chave crua de IP do xp-sheet). Sem os parâmetros,
+ * comportamento idêntico ao de sempre (20 req/min) — xp-sheet.ts não precisou mudar. */
+export function checkRateLimit(key: string, options?: { windowMs?: number; maxRequests?: number }): RateLimitResult {
+  const windowMs = options?.windowMs ?? WINDOW_MS;
+  const maxRequests = options?.maxRequests ?? MAX_REQUESTS_PER_WINDOW;
   const now = Date.now();
-  const windowStart = now - WINDOW_MS;
+  const windowStart = now - windowMs;
   const timestamps = (hits.get(key) ?? []).filter((t) => t > windowStart);
 
-  if (timestamps.length >= MAX_REQUESTS_PER_WINDOW) {
+  if (timestamps.length >= maxRequests) {
     hits.set(key, timestamps);
-    const retryAfterSeconds = Math.ceil((timestamps[0] + WINDOW_MS - now) / 1000);
+    const retryAfterSeconds = Math.ceil((timestamps[0] + windowMs - now) / 1000);
     return { allowed: false, retryAfterSeconds };
   }
 

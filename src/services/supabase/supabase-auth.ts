@@ -2,16 +2,52 @@ import type { Session } from '@supabase/supabase-js';
 import { getSupabaseClient } from './supabase-client';
 import { friendlyErrorMessage } from '@/services/common/friendly-supabase-error';
 
+/** Erro de `/api/login` com o status HTTP junto — LoginPage.tsx usa isso pra decidir se
+ * mostra a mensagem tal como veio (ex: "Muitas tentativas...", 429) ou troca por um
+ * "E-mail ou senha inválidos." genérico (401 — credencial errada não deveria confirmar/
+ * negar detalhe nenhum da conta pro usuário). */
+export class LoginRequestError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'LoginRequestError';
+    this.status = status;
+  }
+}
+
 /**
  * Login real via Supabase Auth — 1 única credencial compartilhada pela PT inteira (login
  * de party compartilhado, não por pessoa — ver memória de projeto "regras-gestao-pts").
  * O usuário (conta de verdade) precisa ser criado manualmente no dashboard do Supabase
  * (Authentication → Users → Add user, com "Auto Confirm User" marcado) — não crio contas
  * por aqui, nenhuma credencial de administração foi compartilhada nessa sessão.
+ *
+ * **Proteção contra força bruta (2026-09-30, pedido do usuário)** — em vez de chamar
+ * `auth.signInWithPassword()` do SDK direto do browser (sem nenhum limite nosso), a
+ * tentativa passa primeiro por `/api/login` (Vercel Function em produção, plugin de dev do
+ * Vite em `npm run dev` — ver api/_lib/login.ts), que aplica um limite de 5 tentativas a
+ * cada 15min por IP antes de sequer bater no Supabase. Depois que o proxy confirma as
+ * credenciais, `auth.setSession()` hidrata a sessão real no SDK (mesmo storage/refresh
+ * automático/`onAuthStateChange` de sempre) — o resto do app (useAuth, RequireAuth) não
+ * precisou mudar nada, `signInWithPassword` continua devolvendo um `Session` normal.
  */
 export async function signInWithPassword(email: string, password: string): Promise<Session> {
-  const { data, error } = await getSupabaseClient().auth.signInWithPassword({ email, password });
-  if (error) throw new Error(friendlyErrorMessage(error));
+  const res = await fetch('/api/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  const body = await res.json();
+  if (!res.ok) throw new LoginRequestError(body.error ?? 'Falha ao entrar.', res.status);
+
+  const { error: setSessionError } = await getSupabaseClient().auth.setSession({
+    access_token: body.accessToken,
+    refresh_token: body.refreshToken,
+  });
+  if (setSessionError) throw new Error(friendlyErrorMessage(setSessionError));
+
+  const { data } = await getSupabaseClient().auth.getSession();
   if (!data.session) throw new Error('Login falhou — sessão não retornada.');
   return data.session;
 }

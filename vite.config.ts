@@ -9,6 +9,8 @@ import yaml from '@rollup/plugin-yaml'
 import path from 'path'
 import { fetchXpStatsFromSheet } from './api/_lib/xp-sheet'
 import { checkRateLimit, clientKeyFromRequest } from './api/_lib/rate-limit'
+import { loginWithPassword, LOGIN_RATE_LIMIT_WINDOW_MS, LOGIN_RATE_LIMIT_MAX_ATTEMPTS } from './api/_lib/login'
+import type { IncomingMessage } from 'http'
 
 /** Serve a rota /api/xp-sheet no `npm run dev` (Vite puro) — em produção quem atende
  * essa rota é a Vercel Function em api/xp-sheet.ts, que reusa a mesma lógica. Sem isso
@@ -45,6 +47,69 @@ function sheetDevApiPlugin(): Plugin {
   }
 }
 
+/** Lê o corpo JSON de um request cru do Node — o middleware do Vite não faz parsing de
+ * body sozinho (diferente da Vercel Function em produção, que já entrega `req.body`
+ * pronto), então isso precisa ser feito à mão aqui. */
+function readJsonBody(req: IncomingMessage): Promise<Record<string, unknown>> {
+  return new Promise((resolve, reject) => {
+    let raw = ''
+    req.on('data', (chunk) => { raw += chunk })
+    req.on('end', () => {
+      try {
+        resolve(raw ? JSON.parse(raw) : {})
+      } catch (err) {
+        reject(err instanceof Error ? err : new Error('JSON inválido no corpo da requisição.'))
+      }
+    })
+    req.on('error', reject)
+  })
+}
+
+/** Serve a rota /api/login no `npm run dev` — em produção quem atende é a Vercel Function
+ * em api/login.ts, que reusa a mesma lógica (api/_lib/login.ts). Proteção de força bruta
+ * no login (2026-09-30, pedido do usuário) precisa ser testável localmente, mesmo espírito
+ * de sheetDevApiPlugin acima. */
+function loginDevApiPlugin(): Plugin {
+  return {
+    name: 'login-dev-api',
+    configureServer(server) {
+      server.middlewares.use('/api/login', async (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405
+          res.end()
+          return
+        }
+
+        const rateLimit = checkRateLimit(`login:${clientKeyFromRequest(req)}`, { windowMs: LOGIN_RATE_LIMIT_WINDOW_MS, maxRequests: LOGIN_RATE_LIMIT_MAX_ATTEMPTS })
+        if (!rateLimit.allowed) {
+          res.statusCode = 429
+          res.setHeader('Retry-After', String(rateLimit.retryAfterSeconds ?? 60))
+          res.setHeader('Content-Type', 'application/json')
+          res.end(JSON.stringify({ error: 'Muitas tentativas de login. Aguarde alguns minutos e tente de novo.' }))
+          return
+        }
+
+        try {
+          const { email, password } = await readJsonBody(req)
+          if (!email || !password) {
+            res.statusCode = 400
+            res.setHeader('Content-Type', 'application/json')
+            res.end(JSON.stringify({ error: 'Informe e-mail e senha.' }))
+            return
+          }
+          const session = await loginWithPassword(String(email), String(password))
+          res.setHeader('Content-Type', 'application/json')
+          res.end(JSON.stringify(session))
+        } catch (err) {
+          res.statusCode = 401
+          res.setHeader('Content-Type', 'application/json')
+          res.end(JSON.stringify({ error: err instanceof Error ? err.message : 'Falha ao entrar.' }))
+        }
+      })
+    },
+  }
+}
+
 export default defineConfig(({ mode }) => {
   // loadEnv com prefixo '' (não só VITE_) pra também carregar XP_SHEET_ID e afins do
   // .env.local pro process.env — essas variáveis são server-only de propósito (sem
@@ -57,7 +122,7 @@ export default defineConfig(({ mode }) => {
     // yaml(): só pro `import data from '../../data.yaml'` do módulo copiado do tibia-wheel
     // (gitlab.com/klhio/tibia-wheel) rodar sem alterar esse import — o Parcel (bundler
     // original deles) entende .yaml nativo, o Vite não.
-    plugins: [react(), yaml(), sheetDevApiPlugin()],
+    plugins: [react(), yaml(), sheetDevApiPlugin(), loginDevApiPlugin()],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
