@@ -1,7 +1,16 @@
 import { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { formatTibiaGold } from '@/services/split';
 import { calculateTierCost, getMaxTier } from '@/services/tier';
 import type { ItemClassification, TierRouteResult } from '@/types';
+import { TierBenefitsTable } from './components/TierBenefitsTable';
+
+type TierTab = 'calculadora' | 'beneficios';
+
+const TABS: { key: TierTab; label: string; icon: string }[] = [
+  { key: 'calculadora', label: 'Calculadora', icon: '⚒️' },
+  { key: 'beneficios', label: 'Benefícios por Tier', icon: '📊' },
+];
 
 const CLASSIFICATIONS: ItemClassification[] = [1, 2, 3, 4];
 
@@ -87,6 +96,9 @@ function RouteTable({ result, title, accentColor }: { result: TierRouteResult; t
 }
 
 export function TierCalculatorPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const activeTab: TierTab = TABS.some((t) => t.key === tabParam) ? (tabParam as TierTab) : 'calculadora';
   const [classification, setClassification] = useState<ItemClassification>(4);
   const [currentTier, setCurrentTier] = useState<number>(0);
   const [targetTier, setTargetTier] = useState<number>(1);
@@ -116,6 +128,27 @@ export function TierCalculatorPage() {
         </p>
       </header>
 
+      <div style={{ display: 'flex', gap: '6px', marginBottom: '20px', flexWrap: 'wrap' }}>
+        {TABS.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => setSearchParams(tab.key === 'calculadora' ? {} : { tab: tab.key })}
+            style={{
+              padding: '8px 16px', borderRadius: 'var(--radius-sm)', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer',
+              border: activeTab === tab.key ? '1px solid var(--color-accent)' : '1px solid var(--color-border)',
+              background: activeTab === tab.key ? 'var(--color-accent-soft)' : 'var(--color-bg-input)',
+              color: activeTab === tab.key ? 'var(--color-accent)' : 'var(--color-text-muted)',
+            }}
+          >
+            {tab.icon} {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'beneficios' && <TierBenefitsTable />}
+
+      {activeTab === 'calculadora' && (
       <div className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '20px', alignItems: 'start' }}>
         <div className="card-compacto" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <h3 style={{ fontSize: '14px', margin: 0, color: 'var(--color-accent)' }}>Parâmetros</h3>
@@ -205,6 +238,7 @@ export function TierCalculatorPage() {
           )}
         </div>
       </div>
+      )}
     </div>
   );
 }

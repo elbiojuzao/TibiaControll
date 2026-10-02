@@ -144,9 +144,9 @@
       "path": "src/modules/tier-calculator/",
       "routes": ["/tier-calculator"],
       "purpose": "Calcula o custo total (gold + dust + exalted cores + itens consumidos) pra evoluir um item de tier X pra Y no Exaltation Forge do Tibia.",
-      "keyFiles": { "TierCalculatorPage.tsx": "209 linhas — tabela por etapa (Fusões/Gold/Dust/Cores) + resumo separado de custo de itens." },
+      "keyFiles": { "TierCalculatorPage.tsx": "Duas abas (?tab=beneficios): Calculadora — tabela por etapa (Fusões/Gold/Dust/Cores) + resumo separado de custo de itens — e Benefícios por Tier.", "components/TierBenefitsTable.tsx": "Aba 'Benefícios por Tier': tabela tier 1-10 x efeitos (Onslaught/Ruse/Momentum/Transcendence/Amplification) + descrição de cada efeito." },
       "businessLogicRef": "services/tier/tier-calculator.ts — ver businessLogic.tierCalculator",
-      "dataSource": "Constantes estáticas em services/tier/tier-cost-data.ts (regra oficial do jogo, não é dado de conta)."
+      "dataSource": "Constantes estáticas em services/tier/tier-cost-data.ts (custos) e services/tier/tier-benefits-data.ts (% de bônus por tier) — regra oficial do jogo, não é dado de conta."
     },
 
     "charm-planner": {
