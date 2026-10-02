@@ -1,5 +1,5 @@
 import { formatTibiaGold } from '@/services/split';
-import { animDelay } from '@/services/common/anim-delay';
+import { animDelay, animDelayMs } from '@/services/common/anim-delay';
 import { CountUp } from '@/components/common/CountUp';
 import type { DashboardMetricKey } from '@/services/dashboard/monthly-trend';
 
@@ -62,7 +62,7 @@ export function KpiGrid({ stats, bossHuntTotals, totalInd, onMetricClick }: KpiG
         >
           <span className="stat-box-rotulo">{box.label}</span>
           <strong className={box.className} style={{ fontSize: box.isGold ? '11px' : '14px', color: box.color }}>
-            <CountUp value={box.value} format={box.isGold ? formatTibiaGold : undefined} />
+            <CountUp value={box.value} format={box.isGold ? formatTibiaGold : undefined} delayMs={animDelayMs(index, 40)} />
           </strong>
         </div>
       ))}

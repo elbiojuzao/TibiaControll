@@ -1,6 +1,7 @@
 import type { Member, MemberXpStats } from '@/types';
 import type { MemberLiveStats } from '@/hooks/useMemberLiveStats';
-import { animDelay } from '@/services/common/anim-delay';
+import { animDelay, animDelayMs } from '@/services/common/anim-delay';
+import { CountUpText } from '@/components/common/CountUpText';
 
 /** Lvl Atual e Skill vêm ao vivo da API do TibiaData (ver useMemberLiveStats). Previsão fim
  * de ano também é real agora (2026-08-10, ver previsaoPorMembro/level-prediction.ts) — só
@@ -53,7 +54,7 @@ export function MembersXpTable({ members, liveStats, statsByName, previsaoPorMem
               const live = liveStats[m.characterName];
               return (
                 <td key={m.id} className="borda-padrao" style={{ padding: '8px', fontWeight: 'bold' }}>
-                  {live?.loading ? <span className="skeleton skeleton-inline" /> : live?.level ?? '—'}
+                  {live?.loading ? <span className="skeleton skeleton-inline" /> : live?.level != null ? <CountUpText text={String(live.level)} delayMs={animDelayMs(4, 50)} /> : '—'}
                 </td>
               );
             })}
@@ -65,7 +66,7 @@ export function MembersXpTable({ members, liveStats, statsByName, previsaoPorMem
               const live = liveStats[m.characterName];
               return (
                 <td key={m.id} className="borda-padrao" style={{ padding: '8px' }}>
-                  {live?.loading ? <span className="skeleton skeleton-inline" /> : live?.skillLabel ?? '—'}
+                  {live?.loading ? <span className="skeleton skeleton-inline" /> : live?.skillLabel ? <CountUpText text={live.skillLabel} delayMs={animDelayMs(5, 50)} /> : '—'}
                 </td>
               );
             })}
@@ -77,7 +78,7 @@ export function MembersXpTable({ members, liveStats, statsByName, previsaoPorMem
               const extra = statsByName[m.characterName] ?? EMPTY_XP_STATS;
               return (
                 <td key={m.id} className={`borda-padrao ${extra.xpOntem.startsWith('-') ? 'texto-perigo' : 'texto-sucesso'}`} style={{ padding: '8px', fontWeight: 'bold' }}>
-                  {extra.xpOntem}
+                  <CountUpText text={extra.xpOntem} delayMs={animDelayMs(6, 50)} />
                 </td>
               );
             })}
@@ -87,7 +88,7 @@ export function MembersXpTable({ members, liveStats, statsByName, previsaoPorMem
             <td className="borda-padrao texto-mudo" style={{ padding: '8px', textAlign: 'left', paddingLeft: '10px', fontWeight: 'bold' }}>Xp 30Dias</td>
             {members.map((m) => (
               <td key={m.id} className="borda-padrao texto-sucesso" style={{ padding: '8px', fontWeight: 'bold' }}>
-                {(statsByName[m.characterName] ?? EMPTY_XP_STATS).xp30Dias}
+                <CountUpText text={(statsByName[m.characterName] ?? EMPTY_XP_STATS).xp30Dias} delayMs={animDelayMs(7, 50)} />
               </td>
             ))}
           </tr>
@@ -96,7 +97,7 @@ export function MembersXpTable({ members, liveStats, statsByName, previsaoPorMem
             <td className="borda-padrao" style={{ padding: '8px', textAlign: 'left', paddingLeft: '10px' }}>Previsão fim de ano</td>
             {members.map((m) => (
               <td key={m.id} className="borda-padrao" style={{ padding: '8px' }}>
-                {previsaoPorMembro[m.characterName] ?? '—'}
+                <CountUpText text={previsaoPorMembro[m.characterName] ?? '—'} delayMs={animDelayMs(8, 50)} />
               </td>
             ))}
           </tr>
@@ -119,7 +120,7 @@ export function MembersXpTable({ members, liveStats, statsByName, previsaoPorMem
                 const style = getMetaCellStyle(val);
                 return (
                   <td key={m.id} className="borda-padrao" style={{ padding: '5px', backgroundColor: style.background, color: style.color, fontSize: '11px' }}>
-                    {val}
+                    <CountUpText text={val} delayMs={animDelayMs(9 + lvlIdx, 25, 450)} />
                   </td>
                 );
               })}

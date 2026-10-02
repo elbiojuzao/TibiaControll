@@ -1,5 +1,6 @@
 import { formatTibiaGold } from '@/services/split';
-import { animDelay } from '@/services/common/anim-delay';
+import { animDelay, animDelayMs } from '@/services/common/anim-delay';
+import { CountUp } from '@/components/common/CountUp';
 
 export interface TopDropEntry {
   looter: string;
@@ -56,10 +57,10 @@ export function TopDropCard({ ranking, loading, onPlayerClick }: TopDropCardProp
               </span>
               <span style={{ textAlign: 'right' }}>
                 <span className="texto-sucesso" style={{ display: 'block', fontSize: '13px', fontWeight: 'bold' }}>
-                  {formatTibiaGold(entry.totalValue)}
+                  <CountUp value={entry.totalValue} format={formatTibiaGold} delayMs={animDelayMs(idx, 60)} />
                 </span>
                 <span className="texto-fraco" style={{ display: 'block', fontSize: '11px' }}>
-                  {entry.dropCount} {entry.dropCount === 1 ? 'drop' : 'drops'}
+                  <CountUp value={entry.dropCount} delayMs={animDelayMs(idx, 60)} /> {entry.dropCount === 1 ? 'drop' : 'drops'}
                 </span>
               </span>
             </div>
