@@ -134,7 +134,7 @@ export default defineConfig(({ mode }) => {
       // Se/quando entrar teste de componente React, ele muda pra 'jsdom' (com
       // @testing-library/react) só naqueles arquivos via docblock `@vitest-environment`.
       environment: 'node',
-      include: ['src/**/*.test.ts'],
+      include: ['src/**/*.test.ts', 'api/**/*.test.ts'],
     },
     build: {
       rollupOptions: {

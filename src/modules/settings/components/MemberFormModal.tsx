@@ -49,7 +49,7 @@ export function MemberFormModal({ mode, member, onClose, onSubmit }: MemberFormM
 
     const trimmedName = formCharacterName.trim();
     if (!trimmedName) {
-      setFormError('Informe o nome do personagem — precisa bater exatamente com o nome no Tibia e na planilha de XP.');
+      setFormError('Informe o nome do personagem — precisa bater exatamente com o nome no Tibia.');
       return;
     }
 
@@ -109,6 +109,12 @@ export function MemberFormModal({ mode, member, onClose, onSubmit }: MemberFormM
             </select>
           </label>
         </div>
+
+        {mode === 'edit' && member!.previousNames.length > 0 && (
+          <span className="label-padrao">
+            Nomes antigos: {member!.previousNames.join(', ')}
+          </span>
+        )}
 
         {formVocation === 'EK' && (
           <label className="label-padrao">

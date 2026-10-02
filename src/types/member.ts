@@ -16,6 +16,10 @@ export interface Member {
   id: string;
   accountId: string;
   characterName: string;
+  /** Nomes anteriores do personagem (renomeado no jogo), mais antigo primeiro — preenchido
+   * automaticamente por IMemberRepository.update() quando characterName muda, nunca editado
+   * à mão. Dados de histórico ligados a este membro usam `id`, não o nome. */
+  previousNames: string[];
   vocation: Vocation;
   /** Indica se o membro e serviceiro (joga conta de terceiro) */
   isServiceiro: boolean;

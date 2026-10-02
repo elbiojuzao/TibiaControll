@@ -1,7 +1,6 @@
 import type { MemberXpStats } from '@/types';
-import type { IDashboardRepository } from '../interfaces';
+import type { IDashboardRepository, IMemberXpSnapshotRepository } from '../interfaces';
 import { mockMemberXpStats } from '@/mocks/data/member-xp-stats';
-import { fetchXpSheetCached } from '@/services/xp-sheet/xp-sheet-cache';
 
 const delay = (ms = 150) => new Promise((r) => setTimeout(r, ms));
 
@@ -14,24 +13,29 @@ function formatXpValue(value: number): string {
 }
 
 export class MockDashboardRepository implements IDashboardRepository {
+  private readonly xpSnapshots: IMemberXpSnapshotRepository;
+
+  constructor(xpSnapshots: IMemberXpSnapshotRepository) {
+    this.xpSnapshots = xpSnapshots;
+  }
+
   /**
-   * xpOntem/xp30Dias vêm de verdade da planilha do usuário (rotina automática dele, a
-   * gente só lê o resultado via /api/xp-sheet — ver api/_lib/xp-sheet.ts). Meta XP Diária
+   * xpOntem/xp30Dias vêm do histórico real em member_xp_snapshots (preenchido todo dia pelo
+   * cron api/cron/xp-collect; em modo mock o repositório devolve vazio). Meta XP Diária
    * (antes "metas" aqui, mock) foi removida deste tipo em 2026-08-14 — agora é computada à
    * parte em DashboardPage.tsx via services/xp-sheet/meta-xp-diaria.ts (tabela real
    * xp_levels + XP ao vivo do TibiaData), não passa mais por este repositório.
-   * Se a planilha falhar por qualquer motivo (rede, mudou de lugar, etc.), cai pro valor
-   * mock sem quebrar a tela.
+   * Se a leitura falhar por qualquer motivo, cai pro valor mock sem quebrar a tela.
    */
   async getMemberXpStats(accountId: string): Promise<Record<string, MemberXpStats>> {
     await delay();
     const base = mockMemberXpStats[accountId] ?? {};
 
     try {
-      const sheetStats = await fetchXpSheetCached();
+      const xpStats = await this.xpSnapshots.getSeries(accountId);
 
       const merged: Record<string, MemberXpStats> = { ...base };
-      for (const [characterName, stats] of Object.entries(sheetStats)) {
+      for (const [characterName, stats] of Object.entries(xpStats)) {
         merged[characterName] = {
           ...merged[characterName],
           xpOntem: formatXpValue(stats.xpOntem),
@@ -40,7 +44,7 @@ export class MockDashboardRepository implements IDashboardRepository {
       }
       return merged;
     } catch {
-      // Planilha indisponível — mantém o dashboard funcionando com o mock.
+      // Histórico de XP indisponível — mantém o dashboard funcionando com o mock.
       return base;
     }
   }

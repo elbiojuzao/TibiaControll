@@ -54,6 +54,13 @@ export interface IDashboardRepository {
   getMemberXpStats(accountId: string): Promise<Record<string, import('@/types').MemberXpStats>>;
 }
 
+/** Histórico de XP diária por personagem (tabela member_xp_snapshots, preenchida pelo cron
+ * api/cron/xp-collect). Devolve o mesmo shape que a leitura da planilha antiga devolvia —
+ * chave = nome ATUAL do personagem. */
+export interface IMemberXpSnapshotRepository {
+  getSeries(accountId: string): Promise<Record<string, import('@/types').XpCharacterStats>>;
+}
+
 export interface ISettingsRepository {
   getSettings(accountId: string): Promise<import('@/types').PartySettings>;
 }

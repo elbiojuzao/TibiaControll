@@ -75,7 +75,7 @@ function Podium({ items }: { items: PodiumItem[] }) {
 export function XpHistoricoPage() {
   const { accountId } = useAccount();
   const { members } = useMembers(accountId);
-  const { data, loading, error } = useXpSheet();
+  const { data, loading, error } = useXpSheet(accountId);
   const [windowDays, setWindowDays] = useState(30);
 
   const valueMaps = useMemo(() => {

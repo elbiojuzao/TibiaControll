@@ -15,6 +15,7 @@ import type {
   IDashboardRepository,
   ISettingsRepository,
   IWheelPresetRepository,
+  IMemberXpSnapshotRepository,
 } from './interfaces';
 
 import { MockAccountRepository } from './mock/mock-account-repository';
@@ -29,6 +30,8 @@ import { MockServiceiroRepository } from './mock/mock-serviceiro-repository';
 import { MockDashboardRepository } from './mock/mock-dashboard-repository';
 import { MockSettingsRepository } from './mock/mock-settings-repository';
 import { MockWheelPresetRepository } from './mock/mock-wheel-preset-repository';
+import { MockMemberXpSnapshotRepository } from './mock/mock-member-xp-snapshot-repository';
+import { HttpMemberXpSnapshotRepository } from './http/http-member-xp-snapshot-repository';
 import { HttpServiceiroRepository } from './http/http-serviceiro-repository';
 import { HttpLootDropRepository } from './http/http-loot-drop-repository';
 import { HttpSplitLogRepository } from './http/http-split-log-repository';
@@ -50,6 +53,7 @@ export interface RepositoryContainer {
   dashboard: IDashboardRepository;
   settings: ISettingsRepository;
   wheelPreset: IWheelPresetRepository;
+  memberXpSnapshot: IMemberXpSnapshotRepository;
 }
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false';
@@ -87,8 +91,13 @@ export const PARTY_EVENTS_USE_SUPABASE = import.meta.env.VITE_PARTY_EVENTS_USE_S
  * 20260908010000_create_wheel_presets_table.sql. */
 export const WHEEL_PRESETS_USE_SUPABASE = import.meta.env.VITE_WHEEL_PRESETS_USE_SUPABASE === 'true';
 
+/** Mesma ideia, mas para o histórico diário de XP por personagem (2026-10-02) — substitui a
+ * leitura da planilha Google Sheets. Ver migration 20261002010000_create_member_xp_snapshots_table.sql. */
+export const MEMBER_XP_USE_SUPABASE = import.meta.env.VITE_MEMBER_XP_USE_SUPABASE === 'true';
+
 function createRepositories(): RepositoryContainer {
   if (USE_MOCK) {
+    const memberXpSnapshot = MEMBER_XP_USE_SUPABASE ? new HttpMemberXpSnapshotRepository() : new MockMemberXpSnapshotRepository();
     return {
       account: ACCOUNT_USE_SUPABASE ? new HttpAccountRepository() : new MockAccountRepository(),
       member: MEMBER_USE_SUPABASE ? new HttpMemberRepository() : new MockMemberRepository(),
@@ -99,9 +108,10 @@ function createRepositories(): RepositoryContainer {
       splitLog: SPLIT_LOGS_USE_SUPABASE ? new HttpSplitLogRepository() : new MockSplitLogRepository(),
       partyEvent: PARTY_EVENTS_USE_SUPABASE ? new HttpPartyEventRepository() : new MockPartyEventRepository(),
       serviceiro: SERVICEIROS_USE_SUPABASE ? new HttpServiceiroRepository() : new MockServiceiroRepository(),
-      dashboard: new MockDashboardRepository(),
+      dashboard: new MockDashboardRepository(memberXpSnapshot),
       settings: new MockSettingsRepository(),
       wheelPreset: WHEEL_PRESETS_USE_SUPABASE ? new HttpWheelPresetRepository() : new MockWheelPresetRepository(),
+      memberXpSnapshot,
     };
   }
 

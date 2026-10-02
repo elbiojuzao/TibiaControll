@@ -18,6 +18,7 @@ export class MockMemberRepository implements IMemberRepository {
       id: crypto.randomUUID(),
       accountId,
       characterName: dto.characterName,
+      previousNames: [],
       vocation: dto.vocation,
       isServiceiro: dto.isServiceiro ?? false,
       serviceiroSharePercent: dto.serviceiroSharePercent,
@@ -33,7 +34,15 @@ export class MockMemberRepository implements IMemberRepository {
     await delay();
     const index = membersStore.findIndex((m) => m.id === id);
     if (index === -1) throw new Error('Membro nao encontrado');
-    membersStore[index] = { ...membersStore[index], ...dto };
+    const current = membersStore[index];
+    const renamed = dto.characterName !== undefined && dto.characterName !== current.characterName;
+    membersStore[index] = {
+      ...current,
+      ...dto,
+      previousNames: renamed && !current.previousNames.includes(current.characterName)
+        ? [...current.previousNames, current.characterName]
+        : current.previousNames,
+    };
     return membersStore[index];
   }
 

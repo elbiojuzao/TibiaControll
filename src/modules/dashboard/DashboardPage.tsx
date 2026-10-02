@@ -50,7 +50,7 @@ export function DashboardPage() {
   const liveStats = useMemberLiveStats(members);
   const { statsByName } = useMemberXpStats(accountId);
   const { series: splitDailySeries } = useSplitLogsDaily(accountId);
-  const { data: xpSheetData } = useXpSheet();
+  const { data: xpSheetData } = useXpSheet(accountId);
   const { levels: xpLevelsTable } = useXpLevels();
 
   // Previsão fim de ano — antes vinha de um script no Google Sheets do usuário, portado

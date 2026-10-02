@@ -51,7 +51,7 @@ export function CalendarioPage() {
   const { hunts, loading: huntsLoading } = useHunts(accountId);
   const { drops, loading: dropsLoading } = useLootDrops(accountId);
   const { members } = useMembers(accountId);
-  const { data: xpData } = useXpSheet();
+  const { data: xpData } = useXpSheet(accountId);
   // Perfil individual de Hunt/Boss do dia (2026-08-19, pedido do usuário: puxar direto de
   // split_logs em vez da planilha externa) — ver useSplitLogsDaily.
   const { series: splitDailySeries, loading: splitDailyLoading, hideDay, addSplitOptimistic } = useSplitLogsDaily(accountId);

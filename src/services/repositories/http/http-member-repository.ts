@@ -7,6 +7,7 @@ interface MemberRow {
   id: string;
   account_id: string;
   character_name: string;
+  nomes_antigos: string[];
   vocation: Member['vocation'];
   is_serviceiro: boolean;
   serviceiro_share_percent: number | null;
@@ -20,6 +21,7 @@ function toDomain(row: MemberRow): Member {
     id: row.id,
     accountId: row.account_id,
     characterName: row.character_name,
+    previousNames: row.nomes_antigos ?? [],
     vocation: row.vocation,
     isServiceiro: row.is_serviceiro,
     serviceiroSharePercent: row.serviceiro_share_percent ?? undefined,
@@ -62,8 +64,24 @@ export class HttpMemberRepository implements IMemberRepository {
   }
 
   async update(id: string, dto: Partial<CreateMemberDto>): Promise<Member> {
+    const supabase = getSupabaseClient();
     const patch: Record<string, unknown> = {};
-    if (dto.characterName !== undefined) patch.character_name = dto.characterName;
+    if (dto.characterName !== undefined) {
+      // Rename no jogo: guarda o nome antigo em nomes_antigos pra não perder o vínculo com o
+      // histórico (dados novos usam member_id, mas splits/drops antigos ainda casam por nome).
+      const { data: current, error: currentError } = await supabase
+        .from('members')
+        .select('character_name, nomes_antigos')
+        .eq('id', id)
+        .single();
+      if (currentError) throw new Error(friendlyErrorMessage(currentError));
+      const { character_name: oldName, nomes_antigos: oldNames } = current as Pick<MemberRow, 'character_name' | 'nomes_antigos'>;
+      patch.character_name = dto.characterName;
+      if (oldName !== dto.characterName) {
+        const history = oldNames ?? [];
+        patch.nomes_antigos = history.includes(oldName) ? history : [...history, oldName];
+      }
+    }
     if (dto.vocation !== undefined) patch.vocation = dto.vocation;
     if (dto.isServiceiro !== undefined) patch.is_serviceiro = dto.isServiceiro;
     if (dto.serviceiroSharePercent !== undefined) patch.serviceiro_share_percent = dto.serviceiroSharePercent;
@@ -71,7 +89,6 @@ export class HttpMemberRepository implements IMemberRepository {
     if (dto.skillCategory !== undefined) patch.skill_category = dto.skillCategory;
     if (dto.isDefaultSeller !== undefined) patch.is_default_seller = dto.isDefaultSeller;
 
-    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('members')
       .update(patch)
