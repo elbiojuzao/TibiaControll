@@ -1,4 +1,5 @@
 import { getItemIconUrl } from '@/services/lootdrop/item-icons';
+import { animDelay } from '@/services/common/anim-delay';
 
 export interface UnsoldGroupedItem {
   itemName: string;
@@ -30,7 +31,7 @@ interface UnsoldItemsCardProps {
  * página, ver [[feedback-modal-arquivo-separado]]). */
 export function UnsoldItemsCard({ items, totalCount, loading, error, onShareClick, onItemClick }: UnsoldItemsCardProps) {
   return (
-    <div className="card-compacto" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+    <div className="card-compacto anim-entrada" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, ...animDelay(2, 40) }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1px solid var(--color-border)', paddingBottom: '8px' }}>
         <h3 style={{ fontSize: '14px', margin: 0, color: 'var(--color-warning)' }}>TODOS os Itens não vendidos</h3>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -58,21 +59,26 @@ export function UnsoldItemsCard({ items, totalCount, loading, error, onShareClic
       </div>
 
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-        {loading && <div className="texto-mudo" style={{ padding: '15px', textAlign: 'center', fontSize: '13px' }}>Carregando...</div>}
+        {loading && (
+          <div aria-label="Carregando itens">
+            {Array.from({ length: 6 }, (_, i) => <div key={i} className="skeleton skeleton-linha" />)}
+          </div>
+        )}
         {error && <div className="texto-perigo" style={{ padding: '15px', textAlign: 'center', fontSize: '13px' }}>{error}</div>}
         {!loading && !error && items.length === 0 && (
           <p className="estado-vazio">Nenhum item pendente no momento.</p>
         )}
         {!loading && !error && items.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-            {items.map((item) => {
+            {items.map((item, idx) => {
               const iconUrl = getItemIconUrl(item.itemName);
               return (
                 <div
                   key={item.itemName}
+                  className="anim-entrada"
                   onClick={() => onItemClick(item.itemName)}
                   title="Editar o item pendente mais antigo"
-                  style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 4px', borderBottom: '1px solid var(--color-bg-elevated)', cursor: 'pointer' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 4px', borderBottom: '1px solid var(--color-bg-elevated)', cursor: 'pointer', ...animDelay(idx, 15, 450) }}
                 >
                   {iconUrl
                     ? <img src={iconUrl} alt="" className="h20 w20" style={{ objectFit: 'contain', imageRendering: 'pixelated', flexShrink: 0 }} />

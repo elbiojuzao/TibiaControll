@@ -1110,6 +1110,56 @@ input[type='number']::-webkit-inner-spin-button {
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
 }
 
+/* Animação de abrir/fechar modal (2026-10-02, pedido do usuário, vale pra todas as modais —
+   todas usam components/common/Modal.tsx). Abrir: overlay faz fade e o card sobe de leve.
+   Fechar: o Modal deixa uma cópia no <body> com .modal-saindo (ver playExitAnimation) — a
+   duração (150ms) precisa bater com EXIT_MS lá. Desligado em prefers-reduced-motion. */
+@keyframes modal-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modal-overlay-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes modal-card-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes modal-card-out {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(6px) scale(0.98); }
+}
+
+.modal-overlay {
+  animation: modal-overlay-in 0.18s ease-out;
+}
+
+.modal-overlay .modal-card {
+  animation: modal-card-in 0.22s ease-out;
+}
+
+.modal-overlay.modal-saindo {
+  animation: modal-overlay-out 0.15s ease-in forwards;
+  pointer-events: none;
+}
+
+.modal-overlay.modal-saindo .modal-card {
+  animation: modal-card-out 0.15s ease-in forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-overlay,
+  .modal-overlay .modal-card,
+  .modal-overlay.modal-saindo,
+  .modal-overlay.modal-saindo .modal-card {
+    animation: none;
+  }
+}
+
 .modal-header {
   display: flex;
   justify-content: space-between;
@@ -1903,5 +1953,110 @@ input[type='number']::-webkit-inner-spin-button {
 
   .topbar-actions {
     gap: 6px;
+  }
+}
+
+/* ------------------------------------------------------------------------------------
+   Animações do Dashboard (2026-10-02, pedido do usuário) — estilo "sutil e rápido".
+   - .anim-entrada: fade + subida de 8px; o atraso de cada bloco vem da variável
+     --anim-delay (ver services/common/anim-delay.ts) pra montar a cascata.
+     fill-mode `backwards` (e não `both`): depois de terminar, a animação solta o
+     `transform`, senão ele travaria o hover de scale dos .stat-box-clicavel.
+   - .skeleton: bloco cinza pulsando no lugar do texto "Carregando...".
+   - Hover de crescer só em dispositivos com mouse de verdade (hover: hover), nunca em touch.
+   Tudo desligado em prefers-reduced-motion.
+   ------------------------------------------------------------------------------------ */
+@keyframes anim-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes anim-skeleton-pulse {
+  0%, 100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+.anim-entrada {
+  animation: anim-fade-up 0.35s ease-out backwards;
+  animation-delay: var(--anim-delay, 0ms);
+}
+
+.skeleton {
+  background: var(--color-bg-hover);
+  border-radius: var(--radius-sm);
+  animation: anim-skeleton-pulse 1.2s ease-in-out infinite;
+}
+
+.skeleton-linha {
+  height: 14px;
+  margin: 10px 4px;
+}
+
+.skeleton-inline {
+  display: inline-block;
+  width: 36px;
+  height: 12px;
+  vertical-align: middle;
+}
+
+.stat-box-clicavel {
+  transition: transform 0.15s ease, background 0.15s, border-color 0.15s;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .stat-box-clicavel:hover {
+    transform: scale(1.06);
+  }
+}
+
+/* Gráfico do MonthlyTrendModal (2026-10-02, pedido do usuário: barras "crescerem devagar" ao
+   abrir). O grupo <g class="grafico-barra"> escala de 0 a 1 a partir da base (transform-box:
+   fill-box faz o transform-origin valer pro próprio retângulo do grupo, não pro SVG todo);
+   atraso por mês via --anim-delay (animDelay). O valor em kk (.grafico-rotulo) só faz fade-in
+   depois da barra crescer. */
+@keyframes grafico-barra-crescer {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+@keyframes grafico-rotulo-aparecer {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.grafico-barra {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: grafico-barra-crescer 0.7s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: var(--anim-delay, 0ms);
+}
+
+.grafico-rotulo {
+  animation: grafico-rotulo-aparecer 0.4s ease-out backwards;
+  animation-delay: var(--anim-delay, 0ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-entrada,
+  .skeleton,
+  .grafico-barra,
+  .grafico-rotulo {
+    animation: none;
+  }
+
+  .stat-box-clicavel,
+  .stat-box-clicavel:hover {
+    transition: none;
+    transform: none;
   }
 }

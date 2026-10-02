@@ -1,6 +1,7 @@
 import { Modal } from '@/components/common/Modal';
 import { formatTibiaGold } from '@/services/split';
 import { formatGoldKK } from '@/services/common/gold-format';
+import { animDelay } from '@/services/common/anim-delay';
 import type { MonthBucket } from '@/services/dashboard/monthly-trend';
 
 export interface StackedSeries {
@@ -30,6 +31,11 @@ const CHART_RIGHT = 660;
 const CHART_TOP = 24;
 const CHART_BOTTOM = 220;
 const BAR_GAP = 8;
+/** Espera a animação de abrir o modal (~220ms) terminar antes das barras começarem a crescer. */
+const BAR_START_OFFSET_MS = 180;
+const BAR_STAGGER_MS = 45;
+/** Valores (kk) só aparecem depois que a barra do mês já cresceu (duração em .grafico-barra). */
+const LABEL_START_OFFSET_MS = BAR_START_OFFSET_MS + 520;
 
 /** Gráfico de tendência mensal (2026-08-21, pedido do usuário: "ao clicar nos campos
  * centrais da dashboard, abrir uma modal com gráfico dos últimos 12 meses"). Barra SVG
@@ -68,6 +74,9 @@ export function MonthlyTrendModal({ title, isCurrency, months, values, onClose, 
 
               return (
                 <g key={m.key}>
+                  {/* Barra (ou pilha inteira) cresce da base pra cima, mês a mês — .grafico-barra
+                      em global.css. O grupo é que anima, não cada segmento, pra a pilha crescer junta. */}
+                  <g className="grafico-barra" style={animDelay(i, BAR_STAGGER_MS, 600, BAR_START_OFFSET_MS)}>
                   {stackedSeries ? (
                     (() => {
                       let cursorY = CHART_BOTTOM;
@@ -93,8 +102,9 @@ export function MonthlyTrendModal({ title, isCurrency, months, values, onClose, 
                       <title>{`${m.label}: ${formatValue(value)}`}</title>
                     </rect>
                   )}
+                  </g>
                   {value !== 0 && (
-                    <text x={x + barWidth / 2} y={y - 6} textAnchor="middle" fontSize="8.5" fill="var(--color-text-muted)">
+                    <text className="grafico-rotulo" style={animDelay(i, BAR_STAGGER_MS, 600, LABEL_START_OFFSET_MS)} x={x + barWidth / 2} y={y - 6} textAnchor="middle" fontSize="8.5" fill="var(--color-text-muted)">
                       {formatValue(value)}
                     </text>
                   )}

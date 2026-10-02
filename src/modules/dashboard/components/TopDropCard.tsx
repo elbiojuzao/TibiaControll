@@ -1,4 +1,5 @@
 import { formatTibiaGold } from '@/services/split';
+import { animDelay } from '@/services/common/anim-delay';
 
 export interface TopDropEntry {
   looter: string;
@@ -19,10 +20,14 @@ interface TopDropCardProps {
  * [[feedback-modal-arquivo-separado]]). */
 export function TopDropCard({ ranking, loading, onPlayerClick }: TopDropCardProps) {
   return (
-    <div className="card-compacto">
+    <div className="card-compacto anim-entrada" style={animDelay(3, 40)}>
       <h3 style={{ fontSize: '14px', margin: '0 0 10px 0', color: 'var(--color-accent)', borderBottom: '1px solid var(--color-border)', paddingBottom: '8px' }}>Top Drop</h3>
       <span className="texto-fraco" style={{ fontSize: '11px', display: 'block', marginBottom: '8px', marginTop: '-6px' }}>Últimos 365 dias</span>
-      {loading && <div className="texto-mudo" style={{ fontSize: '13px', textAlign: 'center', padding: '20px 0' }}>Carregando...</div>}
+      {loading && (
+        <div aria-label="Carregando ranking">
+          {Array.from({ length: 5 }, (_, i) => <div key={i} className="skeleton skeleton-linha" />)}
+        </div>
+      )}
       {!loading && ranking.length === 0 && (
         <div className="texto-fraco" style={{ fontSize: '13px', textAlign: 'center', padding: '20px 0' }}>
           Nenhum drop com fragador nos últimos 365 dias.
@@ -31,7 +36,7 @@ export function TopDropCard({ ranking, loading, onPlayerClick }: TopDropCardProp
       {!loading && ranking.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {ranking.map((entry, idx) => (
-            <div key={entry.looter} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '6px 4px', borderBottom: '1px solid var(--color-bg-elevated)' }}>
+            <div key={entry.looter} className="anim-entrada" style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '6px 4px', borderBottom: '1px solid var(--color-bg-elevated)', ...animDelay(idx, 60) }}>
               <span className="h22 w22" style={{
                 borderRadius: 'var(--radius-pill)', flexShrink: 0,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',

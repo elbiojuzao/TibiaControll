@@ -1,5 +1,6 @@
 import type { Member, MemberXpStats } from '@/types';
 import type { MemberLiveStats } from '@/hooks/useMemberLiveStats';
+import { animDelay } from '@/services/common/anim-delay';
 
 /** Lvl Atual e Skill vêm ao vivo da API do TibiaData (ver useMemberLiveStats). Previsão fim
  * de ano também é real agora (2026-08-10, ver previsaoPorMembro/level-prediction.ts) — só
@@ -31,7 +32,7 @@ interface MembersXpTableProps {
  * apresentação: todo dado (live stats, previsão, metas) já vem calculado por props. */
 export function MembersXpTable({ members, liveStats, statsByName, previsaoPorMembro, niveisMetas, metaXpDiariaPorMembro }: MembersXpTableProps) {
   return (
-    <div className="card-compacto" style={{ overflowX: 'auto', padding: 0 }}>
+    <div className="card-compacto anim-entrada" style={{ overflowX: 'auto', padding: 0, ...animDelay(2, 60) }}>
       <table className="tabela-simples texto-mono" style={{ textAlign: 'center' }}>
         <thead>
           {/* Linha de Nomes dos Membros */}
@@ -46,31 +47,31 @@ export function MembersXpTable({ members, liveStats, statsByName, previsaoPorMem
         </thead>
         <tbody>
           {/* Lvl Atual — ao vivo via TibiaData (character) */}
-          <tr className="linha-tabela-dado">
+          <tr className="linha-tabela-dado anim-entrada" style={animDelay(4, 50)}>
             <td className="borda-padrao texto-mudo" style={{ padding: '8px', textAlign: 'left', paddingLeft: '10px', fontWeight: 'bold' }}>Lvl Atual</td>
             {members.map((m) => {
               const live = liveStats[m.characterName];
               return (
                 <td key={m.id} className="borda-padrao" style={{ padding: '8px', fontWeight: 'bold' }}>
-                  {live?.loading ? '…' : live?.level ?? '—'}
+                  {live?.loading ? <span className="skeleton skeleton-inline" /> : live?.level ?? '—'}
                 </td>
               );
             })}
           </tr>
           {/* Skill — ao vivo via TibiaData (highscores, top 500 do mundo) */}
-          <tr className="linha-tabela-dado-alt">
+          <tr className="linha-tabela-dado-alt anim-entrada" style={animDelay(5, 50)}>
             <td className="borda-padrao texto-mudo" style={{ padding: '8px', textAlign: 'left', paddingLeft: '10px', fontWeight: 'bold' }}>Skill</td>
             {members.map((m) => {
               const live = liveStats[m.characterName];
               return (
                 <td key={m.id} className="borda-padrao" style={{ padding: '8px' }}>
-                  {live?.loading ? '…' : live?.skillLabel ?? '—'}
+                  {live?.loading ? <span className="skeleton skeleton-inline" /> : live?.skillLabel ?? '—'}
                 </td>
               );
             })}
           </tr>
           {/* Xp Ontem */}
-          <tr className="linha-tabela-dado">
+          <tr className="linha-tabela-dado anim-entrada" style={animDelay(6, 50)}>
             <td className="borda-padrao texto-mudo" style={{ padding: '8px', textAlign: 'left', paddingLeft: '10px', fontWeight: 'bold' }}>Xp Ontem</td>
             {members.map((m) => {
               const extra = statsByName[m.characterName] ?? EMPTY_XP_STATS;
@@ -82,7 +83,7 @@ export function MembersXpTable({ members, liveStats, statsByName, previsaoPorMem
             })}
           </tr>
           {/* Xp 30Dias */}
-          <tr className="linha-tabela-dado-alt">
+          <tr className="linha-tabela-dado-alt anim-entrada" style={animDelay(7, 50)}>
             <td className="borda-padrao texto-mudo" style={{ padding: '8px', textAlign: 'left', paddingLeft: '10px', fontWeight: 'bold' }}>Xp 30Dias</td>
             {members.map((m) => (
               <td key={m.id} className="borda-padrao texto-sucesso" style={{ padding: '8px', fontWeight: 'bold' }}>
@@ -91,7 +92,7 @@ export function MembersXpTable({ members, liveStats, statsByName, previsaoPorMem
             ))}
           </tr>
           {/* Previsão fim de ano */}
-          <tr className="linha-tabela-aviso" style={{ fontWeight: 'bold' }}>
+          <tr className="linha-tabela-aviso anim-entrada" style={{ fontWeight: 'bold', ...animDelay(8, 50) }}>
             <td className="borda-padrao" style={{ padding: '8px', textAlign: 'left', paddingLeft: '10px' }}>Previsão fim de ano</td>
             {members.map((m) => (
               <td key={m.id} className="borda-padrao" style={{ padding: '8px' }}>
@@ -108,8 +109,8 @@ export function MembersXpTable({ members, liveStats, statsByName, previsaoPorMem
           </tr>
 
           {/* Linhas de Metas por Nível */}
-          {niveisMetas.map((lvl) => (
-            <tr key={lvl} style={{ background: 'var(--color-bg-elevated)' }}>
+          {niveisMetas.map((lvl, lvlIdx) => (
+            <tr key={lvl} className="anim-entrada" style={{ background: 'var(--color-bg-elevated)', ...animDelay(9 + lvlIdx, 25, 450) }}>
               <td className="borda-padrao texto-mudo" style={{ padding: '5px', textAlign: 'left', paddingLeft: '10px', fontWeight: 'bold', fontSize: '11px' }}>
                 Lvl {lvl}
               </td>

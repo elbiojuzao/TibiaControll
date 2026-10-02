@@ -1,5 +1,6 @@
 import { formatTibiaGold } from '@/services/split';
 import { getItemIconUrl } from '@/services/lootdrop/item-icons';
+import { animDelay } from '@/services/common/anim-delay';
 import type { LootDrop } from '@/types';
 
 const MESES = [
@@ -29,7 +30,7 @@ interface MonthDropsCardProps {
  * página, ver [[feedback-modal-arquivo-separado]]). */
 export function MonthDropsCard({ selectedMonth, selectedYear, onMonthChange, onYearChange, drops, loading, error, onItemClick }: MonthDropsCardProps) {
   return (
-    <div className="card" style={{ padding: '12px', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+    <div className="card anim-entrada" style={{ padding: '12px', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
         <span style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--color-accent)' }}>Drops no mês</span>
         <div style={{ display: 'flex', gap: '6px' }}>
@@ -56,7 +57,11 @@ export function MonthDropsCard({ selectedMonth, selectedYear, onMonthChange, onY
       </div>
 
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-        {loading && <div className="texto-mudo" style={{ padding: '20px', textAlign: 'center', fontSize: '13px' }}>Carregando...</div>}
+        {loading && (
+          <div aria-label="Carregando drops">
+            {Array.from({ length: 8 }, (_, i) => <div key={i} className="skeleton skeleton-linha" />)}
+          </div>
+        )}
         {error && <div className="texto-perigo" style={{ padding: '20px', textAlign: 'center', fontSize: '13px' }}>{error}</div>}
         {!loading && !error && drops.length === 0 && (
           <div className="texto-fraco" style={{ padding: '20px', textAlign: 'center', fontSize: '13px' }}>Nenhum drop encontrado.</div>
@@ -70,9 +75,10 @@ export function MonthDropsCard({ selectedMonth, selectedYear, onMonthChange, onY
                 return (
                   <tr
                     key={drop.id || idx}
+                    className="anim-entrada"
                     onClick={() => onItemClick(drop.itemName)}
                     title="Ver resumo deste item"
-                    style={{ borderBottom: '1px solid var(--color-border)', background: rowBg, cursor: 'pointer' }}
+                    style={{ borderBottom: '1px solid var(--color-border)', background: rowBg, cursor: 'pointer', ...animDelay(idx, 15, 450) }}
                   >
                     <td className="texto-mudo" style={{ padding: '6px 4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       {getItemIconUrl(drop.itemName) && (

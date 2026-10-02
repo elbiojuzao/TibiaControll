@@ -14,6 +14,8 @@ import { computeMetaLevelRange, computeDailyGoals } from '@/services/xp-sheet/me
 import { monthRangeAsBr } from '@/services/common/months';
 import { dateAsBr, todayAsBr } from '@/services/common/br-date';
 import { parseDateKey } from '@/services/calendar';
+import { animDelay } from '@/services/common/anim-delay';
+import { CountUp } from '@/components/common/CountUp';
 import { buildLast12Months, computeMonthlyTrends, type DashboardMetricKey } from '@/services/dashboard/monthly-trend';
 import { DropFormModal } from './components/DropFormModal';
 import { UnsoldItemsShareModal } from './components/UnsoldItemsShareModal';
@@ -22,6 +24,7 @@ import { PlayerDropsModal } from './components/PlayerDropsModal';
 import { ItemSummaryModal } from './components/ItemSummaryModal';
 import { MonthDropsCard } from './components/MonthDropsCard';
 import { KpiGrid } from './components/KpiGrid';
+import { DashboardSkeleton } from './components/DashboardSkeleton';
 import { MembersXpTable } from './components/MembersXpTable';
 import { UnsoldItemsCard } from './components/UnsoldItemsCard';
 import { TopDropCard } from './components/TopDropCard';
@@ -335,7 +338,7 @@ export function DashboardPage() {
     { key: 'plunder', label: 'Itens (Plunder)', color: 'var(--color-danger)', values: monthlyTrends.kksPlunderInd },
   ], [monthlyTrends]);
 
-  if (accountLoading) return <div className="loading">Carregando...</div>;
+  if (accountLoading) return <DashboardSkeleton />;
 
   // padding-top reduzido de 20px pra 4px (2026-08-25, pedido do usuário: "vamos tirar um
   // pouco desse pading que tem em cima... se nao couber na tela pode seguir") — objetivo é
@@ -375,10 +378,10 @@ export function DashboardPage() {
           <KpiGrid stats={stats} bossHuntTotals={bossHuntTotals} totalInd={totalInd} onMetricClick={setActiveTrendMetric} />
 
           {/* VALOR TOTAL CONSOLIDADO */}
-          <div style={{ background: 'var(--color-bg-elevated)', padding: '12px 20px', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="anim-entrada" style={{ background: 'var(--color-bg-elevated)', padding: '12px 20px', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', ...animDelay(1, 60) }}>
             <div>
               <span className="label-padrao">Valor Total em Drops (Sistema)</span>
-              <span className="texto-sucesso" style={{ fontSize: '18px', fontWeight: 'bold' }}>{formatTibiaGold(stats.totalValue)}</span>
+              <span className="texto-sucesso" style={{ fontSize: '18px', fontWeight: 'bold' }}><CountUp value={stats.totalValue} format={formatTibiaGold} /></span>
             </div>
             <div style={{ textAlign: 'right' }}>
               <span className="label-padrao">Vendidos / Pendentes</span>
