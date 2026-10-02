@@ -337,7 +337,7 @@
 <div class="layout">
   <aside class="toc">
     <div class="toc-brand">Tibia PT Manager</div>
-    <div class="toc-sub">Mapa de arquitetura · gerado 2026-08-09 · atualizado 2026-09-30</div>
+    <div class="toc-sub">Mapa de arquitetura · gerado 2026-08-09 · atualizado 2026-10-02</div>
     <nav id="tocnav">
       <a href="#overview">Visão geral</a>
       <a href="#routes">Rotas &amp; navegação</a>
@@ -350,7 +350,8 @@
       <div class="toc-group-label">Integrações</div>
       <a href="#supabase">Supabase</a>
       <a href="#tibiadata">TibiaData</a>
-      <a href="#sheets">Planilha Google Sheets</a>
+      <a href="#xpcron">XP automática (cron)</a>
+      <a href="#sheets">Planilha Google Sheets (legado)</a>
       <div class="toc-group-label">Regras</div>
       <a href="#business">Regras de negócio</a>
       <div class="toc-group-label">Atenção</div>
@@ -498,6 +499,9 @@
           <p>Painel central: KPIs financeiros do mês, tabela de membros com Lvl/Skill/XP, log completo de drops com registro/edição.</p>
           <dl class="kv-list">
             <dt>Rotas</dt><dd><code>/</code>, <code>/loot-log</code></dd>
+            <dt>Gráfico do modal cresce ao abrir (2026-10-02)</dt><dd>O único modal com gráfico é <code>MonthlyTrendModal</code> (SVG à mão, 12 barras, aberto pelos 10 KPIs). Cada barra — ou a <b>pilha inteira</b> no Total (ind) — fica num <code>&lt;g class="grafico-barra"&gt;</code> que escala <code>scaleY(0→1)</code> a partir da base (<code>transform-box: fill-box</code> + <code>transform-origin: 50% 100%</code>), 700ms, escalonado 45ms por mês e começando depois da abertura do modal; os valores (<code>.grafico-rotulo</code>) fazem fade-in por último. <code>animDelay()</code> ganhou o parâmetro <code>offset</code>. Desligado em <code>prefers-reduced-motion</code>.</dd>
+            <dt>Animação de abrir/fechar modal (2026-10-02)</dt><dd>Vale pros <b>12 modais</b> de uma vez — todos usam <code>components/common/Modal.tsx</code>. <b>Abrir</b>: CSS puro (overlay fade 180ms + card subindo/escalando). <b>Fechar</b>: as páginas desmontam o modal na hora e vários fechamentos acontecem fora do <code>Modal</code> (form chamando <code>onClose()</code> após salvar, Cancelar), então o <code>Modal</code> deixa uma <b>cópia visual</b> (<code>cloneNode</code>) no <code>&lt;body&gt;</code> com <code>.modal-saindo</code> que faz o fade-out de 150ms e se remove — funciona em qualquer caminho de fechamento. Cópia inerte, sem ids duplicados, com os valores dos campos copiados. <code>EXIT_MS</code> em <code>Modal.tsx</code> deve bater com a duração no CSS. No StrictMode (dev) só cria a cópia se <code>!overlay.isConnected</code>. Desligado em <code>prefers-reduced-motion</code>.</dd>
+            <dt>Animações de abertura (2026-10-02)</dt><dd>Estilo sutil e rápido, pedido do usuário. <b>Cascata</b> de entrada (<code>.anim-entrada</code> + <code>--anim-delay</code> via <code>animDelay()</code>; fade + subida de 8px) nos boxes de KPI, barra de Valor Total, tabela de membros e linhas das listas; <b>números contando</b> (<code>useCountUp</code>/<code>CountUp</code>, 900ms, easeOutCubic) nos 10 KPIs e no Valor Total; <b>skeleton</b> (<code>.skeleton</code>, <code>DashboardSkeleton</code>) no lugar de "Carregando..."; <b>hover</b> dos <code>.stat-box-clicavel</code> cresce <code>scale(1.06)</code> só com mouse (<code>@media (hover: hover)</code>). <code>fill-mode: backwards</code> de propósito, pra a animação não travar o <code>transform</code> do hover. Tudo desligado em <code>prefers-reduced-motion</code>.</dd>
             <dt>DashboardPage.tsx (716 → 417 linhas em 2026-08-27)</dt><dd><b>5 extrações de card em sequência no mesmo dia</b> (commits <code>cf0058e</code>/<code>834c47e</code>/<code>cad7caa</code>/<code>296a3d0</code>/<code>f482010</code>, ver memória "refatoracao-qualidade-2026-08"): <code>MonthDropsCard.tsx</code> ("Drops no mês"), <code>KpiGrid.tsx</code> (10 indicadores clicáveis), <code>MembersXpTable.tsx</code> (planilha Lvl/Skill/Xp/Previsão/Metas), <code>UnsoldItemsCard.tsx</code> ("Itens não vendidos") e <code>TopDropCard.tsx</code> (ranking Top Drop) — cada componente novo fica só com a APRESENTAÇÃO, DashboardPage continua dono de todo o estado/fetch/cálculo, passado por props. Todos os KPIs (Plunder/Bags/Hunt/Boss/Total) derivados <b>ao vivo</b> de <code>drops</code> (filtrado por mês) + <code>splitDailySeries</code> (tabela <code>split_logs</code>, via <code>useSplitLogsDaily</code>); nenhum vem de mock nem de planilha. <b>KKs Plunder/Bags(ind) corrigidos em 2026-08-20</b>: somavam <code>totalValue</code> (valor total do drop) em vez de <code>unitValue</code> ("Valor Cada"), apesar do rótulo "(ind)" já dizer individual — bug real reportado pelo usuário, verificado contra o banco. <b>KKs Hunt/Boss migrados da planilha (useBossHuntSheet) pro banco no mesmo dia</b>, pedido do usuário ("os kks hunt e boss tambem vem pelo banco de dados agora") — useBossHuntSheet/api/boss-hunt-sheet foram deletados, sem consumidor restante. Tabela "Drops no mês" (2026-08-17) exibida via <code>sortedDrops</code> — vendido primeiro, depois Valor Total decrescente; a lista original não ordenada continua usada pelos KPIs. Cabeçalho "Dashboard — {partyName}" + subtítulo <b>removidos</b> (2026-08-17, pedido do usuário — topbar já mostra o nome da party).</dd>
             <dt>"Drops no mês" — não vendidos por ordem alfabética (2026-08-26)</dt><dd>Vendidos continuam primeiro, por maior Valor Total; os NÃO vendidos passaram a ordenar por ordem ALFABÉTICA de item em vez de Valor Total — a maioria fica com preço 0 até a venda, então ordenar por valor não ajudava a localizar nada.</dd>
             <dt>Modal de resumo de item (2026-08-26)</dt><dd>Clicar numa linha da tabela "Drops no mês" abre <code>ItemSummaryModal</code>: quantos já foram pegos, Top 3 jogadores que mais fragaram, Top 3 "de qual boss mais veio" (só aparece se o item já caiu de mais de 1 boss diferente — itens exclusivos de 1 boss, tipo os de Plunder/Phosphorus, não mostram esse ranking redundante) e a lista completa de ocorrências. Reusa <code>last365Drops</code> (já buscado pro Top Drop), zero fetch novo.</dd>
@@ -638,7 +642,7 @@
             <dt>📅 Calendário — "Total do mês" + valor por dia na célula (2026-09-04)</dt><dd>A partir de um print de app concorrente mostrando "TOTAL GOLD COINS" do mês acima do grid. <code>monthTotal</code> itera <code>cells</code> do mês em exibição (não só <code>splitDailySeries</code>, que não cobre dia com só drop e sem split salvo) somando Boss+Hunt (<code>equalShare</code>) + Itens. <b>Refinamento no mesmo dia</b> — feedback direto do usuário: "no calendario precisamos que ele some os itens tambem" e, em seguida, "o valor a ser somado do item não é o valor total dele... é o valor individual" — soma <code>unitValue</code> (Valor Cada) dos drops do dia, não <code>totalValue</code>, mesmo padrão dos KPIs individuais do Dashboard (kksPlunderInd/kksBagsInd). Cada célula do grid ganhou o valor do dia também (<code>formatGoldKK</code>, compacto — por extenso não cabe numa célula de ~38px no mobile), na cor de sucesso/perigo conforme o sinal, agora aparecendo também em dias que só têm drop (antes só aparecia com Boss/Hunt). Testado contra o banco real: diferença entre o total ANTES (só splits) e DEPOIS (com itens) bateu exatamente com <code>sum(valor_cada)</code> dos drops do mês via SQL.</dd>
             <dt>📅 Calendário — Célula mais larga (2026-09-04)</dt><dd>Pedido do usuário: "o tamanho dos cards de dias eu achei eles um pouco curto de mais coloque alguns pixels a mais de largura ficando mais retangular". <code>.calendar-grid</code> (compartilhada com o Calendário e com <code>SplitsCalendarView.tsx</code>) foi de <code>max-width: 560px</code> pra <code>630px</code> — célula de ~75px pra ~85px de largura (altura continua 64px de <code>min-height</code>), retângulo mais evidente sem esticar demais de novo. Testado: desktop com células visivelmente mais largas; mobile sem overflow (scrollWidth == clientWidth em 375px, igual antes).</dd>
             <dt>📅 Calendário — Espera os 3 hooks antes de renderizar (2026-09-08)</dt><dd>Usuário reportou o dia 06/09 mostrando só a soma dos splits sem o item por um instante — <code>useHunts</code>/<code>useLootDrops</code>/<code>useSplitLogsDaily</code> buscam em paralelo e cada resposta dispara um re-render próprio, dando pra ver o valor do dia/mês "piscar" incompleto entre um resolver e outro. <code>if (huntsLoading || dropsLoading || splitDailyLoading) return &lt;div className="loading"&gt;Carregando...&lt;/div&gt;</code> antes do render normal — mesmo padrão de loading gate já usado em <code>SplitsHistoricoPage.tsx</code>.</dd>
-            <dt>📅 Calendário — Dado</dt><dd><code>LootDrop</code> (real) pros dots/hover de item; <code>useXpSheet</code> (planilha) pro XP por jogador; <code>useSplitLogsDaily</code> (tabela <code>split_logs</code>) pros dots/hover/modal de Boss e Hunt; <code>useTibiaEvents</code> (tabela <code>tibia_events</code>) pra faixa de evento oficial.</dd>
+            <dt>📅 Calendário — Dado</dt><dd><code>LootDrop</code> (real) pros dots/hover de item; <code>useXpSheet(accountId)</code> (tabela <code>member_xp_snapshots</code> desde 2026-10-02, antes a planilha) pro XP por jogador; <code>useSplitLogsDaily</code> (tabela <code>split_logs</code>) pros dots/hover/modal de Boss e Hunt; <code>useTibiaEvents</code> (tabela <code>tibia_events</code>) pra faixa de evento oficial.</dd>
             <dt>📅 Bolinhas do dia</dt><dd>
               Legenda acima do grid. <span style="color:#38bdf8">●</span> <b>Boss</b> = existe split_log tipo boss não-escondido nesse dia · <span style="color:#f59e0b">●</span> <b>Hunt</b> = existe split_log tipo hunt não-escondido nesse dia · 💎 <b>Item</b> = 1 💎 por drop do dia.
             </dd>
@@ -658,7 +662,7 @@
               <br><br><b>Relação Double XP ↔ Double Skill (refinamento seguinte, mesmo dia)</b> — pedido do usuário: "todo evendo de drouble xp tambem é double skill mas nem todos os double skill é double xp as vezes o double skill vem com rapid respawn" (regra real do jogo). <code>toggleCategory()</code> reescrita: marcar Double XP força Double Skill junto automaticamente; desmarcar Double Skill enquanto Double XP está ativo é BLOQUEADO (estado inválido); desmarcar Double XP não desmarca Double Skill (continua um estado válido sozinho). Botão Double Skill fica visualmente travado (🔒, opacidade reduzida) enquanto Double XP ativo. Rapid Respawn/Exaltation Forge sem relação forçada com nada — testado Double Skill + Rapid Respawn juntos, livre. Testado no browser: os 4 comportamentos (marcar/desmarcar Double XP, tentar desmarcar Double Skill travado, combinar com Rapid Respawn) bateram certo, sem erros de console.
               <br><br><b>Título automático (refinamento seguinte, mesmo dia)</b> — pedido do usuário: "ao selecionar o tipo do evento tem que colocar o titulo automático". Novo <code>titleTouched</code> + <code>handleToggleCategory()</code> — enquanto o usuário não editar o campo Título à mão, marcar/desmarcar tipos atualiza o título automaticamente pros labels selecionados juntados com " + " (ex: "Double XP + Rapid Respawn + Double Skill"). Editar o título manualmente trava o auto-preenchimento pro resto da sessão do modal (mesmo padrão de slug-a-partir-do-título comum em formulários). Testado no browser: título seguiu os cliques de tipo até eu editar manualmente, depois disso parou de sobrescrever mesmo marcando mais tipos.
             </dd>
-            <dt>📈 XP — Dado</dt><dd><code>useXpSheet</code> (planilha, cacheado 1×/dia — ver seção Planilha). Janela selecionável 30/60/90/120/365 dias (filtro client-side) + 2 pódios lado a lado ("Recorde de XP num dia" e "Melhor mês de XP" — mês CALENDÁRIO real, não janela corrida). <code>width:110px</code> inline dos degraus do pódio trocado pela classe utilitária <code>.w110</code> (2026-08-28, commit 23ec034) — era o último <code>style={{}}</code> com largura fixa em px que tinha sobrado em <code>src/</code>.</dd>
+            <dt>📈 XP — Dado</dt><dd><code>useXpSheet(accountId)</code> — lê <code>member_xp_snapshots</code>, <b>sem cache local</b> (desde 2026-10-02; antes lia a planilha com cache de 1×/dia). Dados gravados todo dia pelo cron — ver seção "XP automática (cron)". Janela selecionável 30/60/90/120/365 dias (filtro client-side) + 2 pódios lado a lado ("Recorde de XP num dia" e "Melhor mês de XP" — mês CALENDÁRIO real, não janela corrida). <code>width:110px</code> inline dos degraus do pódio trocado pela classe utilitária <code>.w110</code> (2026-08-28, commit 23ec034) — era o último <code>style={{}}</code> com largura fixa em px que tinha sobrado em <code>src/</code>.</dd>
             <dt>🧾 Splits — Dado (2026-08-21/22)</dt><dd>Pedido do usuário: "uma maneira de filtrar os splits por maior dano maior cura separado por player". A 1ª versão (2026-08-21) achatava 1 linha por MEMBRO de cada split — o usuário viu e pediu de volta 1 linha por SPLIT (2026-08-22): "tem varios dias para 1 split é 1 split por linha por tipo ou seja dia 22 vai ter 2 linhas 1 de boss e 1 de hunt". <b>Formato atual: 1 linha = 1 <code>SplitLog</code></b>, com colunas Data/Tipo/Cota por Membro (Balance Total/Dano Total/Cura Total saíram da tabela em 2026-08-23, ver "Modal de detalhes" abaixo) + grupos dinâmicos "Jogador N" (Nome/Dano/Cura, um grupo de 3 colunas por jogador, até o maior nº de jogadores entre os splits FILTRADOS — não o máximo histórico de todos os 753 splits). <code>useSplitLogsList(accountId)</code> (hook, busca crua <code>findByAccount</code> — separado de <code>useSplitLogsDaily</code> de propósito) traz os <code>SplitLog</code>; dado de cada jogador vem de <code>SplitLog.playerSlots</code> (colunas rígidas do banco, ver "Colunas rígidas de player" abaixo) com fallback pra <code>members[].damage/.healing</code> quando vazio.</dd>
             <dt>🧾 Splits — Modal de detalhes (2026-08-23)</dt><dd>Pedido do usuário: "ao clicar na linha seria interessante abrir uma modal com as informações mais aprofundadas" + "na tela de split aparecer apenas 'cota membro' 'jogador dano e cura' e não mostrar colunas se elas não houver player naquele mes". Clicar em qualquer linha da tabela abre <code>SplitDetailModal</code> (componente novo, mesmo arquivo até 2026-08-28 — <b>extraído pro próprio arquivo <code>components/SplitDetailModal.tsx</code> nesse dia, commit a8ddbb9</b>, seguindo a regra permanente "modal em arquivo separado"; SplitsHistoricoPage.tsx caiu de 564 pra 444 linhas) com: Balance Total + Cota por Membro; tabela completa por jogador (Player/Loot/Supplies/Balance/Dano/Cura — os mesmos campos de <code>SplitLogMember</code>); lista de Transferências com botão "Copiar"/"✓ Copiado" (mesmo padrão persistente já usado no resto do app); e um toggle "▼ Ver log bruto colado" que mostra o <code>rawLog</code> inteiro num <code>&lt;pre&gt;</code>. Não busca nada novo — todo o <code>SplitLog</code> já veio de <code>useSplitLogsList</code>.</dd>
             <dt>🧾 Splits — Filtro de tipo + modo calendário (2026-09-02)</dt><dd>Pedido do usuário: "vamos fazer o botão para filtrar apenas boss e hunt e tambem fazer ele ficar em modo calendario". Pills "Todos/🐲 Boss/🗡️ Hunt" (<code>typeFilter</code>) filtram tabela E calendário. Toggle "📋 Lista"/"📅 Calendário" (<code>viewMode</code>) alterna pra <code>components/SplitsCalendarView.tsx</code> (novo — mesma estrutura visual do Calendário principal: header com navegação de mês/Hoje, legenda, grid 7 colunas). <code>buildMonthCells()</code> foi extraído de <code>CalendarioPage.tsx</code> pra <code>services/calendar/calendar-activity.ts</code> nesse mesmo pedido, reusado pelos dois calendários. No modo calendário a janela "Ver últimos" some (não combina com navegação por mês) — nova variável <code>playerAndTypeFilteredRows</code> (player+tipo, sem janela de tempo) alimenta o calendário; a tabela aplica o recorte de dias em cima dela. Maior Dano/Cura e os cards de média por hora também só aparecem no modo tabela. Clicar num dia com 1 split só abre direto o <code>SplitDetailModal</code> (COM transferências); com mais de 1 (ex: Boss+Hunt no mesmo dia), abre <code>components/SplitsDayModal.tsx</code> — ver dt seguinte.</dd>
@@ -698,7 +702,7 @@
           <dl class="kv-list">
             <dt>Rota</dt><dd><code>/configuracoes</code></dd>
             <dt>Dado</dt><dd><code>Member</code> via <code>IMemberRepository</code> — Mock ou Http/Supabase por <code>VITE_MEMBER_USE_SUPABASE</code>. <code>useMembers()</code> expõe <code>createMember</code>/<code>updateMember</code>/<code>removeMember</code> (mesmo padrão de <code>useServiceiros</code>).</dd>
-            <dt>Atenção</dt><dd><code>characterName</code> precisa bater EXATAMENTE com o nome real do personagem no Tibia (TibiaData) e com o cabeçalho da coluna na planilha de XP do usuário — é a chave de casamento em todo lugar, não um label decorativo.</dd>
+            <dt>Atenção</dt><dd><code>characterName</code> precisa bater EXATAMENTE com o nome real do personagem no Tibia (TibiaData) — é a chave de casamento com logs colados (splits/drops por nome). <b>Renomear personagem:</b> basta editar o nome; <code>HttpMemberRepository.update()</code> guarda o nome antigo em <code>members.nomes_antigos</code> automaticamente (aparece como "Nomes antigos" no modal) e o histórico de XP continua ligado porque <code>member_xp_snapshots</code> referencia <code>members.id</code>, não o nome. (Até 2026-10-02 o nome também precisava bater com a coluna da planilha — não é mais requisito.)</dd>
             <dt>Vendedor Padrão (2026-08-16)</dt><dd>Checkbox <code>isDefaultSeller</code> — o membro que efetivamente vende os itens, usado pelo card "Copiar Comandos de Transferência" do drop como "quem paga" em vez do Fragador. No máximo 1 por conta (índice único parcial no banco); a página desmarca o antigo antes de marcar o novo pra não colidir com a constraint.</dd>
             <dt>UI (2026-08-16)</dt><dd>Criar/editar abre em <code>MemberFormModal.tsx</code> (não mais form inline — ver Convenções). A lógica de desmarcar o Vendedor Padrão anterior fica na PÁGINA (<code>handleModalSubmit</code>), não dentro do modal — só a página tem a lista completa de <code>members</code> pra achar quem estava marcado.</dd>
             <dt>Nome da Party (2026-08-16)</dt><dd>Card no topo da página edita <code>accounts.party_name</code> via <code>IAccountRepository.updatePartyName()</code> (RLS já cobria UPDATE). <code>useAccount()</code> roda independente em ~7 componentes — sem cache, cada navegação disparava query nova. Corrigido com flag módulo-level em <code>useAccount.ts</code>: só busca no Supabase 1x por sessão de navegador (reseta a cada reload/logout), fora isso lê de <code>localStorage</code> (<code>services/account/account-cache.ts</code>) sem tocar rede. Sincronização entre componentes via <code>CustomEvent</code> (o <code>storage</code> nativo só dispara em outras abas). Testado: <code>window.fetch</code> instrumentado + 4 navegações = zero chamadas a <code>/rest/v1/accounts</code>; edição sobrevive a reload completo.</dd>
@@ -796,13 +800,13 @@
             <tr><td class="f-name">serviceiroSharePercent?</td><td class="f-type">number</td></tr>
             <tr><td class="f-name">skillCategory?</td><td class="f-type">HighscoreSkillCategory</td></tr>
           </table>
-          <div class="schema-note">Supabase: tabela <code>members</code> (desde 2026-08-14, gated por <code>VITE_MEMBER_USE_SUPABASE</code> — ver módulo Configurações). Jogador real da party, distinto de Serviceiro. <code>characterName</code> precisa bater exatamente com TibiaData e com a coluna da planilha de XP.</div>
+          <div class="schema-note">Supabase: tabela <code>members</code> (desde 2026-08-14, gated por <code>VITE_MEMBER_USE_SUPABASE</code> — ver módulo Configurações). Jogador real da party, distinto de Serviceiro. <code>characterName</code> precisa bater exatamente com o nome real no TibiaData. <code>nomes_antigos text[]</code> (migration <code>20261002000000</code>, 2026-10-02) guarda o histórico de renomeações, preenchido automaticamente por <code>HttpMemberRepository.update()</code>; tabelas que seguem o personagem no tempo (<code>member_xp_snapshots</code>) usam <code>members.id</code>, não o nome.</div>
         </div>
 
         <div class="schema-card">
           <div class="schema-head"><span class="name">MemberXpStats</span><span class="src">src/types/dashboard-stats.ts</span></div>
           <table class="fields">
-            <tr><td class="f-name">xpOntem, xp30Dias</td><td class="f-type">string (real, planilha)</td></tr>
+            <tr><td class="f-name">xpOntem, xp30Dias</td><td class="f-type">string (real, tabela member_xp_snapshots)</td></tr>
           </table>
           <div class="schema-note"><code>previsaoFimAno</code> (2026-08-10) e <code>metas</code> (2026-08-14) foram <b>removidos</b> daqui — nenhum dos dois é mock nem fica misturado nesse objeto, ambos são computados à parte no <code>DashboardPage.tsx</code> (ver módulo Dashboard).</div>
         </div>
@@ -850,7 +854,8 @@
         <tr><td>partyEvent</td><td class="mono-cell">IPartyEventRepository</td><td>MockPartyEventRepository (lista global única, modelo mural)</td><td>HttpPartyEventRepository <span class="chip chip-real" style="margin-left:4px">supabase</span> (tabela <code>party_events</code>, flag <code>VITE_PARTY_EVENTS_USE_SUPABASE</code> — <code>create/findAll/update/delete</code>, modelo mural admin-only pra escrita, aplicada em produção em 2026-08-31)</td></tr>
         <tr><td>wheelBuild</td><td class="mono-cell">IWheelBuildRepository</td><td>MockWheelBuildRepository (privado por conta)</td><td>— (2026-09-02, sem Supabase ainda — usuário não pediu banco real pra isso)</td></tr>
         <tr><td>serviceiro</td><td class="mono-cell">IServiceiroRepository</td><td>MockServiceiroRepository</td><td>HttpServiceiroRepository <span class="chip chip-real" style="margin-left:4px">supabase</span></td></tr>
-        <tr><td>dashboard</td><td class="mono-cell">IDashboardRepository</td><td>MockDashboardRepository</td><td>— (getMemberXpStats só devolve xpOntem/xp30Dias reais da planilha; Previsão fim de ano e Meta XP Diária não passam por aqui)</td></tr>
+        <tr><td>dashboard</td><td class="mono-cell">IDashboardRepository</td><td>MockDashboardRepository</td><td>— (getMemberXpStats só devolve xpOntem/xp30Dias reais, via <code>IMemberXpSnapshotRepository</code> injetado no construtor; Previsão fim de ano e Meta XP Diária não passam por aqui)</td></tr>
+        <tr><td>memberXpSnapshot</td><td class="mono-cell">IMemberXpSnapshotRepository</td><td>MockMemberXpSnapshotRepository (devolve {})</td><td>HttpMemberXpSnapshotRepository (tabela <code>member_xp_snapshots</code>, flag <code>VITE_MEMBER_XP_USE_SUPABASE</code>) — só <code>getSeries(accountId)</code>; pagina de 1000 em 1000 (<code>.range()</code>), PostgREST corta em 1000 sem avisar</td></tr>
         <tr><td>settings</td><td class="mono-cell">ISettingsRepository</td><td>MockSettingsRepository</td><td>—</td></tr>
       </table>
 
@@ -984,6 +989,19 @@
           <div class="schema-note">Migration <code>20260819000000_create_split_logs_table.sql</code> (2026-08-19) — RLS scoped por account (padrão normal, não é dado universal). Splits salvos pelos botões "Salvar Split Boss"/"Salvar Split Hunt" do Split Loot — ver seção de módulos. Flag <code>VITE_SPLIT_LOGS_USE_SUPABASE</code>. <b>Populada com 747 registros históricos</b> (2026-08-19, importação única do CSV exportado da planilha "Projeto Tibia Collabra" aba "Split" — 383 hunt + 364 boss, 24/07/2025 a 19/08/2026, ver Problemas conhecidos / Convenções pra metodologia). <b>Coluna <code>hidden</code> (2026-08-20)</b> — botão 🗑️ no modal de dia do Calendário esconde todos os splits daquele tipo/dia, nunca apaga de verdade; <code>findByAccount()</code> sempre filtra <code>hidden=false</code>. <b>Colunas <code>player1_nome</code>...<code>player8_cura</code> (2026-08-22)</b> — pedido do usuário pra guardar dano/cura de cada jogador em colunas rígidas em vez de só no jsonb <code>membros</code> ("não vai ter que splitar toda vez"); populadas por <code>HttpSplitLogRepository.create()</code>, lidas como <code>SplitLog.playerSlots</code>. Registros salvos antes dessa migration ficam com essas 24 colunas NULL.</div>
         </div>
         <div class="schema-card">
+          <div class="schema-head"><span class="name">member_xp_snapshots</span><span class="chip chip-real" style="margin-left:6px">real</span></div>
+          <table class="fields">
+            <tr><td class="f-name">id / account_id</td><td class="f-type">uuid pk / fk accounts</td></tr>
+            <tr><td class="f-name">member_id</td><td class="f-type">uuid fk members (on delete cascade) — <b>chave de identidade</b>, sobrevive a rename; unique(member_id, data)</td></tr>
+            <tr><td class="f-name">character_name</td><td class="f-type">text — denormalizado, nome exibido naquele dia (só histórico/debug)</td></tr>
+            <tr><td class="f-name">data</td><td class="f-type">date — dia da coleta em BRT (o ganho da linha D é o medido na manhã de D)</td></tr>
+            <tr><td class="f-name">xp_total</td><td class="f-type">bigint — XP lifetime do Highscore naquele dia</td></tr>
+            <tr><td class="f-name">xp_total_anterior</td><td class="f-type">bigint — total do snapshot imediatamente anterior</td></tr>
+            <tr><td class="f-name">xp_ganho</td><td class="f-type">bigint — xp_total − xp_total_anterior (negativo = morte; NULL só no 1º dia de coleta sem histórico)</td></tr>
+          </table>
+          <div class="schema-note">Migrations <code>20261002010000</code> + <code>020000</code> + <code>030000</code> + <code>040000</code> (2026-10-02, todas aplicadas em produção via MCP). RLS scoped por account (<code>own_account_member_xp_snapshots</code>). Histórico inteiro da planilha importado (2.660 linhas, 06/12/2024→01/10/2026, validado por hash md5 contra o CSV). Escrita só pelo cron via RPC; leitura pelo app com flag <code>VITE_MEMBER_XP_USE_SUPABASE</code>. Ver seção "XP automática (cron)".</div>
+        </div>
+        <div class="schema-card">
           <div class="schema-head"><span class="name">party_events</span><span class="chip chip-real" style="margin-left:6px">real</span></div>
           <table class="fields">
             <tr><td class="f-name">id / account_id</td><td class="f-type">uuid pk / fk — quem criou, não restringe leitura</td></tr>
@@ -1015,9 +1033,46 @@
       <p style="font-size:13px; color:var(--text-muted); margin-top:10px">Ambos cacheados no localStorage desde 2026-08-14, com estratégia diferente por natureza do dado (ver seção Convenções). <code>useBoostedToday</code>: cache <b>diário</b> (<code>fetchWithDailyCache</code>, janela ~6h) — boosted creature/boss só trocam 1x/dia e nunca repetem. <code>useMemberLiveStats</code>: cache por <b>TTL de 1h</b> (<code>fetchWithTtlCache</code>) — level/skill/XP mudam a qualquer momento, não numa janela fixa, então cache diário mostraria dado velho e quebraria Previsão fim de ano/Meta XP Diária; 1h foi o meio-termo pedido pelo usuário. Cada personagem tem sua própria chave de cache — adicionar/remover membro não afeta o cache dos outros. <code>useCreatureKillStats</code> (2026-09-16) segue o mesmo cache diário de <code>useBoostedToday</code>, chave por mundo+criatura.</p>
     </section>
 
+    <section id="xpcron">
+      <h2><span class="num">08a</span> XP automática — cron diário no banco (desde 2026-10-02)</h2>
+      <p class="section-intro">Substitui a leitura da planilha: um <b>Vercel Cron</b> roda todo dia às <b>06:30 BRT</b> (<code>30 9 * * *</code> UTC em <code>vercel.json</code>), lê a XP total de cada personagem nos Highscores do TibiaData e grava em <code>member_xp_snapshots</code>. O app só lê dali, sem cache local.</p>
+
+      <div class="callout" style="margin-bottom:16px; border-color: var(--accent); background: var(--accent-soft);">
+        <span class="dot" style="color:var(--accent)">✓</span>
+        <span><b>Validado em produção (2026-10-02):</b> aba XP do Histórico, Dashboard (Xp Ontem / Xp 30Dias / Previsão fim de ano) e modal do dia no Calendário batem com o banco. Chamada manual do cron: 200 + conta pulada por Highscore ainda velho. <b>Pendente:</b> confirmar a 1ª gravação automática (06:30 BRT).</span>
+      </div>
+
+      <h3>Fluxo</h3>
+      <ol class="steps">
+        <li><b>Auth</b> — <code>api/cron/xp-collect.ts</code> exige <code>Authorization: Bearer CRON_SECRET</code> (a Vercel injeta sozinha); sem o header → 401</li>
+        <li><b>Alvos</b> — RPC <code>xp_cron_targets(segredo, hoje-BRT)</code> devolve members + <code>accounts.world</code> + total anterior + <code>done_today</code></li>
+        <li><b>Idempotente</b> — quem já tem registro de hoje é pulado (sem consultar a TibiaData nem regravar)</li>
+        <li><b>XP</b> — <code>findExperienceValue</code> (Highscores <code>experience</code>, páginas cacheadas por execução); mundo = <code>accounts.world</code> ou <code>fetchCharacterWorld</code></li>
+        <li><b>Ganho</b> = <code>xp_total − xp_total_anterior</code> (NULL no 1º dia sem histórico)</li>
+        <li><b>Guarda anti-Highscore-velho</b> — se <i>todos</i> os membros de uma conta vêm com ganho 0, não grava (<code>skippedStaleAccounts</code>); o ganho soma no dia seguinte</li>
+        <li><b>Grava</b> — RPC <code>xp_cron_save</code> faz upsert por <code>(member_id, data)</code>; falha de um personagem não derruba os outros</li>
+      </ol>
+
+      <div class="grid-2" style="margin-top:16px">
+        <div class="card">
+          <h3>Sem service role key</h3>
+          <p style="color:var(--text-muted); font-size:13px; margin:0 0 8px">O cron fala com o banco só por 2 funções <code>SECURITY DEFINER</code> (migration <code>20261002030000</code>) usando a chave publishable + <code>CRON_SECRET</code>. O segredo é validado contra o SHA-256 em <code>private.cron_secrets</code> (schema não exposto). Se vazar, só dá pra listar personagens e gravar snapshots. <b>Rotacionar</b> = trocar na Vercel <i>e</i> atualizar o hash no banco.</p>
+        </div>
+        <div class="card">
+          <h3>Leitura (sem cache)</h3>
+          <p style="color:var(--text-muted); font-size:13px; margin:0 0 8px"><code>useXpSheet(accountId)</code> → <code>repositories.memberXpSnapshot.getSeries()</code>. Mesmo shape <code>XpCharacterStats</code> de antes → Histórico de XP, Calendário e Previsão não mudaram. Paginação de 1000 em 1000 (<code>.range()</code>).</p>
+        </div>
+      </div>
+      <p style="font-size:13px; color:var(--text-muted); margin-top:14px">Testes: <code>api/_lib/xp-collect.test.ts</code> (fuso BRT, cálculo do ganho, fluxo completo com fetch simulado, falha parcial, conta toda-zero, idempotência). <code>vite.config.ts</code> agora inclui <code>api/**/*.test.ts</code>.</p>
+    </section>
+
     <section id="sheets">
-      <h2><span class="num">08</span> Integração — planilha do usuário (Google Sheets)</h2>
-      <p class="section-intro">Planilha <b>pessoal</b> do usuário, com rotina automática dele preenchendo dados diariamente entre 6h–7h. O app só lê. Pública ("qualquer um com o link pode ver"), sem OAuth.</p>
+      <h2><span class="num">08</span> Integração — planilha do usuário (Google Sheets) — LEGADO</h2>
+      <div class="callout" style="margin-bottom:16px; border-color: var(--warn); background: var(--warn-soft);">
+        <span class="dot" style="color:var(--warn)">⚠</span>
+        <span><b>Legado desde 2026-10-02:</b> o app <b>não lê mais</b> a planilha — XP vem de <code>member_xp_snapshots</code> (seção anterior). O código desta seção (<code>api/xp-sheet.ts</code>, <code>api/_lib/xp-sheet.ts</code>, <code>sheet-utils.ts</code>, <code>xp-sheet-cache.ts</code>, plugin <code>sheetDevApiPlugin</code>, env <code>XP_SHEET_*</code>) fica no repo só até validar a 1ª execução automática do cron, e depois deve ser deletado. <b>Não recriar</b> leitura da planilha. A rotina do usuário segue rodando por conta própria.</span>
+      </div>
+      <p class="section-intro">Planilha <b>pessoal</b> do usuário, com rotina automática dele preenchendo dados diariamente entre 6h–7h. Pública ("qualquer um com o link pode ver"), sem OAuth. Hoje serviu só de fonte do backfill do histórico.</p>
 
       <div class="callout" style="margin-bottom:16px">
         <span class="dot">⚠</span>
@@ -1037,9 +1092,9 @@
 
       <div class="grid-2" style="margin-top:16px">
         <div class="card">
-          <h3>useXpSheet</h3>
-          <p style="color:var(--text-muted); font-size:13px; margin:0 0 8px">Cache local — no máx. 1 fetch/dia via <code>fetchXpSheetCached()</code>.</p>
-          <code style="display:block; font-size:11.5px">localStorage['tibia-pts:xp-sheet-cache-v1']</code>
+          <h3>useXpSheet <span style="color:var(--warn); font-size:11px; font-weight:normal">agora lê do banco</span></h3>
+          <p style="color:var(--text-muted); font-size:13px; margin:0 0 8px">Não usa mais o cache local (<code>fetchXpSheetCached()</code> não é chamado por ninguém; arquivo sai na limpeza final).</p>
+          <code style="display:block; font-size:11.5px">localStorage['tibia-pts:xp-sheet-cache-v2'] — órfão</code>
         </div>
         <div class="card">
           <h3>useBossHuntSheet <span style="color:var(--danger); font-size:11px; font-weight:normal">removido 2026-08-20</span></h3>
@@ -1287,7 +1342,31 @@
           <div>
             <p class="issue-title">Cache diário precisa de bump de versão quando o shape muda</p>
             <p class="issue-area">src/services/common/daily-cache.ts</p>
-            <p class="issue-desc">Mudar o shape do payload cacheado (ex: campo novo em <code>XpCharacterStats</code>) sem trocar o sufixo <code>-vN</code> da <code>storageKey</code> deixa quem já tinha cache salvo preso no payload antigo até a próxima janela de refresh (até 1 dia). Aconteceu de verdade ao adicionar <code>xp90Dias</code> em 2026-08-10 — "Previsão fim de ano" ficou em branco até o bump de v1 pra v2. Vale pra qualquer uso do helper <code>fetchWithDailyCache</code>, não só a planilha de XP.</p>
+            <p class="issue-desc">(XP deixou de usar esse cache em 2026-10-02; a regra continua valendo pros outros caches — boosted etc.) Mudar o shape do payload cacheado (ex: campo novo em <code>XpCharacterStats</code>) sem trocar o sufixo <code>-vN</code> da <code>storageKey</code> deixa quem já tinha cache salvo preso no payload antigo até a próxima janela de refresh (até 1 dia). Aconteceu de verdade ao adicionar <code>xp90Dias</code> em 2026-08-10 — "Previsão fim de ano" ficou em branco até o bump de v1 pra v2. Vale pra qualquer uso do helper <code>fetchWithDailyCache</code>, não só a planilha de XP.</p>
+          </div>
+        </div>
+        <div class="issue">
+          <span class="chip chip-issue-alto">alto</span>
+          <div>
+            <p class="issue-title">PostgREST corta a leitura em 1000 linhas (sem avisar)</p>
+            <p class="issue-area">repositórios Http de tabelas que crescem todo dia (hoje: HttpMemberXpSnapshotRepository)</p>
+            <p class="issue-desc">O PostgREST do Supabase devolve no máximo 1000 linhas por request e não avisa que cortou. <code>member_xp_snapshots</code> já tem 2.660+ linhas (+4/dia): um <code>.select()</code> simples traria só uma fração e xpOntem/xp30Dias/pódios sairiam errados sem erro. <b>Fix:</b> <code>getSeries()</code> pagina com <code>.range()</code> em loop, com <code>.order()</code> determinístico. Tabelas pequenas (members, serviceiros) seguem sem paginação.</p>
+          </div>
+        </div>
+        <div class="issue">
+          <span class="chip chip-issue-medio">médio</span>
+          <div>
+            <p class="issue-title">Cron usa funções RPC + CRON_SECRET (não service role) — o hash no banco precisa acompanhar</p>
+            <p class="issue-area">api/_lib/xp-collect.ts · migration 20261002030000 · Vercel env CRON_SECRET</p>
+            <p class="issue-desc">O segredo NUNCA entra no repo: só o SHA-256 em <code>private.cron_secrets</code>, inserido por SQL à parte. O valor na Vercel e o hash no banco andam juntos — trocar um sem o outro faz as RPCs devolverem <code>unauthorized</code> (42501). Para rotacionar: atualizar <code>CRON_SECRET</code> (Production), rodar <code>insert into private.cron_secrets ... on conflict (name) do update set secret_hash = encode(extensions.digest(&#39;&lt;novo&gt;&#39;,&#39;sha256&#39;),&#39;hex&#39;)</code> e fazer redeploy. Verificação: curl com Bearer → 200; sem header → 401.</p>
+          </div>
+        </div>
+        <div class="issue">
+          <span class="chip chip-issue-baixo">baixo</span>
+          <div>
+            <p class="issue-title">Highscore do TibiaData pode estar velho na hora do cron</p>
+            <p class="issue-area">api/_lib/xp-collect.ts</p>
+            <p class="issue-desc">Em 2026-10-02 às 09:25 BRT o Highscore ainda devolvia a XP de ontem (<code>highscore_age=40</code>) e todo ganho vinha 0 — aconteceu em 2 de 665 dias do histórico. <b>Tratado:</b> se todos os membros de uma conta vêm com ganho 0, não grava (<code>skippedStaleAccounts</code>) e o ganho soma no dia seguinte; chamar o cron de novo é seguro (idempotente). Conferir <code>processed/alreadyDone/skippedStaleAccounts</code> na resposta, não só o status 200.</p>
           </div>
         </div>
       </div>
@@ -1332,8 +1411,10 @@
             <tr><td class="mono-cell">VITE_MEMBER_USE_SUPABASE</td><td style="font-size:12px">liga Supabase pra Members (Configurações)</td></tr>
             <tr><td class="mono-cell">VITE_SPLIT_LOGS_USE_SUPABASE</td><td style="font-size:12px">liga Supabase pros splits salvos do Split Loot</td></tr>
             <tr><td class="mono-cell">VITE_WHEEL_PRESETS_USE_SUPABASE</td><td style="font-size:12px">liga Supabase pros presets salvos da Roda de Destino</td></tr>
-            <tr><td class="mono-cell">XP_SHEET_ID</td><td style="font-size:12px">ID da planilha — <b>server-only</b>, sem prefixo VITE_ (segredo, ver seção Planilha)</td></tr>
-            <tr><td class="mono-cell">XP_SHEET_XP_REALIZADA_GID</td><td style="font-size:12px">gid da aba de XP — server-only</td></tr>
+            <tr><td class="mono-cell">VITE_MEMBER_XP_USE_SUPABASE</td><td style="font-size:12px">liga o histórico de XP lido de <code>member_xp_snapshots</code> — <b>precisa ser true em produção</b> (sem ela a XP some das telas)</td></tr>
+            <tr><td class="mono-cell">CRON_SECRET</td><td style="font-size:12px">segredo do cron de XP — <b>server-only</b>, só Production; o SHA-256 dele fica em <code>private.cron_secrets</code> (trocar exige atualizar os dois). O cron <b>não</b> usa service role key</td></tr>
+            <tr><td class="mono-cell">XP_SHEET_ID</td><td style="font-size:12px">(legado) ID da planilha — <b>server-only</b>, sem prefixo VITE_ (segredo, ver seção Planilha)</td></tr>
+            <tr><td class="mono-cell">XP_SHEET_XP_REALIZADA_GID</td><td style="font-size:12px">(legado) gid da aba de XP — server-only</td></tr>
           </table>
           <p style="font-size:11.5px; color:var(--text-faint); margin:10px 0 0">Vivem em <code>.env.local</code> (gitignored) — não propagam pro Vercel automaticamente, precisam ser configuradas manualmente no dashboard do projeto. <code>XP_SHEET_BOSS_HUNT_GID</code> existiu até 2026-08-20 (gid da aba "Boss hunt") — removida junto com <code>api/_lib/boss-hunt-sheet.ts</code>, ver seção Planilha.</p>
         </div>
