@@ -582,7 +582,8 @@
           <dl class="kv-list">
             <dt>Rota</dt><dd><code>/tier-calculator</code></dd>
             <dt>Lógica</dt><dd><code>services/tier/tier-calculator.ts</code> — árvore exponencial, ver Regras de negócio</dd>
-            <dt>Abas</dt><dd>Calculadora e Benefícios por Tier (<code>?tab=beneficios</code>, <code>components/TierBenefitsTable.tsx</code>)</dd>
+            <dt>Layout</dt><dd>Página única, <b>sem abas</b> (desde 2026-10-02; antes eram duas via <code>?tab=beneficios</code>): calculadora, e empilhados logo abaixo a <code>components/TierCostTable.tsx</code> (custo por tier — Fusão, Convergência, Transferência e Transferência por Convergência, Classe 4, gold em kk + Exalted Cores; só referência, não entra no cálculo) e a <code>components/TierBenefitsTable.tsx</code> (bônus por tier).</dd>
+            <dt>Preços de Transferência</dt><dd>Fonte: código aberto do TibiaTools (<code>kik-tibia/tibiatools</code>, <code>forge-calc.ts</code>), cujas tabelas de Fusão/Convergência batem <b>exatamente</b> com as nossas. Transferência (chave = tier resultante, doador tier N+1 destruído): 20kk, 40kk, 65kk, 100kk, 250kk, 750kk, 2,5kkk, 8kkk, 15kkk (sem tier 10). Transf. por Convergência (só Classe 4, 160 Dust, sem perder tier): 65kk … 300kkk. Cores 1/2/5/10/15/25/35/50/60 (85 no tier 10); na Transferência normal só 1–5 confirmados na wiki, 6–9 marcados com *. <b>A wiki do Igla mostra preços antigos de transfer — não usar.</b></dd>
             <dt>Dado</dt><dd>Constantes estáticas (<code>tier-cost-data.ts</code> custos, <code>tier-benefits-data.ts</code> % de bônus) — regra oficial do jogo, não é dado de conta.</dd>
           </dl>
         </div>
