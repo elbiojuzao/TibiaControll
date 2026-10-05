@@ -1064,7 +1064,7 @@
 
       <div class="callout" style="margin-top:16px; border-color: var(--warn); background: var(--warn-soft);">
         <span class="dot" style="color:var(--warn)">ℹ</span>
-        <span><b>Planilha Google Sheets removida (2026-10-05).</b> Nada mais lê a planilha: saíram <code>api/xp-sheet.ts</code>, <code>api/_lib/xp-sheet.ts</code>, <code>sheet-utils.ts</code>, o cache de XP em localStorage, o plugin de dev e as env <code>XP_SHEET_*</code>. Ela serviu uma última vez de fonte do <b>backfill</b> do histórico (2.660 linhas, 06/12/2024 → 01/10/2026). <b>Não recriar</b> essa leitura. A rotina do usuário no Google Sheets segue rodando por conta dele. Pendente do usuário: apagar <code>XP_SHEET_*</code> do painel da Vercel; o ID da planilha continua visível no histórico do git do repo público.</span>
+        <span><b>Planilha Google Sheets removida (2026-10-05).</b> Nada mais lê a planilha: saíram <code>api/xp-sheet.ts</code>, <code>api/_lib/xp-sheet.ts</code>, <code>sheet-utils.ts</code>, o cache de XP em localStorage, o plugin de dev e as env <code>XP_SHEET_*</code>. Ela serviu uma última vez de fonte do <b>backfill</b> do histórico (2.660 linhas, 06/12/2024 → 01/10/2026). <b>Não recriar</b> essa leitura. A rotina do usuário no Google Sheets segue rodando por conta dele. As variáveis <code>XP_SHEET_*</code> já foram apagadas da Vercel e do <code>.env.local</code>; o ID da planilha continua visível no histórico do git do repo público.</span>
       </div>
     </section>
 
@@ -1378,7 +1378,7 @@
             <tr><td class="mono-cell">VITE_MEMBER_XP_USE_SUPABASE</td><td style="font-size:12px">liga o histórico de XP lido de <code>member_xp_snapshots</code> — <b>precisa ser true em produção</b> (sem ela a XP some das telas)</td></tr>
             <tr><td class="mono-cell">CRON_SECRET</td><td style="font-size:12px">segredo do cron de XP — <b>server-only</b>, só Production; o SHA-256 dele fica em <code>private.cron_secrets</code> (trocar exige atualizar os dois). O cron <b>não</b> usa service role key</td></tr>
           </table>
-          <p style="font-size:11.5px; color:var(--text-faint); margin:10px 0 0">Vivem em <code>.env.local</code> (gitignored) — não propagam pro Vercel automaticamente, precisam ser configuradas manualmente no dashboard do projeto. As antigas <code>XP_SHEET_ID</code>, <code>XP_SHEET_XP_REALIZADA_GID</code> e <code>XP_SHEET_BOSS_HUNT_GID</code> não são mais lidas por nada (planilha removida em 2026-10-05) — podem ser apagadas do painel da Vercel e do <code>.env.local</code>.</p>
+          <p style="font-size:11.5px; color:var(--text-faint); margin:10px 0 0">Vivem em <code>.env.local</code> (gitignored) — não propagam pro Vercel automaticamente, precisam ser configuradas manualmente no dashboard do projeto. As antigas <code>XP_SHEET_ID</code>, <code>XP_SHEET_XP_REALIZADA_GID</code> e <code>XP_SHEET_BOSS_HUNT_GID</code> foram apagadas (Vercel e <code>.env.local</code>) em 2026-10-05 — não recriar.</p>
         </div>
       </div>
     </section>

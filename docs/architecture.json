@@ -426,7 +426,7 @@
       "whatRemains": "A rotina do usuário no Google Sheets/Apps Script continua existindo por conta dele, independente do app (o app não depende nem lê). A planilha serviu uma última vez de fonte do backfill do histórico de XP: 2.660 linhas, 06/12/2024 → 01/10/2026, xp_total da aba PT e xp_ganho da aba Xp Realizada, validado por hash md5 (ver externalIntegrations.supabase.tables.member_xp_snapshots).",
       "doNotRecreate": "Não recriar a leitura da planilha. Motivos que levaram à migração: rotina fora do nosso controle, CORS (precisava de proxy server-side), ID da planilha equivalente a uma credencial num repo público, e dado que o banco agora gera sozinho.",
       "lessonsKept": ["O export CSV (gviz) não tem Access-Control-Allow-Origin — fetch direto do browser quebra.", "Planilhas com linhas futuras pré-preenchidas e vazias: nunca pegar 'a última linha' direto, filtrar por célula não vazia.", "Números no formato brasileiro ('077.648.574'): o ponto é separador de milhar, não dá pra usar Number() direto."],
-      "pendingForUser": "Apagar XP_SHEET_ID, XP_SHEET_XP_REALIZADA_GID e XP_SHEET_BOSS_HUNT_GID do painel da Vercel (e do .env.local). O ID da planilha continua visível no histórico do git do repositório público — ver knownIssuesAndGotchas.googleSheetIdWasHardcoded."
+      "pendingForUser": "Nada pendente — as XP_SHEET_* foram apagadas do painel da Vercel e do .env.local em 2026-10-05. O ID da planilha continua visível no histórico do git do repositório público (decisão antiga do usuário: aceitou) — ver knownIssuesAndGotchas.googleSheetIdWasHardcoded."
     }
   },
 
@@ -888,7 +888,7 @@
     "VITE_WHEEL_PRESETS_USE_SUPABASE": "'true' liga Supabase pros presets salvos da Roda de Destino — precisa da migration 20260908010000_create_wheel_presets_table.sql já rodada.",
     "VITE_MEMBER_XP_USE_SUPABASE": "'true' liga o histórico de XP (Dashboard, Histórico de XP, Calendário) lido de member_xp_snapshots no Supabase real — SEM ela o app usa o mock vazio e a XP some das telas. Criada na Vercel em 2026-10-02 (preview+production, tipo sensitive). Precisa das migrations 20261002010000/020000 e do backfill já aplicados.",
     "CRON_SECRET": "Segredo do cron de XP (api/cron/xp-collect). Server-only (sem VITE_), só production na Vercel (criada em 2026-10-02 via MCP, tipo sensitive). A Vercel manda como 'Authorization: Bearer' nas execuções do cron; o handler responde 401 sem ele; e as RPCs xp_cron_* validam o SHA-256 dele em private.cron_secrets — trocar aqui exige atualizar o hash no banco (ver businessLogic.xpSnapshotsCron.noServiceRole). O cron também lê VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_KEY via process.env (já existentes). NÃO usa SUPABASE_SERVICE_ROLE_KEY.",
-    "location": ".env.local (gitignored, só local) — NÃO propaga automaticamente pro Vercel, precisa configurar manualmente no dashboard do projeto (a Vercel também pode ser configurada pelo MCP). As antigas XP_SHEET_ID / XP_SHEET_XP_REALIZADA_GID / XP_SHEET_BOSS_HUNT_GID NÃO são mais lidas por nada — podem ser apagadas do painel da Vercel e do .env.local."
+    "location": ".env.local (gitignored, só local) — NÃO propaga automaticamente pro Vercel, precisa configurar manualmente no dashboard do projeto (a Vercel também pode ser configurada pelo MCP). As antigas XP_SHEET_ID / XP_SHEET_XP_REALIZADA_GID / XP_SHEET_BOSS_HUNT_GID foram APAGADAS (Vercel e .env.local) em 2026-10-05 — não recriar."
   },
 
   "conventions": {
