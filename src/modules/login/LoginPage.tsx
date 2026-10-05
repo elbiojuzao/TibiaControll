@@ -1,171 +1,102 @@
-import { useState, type FormEvent } from 'react';
-import { Navigate, useLocation, type Location } from 'react-router-dom';
+import { Navigate, useLocation, useSearchParams, type Location } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { LoginRequestError } from '@/services/supabase/supabase-auth';
+import { LoginForm } from './components/LoginForm';
+import { RegisterForm } from './components/RegisterForm';
+import { getItemIconUrl } from '@/services/lootdrop/item-icons';
 
-const SAVED_EMAIL_KEY = 'tibia-pts:saved-login-email-v1';
+type AuthMode = 'entrar' | 'cadastro';
 
-/** Login é compartilhado da PT (1 única credencial pra todo mundo), então lembrar o
- * e-mail aqui é conveniente — evita todo mundo ter que digitar o mesmo e-mail toda hora
- * (2026-08-26, pedido do usuário). A SENHA não entra mais aqui (2026-08-27, revisão de
- * segurança do próprio usuário: "vamos tirar do localstorage a senha... procurar uma
- * maneira de salvar mais eficiente") — localStorage é texto puro, legível por qualquer
- * script que rode na página (ex: uma dependência comprometida), e não tem como ser
- * revogado como uma sessão pode. A senha fica pro que já existe de mais seguro pra isso:
- * 1) o gerenciador de senha do NAVEGADOR (autoComplete="current-password" abaixo já deixa
- *    o Chrome/Firefox/Edge oferecerem salvar/preencher — fica fora do alcance do JS da
- *    página, diferente de localStorage); 2) a sessão do Supabase Auth já fica persistida
- *    sozinha (createClient() usa persistSession:true por padrão, ver supabase-client.ts) —
- *    então na prática quem já logou uma vez nem volta a ver esta tela até fazer logout ou
- *    o token expirar, sem precisar lembrar senha nenhuma. */
-function readSavedEmail(): string | null {
-  try {
-    return localStorage.getItem(SAVED_EMAIL_KEY);
-  } catch {
-    return null;
-  }
-}
+const MODES: { key: AuthMode; label: string }[] = [
+  { key: 'entrar', label: 'Entrar' },
+  { key: 'cadastro', label: 'Criar conta' },
+];
 
-function writeSavedEmail(email: string | null): void {
-  try {
-    if (email) localStorage.setItem(SAVED_EMAIL_KEY, email);
-    else localStorage.removeItem(SAVED_EMAIL_KEY);
-  } catch {
-    // localStorage indisponível — segue sem persistir.
-  }
-}
+const BAG_YOU_DESIRE_ICON = getItemIconUrl('Bag You Desire');
 
-const OLD_SAVED_LOGIN_KEY = 'tibia-pts:saved-login-v1';
+const HIGHLIGHTS: { icon: string; iconUrl?: string; title: string; text: string }[] = [
+  { icon: '💰', title: 'Split de loot', text: 'Divisão justa entre a party, com serviceiros e gastos extras.' },
+  { icon: '📈', title: 'Histórico e XP', text: 'Calendário de atividade e evolução de XP de cada membro.' },
+  { icon: '🐉', iconUrl: BAG_YOU_DESIRE_ICON, title: 'Drops e bosses', text: 'Log de drops, timers de boss e agenda de serviceiros.' },
+];
 
-/** Migração 1x (2026-08-27) — a versão anterior deste componente salvava e-mail+senha em
- * texto puro sob essa chave. Remove qualquer vestígio dela do localStorage de quem já
- * tinha usado o "Salvar login" antes desse fix de segurança, migrando só o e-mail (que não
- * é sensível) pra chave nova. Roda 1x no carregamento do módulo, não a cada render. */
-(function migrateOldSavedLogin() {
-  try {
-    const raw = localStorage.getItem(OLD_SAVED_LOGIN_KEY);
-    if (!raw) return;
-    localStorage.removeItem(OLD_SAVED_LOGIN_KEY);
-    const parsed = JSON.parse(raw) as { email?: string };
-    if (parsed.email && !localStorage.getItem(SAVED_EMAIL_KEY)) {
-      localStorage.setItem(SAVED_EMAIL_KEY, parsed.email);
-    }
-  } catch {
-    // localStorage indisponível ou dado corrompido — nada a fazer.
-  }
-})();
-
-/** Login compartilhado da PT — 1 única credencial pra todo mundo (ver memória de projeto
- * "regras-gestao-pts"), não é cadastro por pessoa. Só protege os 5 módulos exclusivos de
- * conta (Dashboard, Log de Drops, Histórico, Histórico de XP, Serviceiros) — o resto do
- * app (Split Loot, Timers, Calculadora Tier, Charm Planner) continua aberto sem login. */
+/** Tela única de entrar + criar conta (2026-10-05, pedido do usuário). Cada conta é uma
+ * party: o e-mail/senha é compartilhado por todos os membros daquela party (ver memória
+ * "regras-gestao-pts"), e o isolamento entre parties é feito por RLS no banco. Só protege
+ * os módulos exclusivos de conta (Dashboard, Log de Drops, Histórico, Serviceiros...) — o
+ * resto do app (Split Loot, Timers, Calculadora Tier, Charm Planner) segue aberto sem
+ * login. O modo ativo vive na URL (`?modo=cadastro`) pra poder linkar direto pro cadastro. */
 export function LoginPage() {
-  const { isAuthenticated, login, error } = useAuth();
+  const { isAuthenticated } = useAuth();
   const location = useLocation();
-  const savedEmail = useState(readSavedEmail)[0];
-  const [email, setEmail] = useState(savedEmail ?? '');
-  const [password, setPassword] = useState('');
-  const [rememberLogin, setRememberLogin] = useState(!!savedEmail);
-  const [submitting, setSubmitting] = useState(false);
-  const [localError, setLocalError] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const mode: AuthMode = searchParams.get('modo') === 'cadastro' ? 'cadastro' : 'entrar';
 
   const from = (location.state as { from?: Location } | null)?.from?.pathname ?? '/';
 
   if (isAuthenticated) return <Navigate to={from} replace />;
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setLocalError(null);
-    setSubmitting(true);
-    try {
-      await login(email, password);
-      writeSavedEmail(rememberLogin ? email : null);
-    } catch (err) {
-      // Credencial errada (401) sempre vira a mensagem genérica abaixo — não confirma/nega
-      // detalhe nenhum da conta. Qualquer outro caso (429 "muitas tentativas", 400 campo
-      // faltando, erro de servidor) mostra a mensagem tal como veio de /api/login (2026-09-30,
-      // ver signInWithPassword) — sem isso, o aviso de limite de tentativas ficaria escondido
-      // atrás desse texto genérico, que era o comportamento de antes.
-      const isBadCredentials = err instanceof LoginRequestError && err.status === 401;
-      setLocalError(!isBadCredentials && err instanceof Error ? err.message : 'E-mail ou senha inválidos.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  const goToMode = (next: AuthMode) => setSearchParams(next === 'entrar' ? {} : { modo: next }, { replace: true, state: location.state });
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-bg)', padding: '20px' }}>
-      <form
-        onSubmit={handleSubmit}
-        autoComplete="on"
-        style={{
-          background: 'var(--color-bg-elevated)',
-          border: '1px solid var(--color-border)',
-          borderRadius: 'var(--radius)',
-          padding: '32px',
-          width: '100%',
-          maxWidth: '360px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '16px',
-        }}
-      >
-        <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-          <h1 style={{ margin: 0, fontSize: '20px', color: 'var(--color-success)' }}>Tibia PT Manager</h1>
-          <p className="texto-mudo" style={{ margin: '6px 0 0 0', fontSize: '13px' }}>
-            Entre com a credencial da party pra acessar Dashboard, Drops, Histórico e Serviceiros.
+    <div className="auth-page">
+      <div className="auth-brand">
+        <div className="auth-logo">⚔️</div>
+        <h1 className="auth-brand-title">Tibia PT Manager</h1>
+        <p className="auth-brand-subtitle">Tudo da sua party num lugar só — loot, bosses, XP e serviceiros.</p>
+        <ul className="auth-highlights">
+          {HIGHLIGHTS.map((item) => (
+            <li key={item.title}>
+              <span className="auth-highlight-icon">
+                {item.iconUrl ? <img src={item.iconUrl} alt="" width={28} height={28} style={{ imageRendering: 'pixelated' }} /> : item.icon}
+              </span>
+              <span>
+                <strong>{item.title}</strong>
+                <span className="texto-mudo">{item.text}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="auth-card">
+        <div className="auth-mobile-brand">
+          <span className="auth-logo auth-logo-small">⚔️</span>
+          <strong>Tibia PT Manager</strong>
+        </div>
+
+        <div className="auth-tabs" role="tablist">
+          {MODES.map((m) => (
+            <button
+              key={m.key}
+              type="button"
+              role="tab"
+              aria-selected={mode === m.key}
+              className={`auth-tab${mode === m.key ? ' auth-tab-active' : ''}`}
+              onClick={() => goToMode(m.key)}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="auth-heading">
+          <h2>{mode === 'entrar' ? 'Bem-vindo de volta' : 'Crie a conta da sua party'}</h2>
+          <p className="texto-mudo">
+            {mode === 'entrar'
+              ? 'Entre com o e-mail e a senha da sua party pra acessar Dashboard, Drops, Histórico e Serviceiros.'
+              : 'Leva menos de um minuto. Depois é só cadastrar os membros em Configurações.'}
           </p>
         </div>
 
-        <label className="texto-mudo" style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px' }}>
-          E-mail
-          <input
-            type="email"
-            name="email"
-            autoComplete="username"
-            required
-            autoFocus
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="campo-input"
-            style={{ marginTop: 0, padding: '8px 10px', fontSize: '14px' }}
-          />
-        </label>
+        {mode === 'entrar' ? <LoginForm /> : <RegisterForm onGoToLogin={() => goToMode('entrar')} />}
 
-        <label className="texto-mudo" style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px' }}>
-          Senha
-          <input
-            type="password"
-            name="password"
-            autoComplete="current-password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="campo-input"
-            style={{ marginTop: 0, padding: '8px 10px', fontSize: '14px' }}
-          />
-        </label>
-
-        <label className="label-checkbox texto-mudo" style={{ fontSize: '13px' }}>
-          <input
-            type="checkbox"
-            checked={rememberLogin}
-            onChange={(e) => setRememberLogin(e.target.checked)}
-          />
-          Lembrar meu e-mail neste dispositivo
-        </label>
-
-        {(localError || error) && <div className="banner-erro">{localError ?? error}</div>}
-
-        <button
-          type="submit"
-          disabled={submitting}
-          className="botao-primario"
-          style={{ background: submitting ? 'var(--color-border)' : 'var(--color-accent)', padding: '10px', fontSize: '14px' }}
-        >
-          {submitting ? 'Entrando...' : 'Entrar'}
-        </button>
-      </form>
+        <p className="auth-switch texto-mudo">
+          {mode === 'entrar' ? 'Ainda não tem conta?' : 'Já tem conta?'}{' '}
+          <button type="button" className="auth-switch-link" onClick={() => goToMode(mode === 'entrar' ? 'cadastro' : 'entrar')}>
+            {mode === 'entrar' ? 'Criar conta' : 'Entrar'}
+          </button>
+        </p>
+      </div>
     </div>
   );
 }

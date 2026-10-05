@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getSession, onAuthStateChange, signInWithPassword, signOut } from '@/services/supabase/supabase-auth';
+import { getSession, onAuthStateChange, registerWithPassword, signInWithPassword, signOut } from '@/services/supabase/supabase-auth';
 
 /**
  * Sessão real do Supabase Auth — gate de login pros 5 módulos exclusivos de conta
@@ -43,7 +43,17 @@ export function useAuth() {
     }
   };
 
+  const register = async (email: string, password: string, partyName: string) => {
+    setError(null);
+    try {
+      return await registerWithPassword(email, password, partyName);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Não foi possível criar a conta.');
+      throw err;
+    }
+  };
+
   const logout = () => signOut();
 
-  return { isLoading, isAuthenticated, error, login, logout };
+  return { isLoading, isAuthenticated, error, login, register, logout };
 }

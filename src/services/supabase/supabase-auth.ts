@@ -52,6 +52,35 @@ export async function signInWithPassword(email: string, password: string): Promi
   return data.session;
 }
 
+export interface RegisterOutcome {
+  /** true = o projeto exige confirmar o e-mail antes do 1º login (nenhuma sessão criada ainda). */
+  needsEmailConfirmation: boolean;
+}
+
+/** Cadastro de uma nova party (2026-10-05) — passa por `/api/register` (limite de cadastros
+ * por IP, ver api/_lib/register.ts). Se o Supabase devolver sessão (confirmação de e-mail
+ * desligada) ela é hidratada no SDK igual no login, e o usuário já cai logado; senão só
+ * avisa que falta confirmar o e-mail. A conta (accounts) é criada por trigger no banco. */
+export async function registerWithPassword(email: string, password: string, partyName: string): Promise<RegisterOutcome> {
+  const res = await fetch('/api/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password, partyName }),
+  });
+  const body = await res.json();
+  if (!res.ok) throw new Error(body.error ?? 'Não foi possível criar a conta.');
+
+  if (body.session) {
+    const { error } = await getSupabaseClient().auth.setSession({
+      access_token: body.session.accessToken,
+      refresh_token: body.session.refreshToken,
+    });
+    if (error) throw new Error(friendlyErrorMessage(error));
+    return { needsEmailConfirmation: false };
+  }
+  return { needsEmailConfirmation: true };
+}
+
 export async function signOut(): Promise<void> {
   const { error } = await getSupabaseClient().auth.signOut();
   if (error) throw new Error(friendlyErrorMessage(error));

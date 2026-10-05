@@ -9,6 +9,12 @@ import yaml from '@rollup/plugin-yaml'
 import path from 'path'
 import { checkRateLimit, clientKeyFromRequest } from './api/_lib/rate-limit'
 import { loginWithPassword, LOGIN_RATE_LIMIT_WINDOW_MS, LOGIN_RATE_LIMIT_MAX_ATTEMPTS } from './api/_lib/login'
+import {
+  registerWithPassword,
+  validateRegisterInput,
+  REGISTER_RATE_LIMIT_WINDOW_MS,
+  REGISTER_RATE_LIMIT_MAX_ATTEMPTS,
+} from './api/_lib/register'
 import type { IncomingMessage } from 'http'
 
 /** Lê o corpo JSON de um request cru do Node — o middleware do Vite não faz parsing de
@@ -67,6 +73,38 @@ function loginDevApiPlugin(): Plugin {
           res.statusCode = 401
           res.setHeader('Content-Type', 'application/json')
           res.end(JSON.stringify({ error: err instanceof Error ? err.message : 'Falha ao entrar.' }))
+        }
+      })
+      // /api/register (2026-10-05) — em produção quem atende é api/register.ts.
+      server.middlewares.use('/api/register', async (req, res) => {
+        const sendJson = (status: number, body: unknown) => {
+          res.statusCode = status
+          res.setHeader('Content-Type', 'application/json')
+          res.end(JSON.stringify(body))
+        }
+        if (req.method !== 'POST') {
+          res.statusCode = 405
+          res.end()
+          return
+        }
+
+        const rateLimit = checkRateLimit(`register:${clientKeyFromRequest(req)}`, { windowMs: REGISTER_RATE_LIMIT_WINDOW_MS, maxRequests: REGISTER_RATE_LIMIT_MAX_ATTEMPTS })
+        if (!rateLimit.allowed) {
+          res.setHeader('Retry-After', String(rateLimit.retryAfterSeconds ?? 60))
+          sendJson(429, { error: 'Muitos cadastros em pouco tempo. Aguarde um pouco e tente de novo.' })
+          return
+        }
+
+        try {
+          const { email, password, partyName } = await readJsonBody(req)
+          const validationError = validateRegisterInput(email, password, partyName)
+          if (validationError) {
+            sendJson(400, { error: validationError })
+            return
+          }
+          sendJson(200, await registerWithPassword(String(email), String(password), String(partyName)))
+        } catch (err) {
+          sendJson(400, { error: err instanceof Error ? err.message : 'Não foi possível criar a conta.' })
         }
       })
     },
