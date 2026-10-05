@@ -2,7 +2,7 @@ import { fetchWithLocalCache } from './local-cache';
 
 /**
  * Cache local pra dado que só muda numa janela fixa do dia (ex: boosted creature/boss do
- * TibiaData, atualizados ~6h da manhã; planilha de XP do usuário, atualizada entre 6h-7h).
+ * TibiaData, atualizados ~6h da manhã).
  * Busca de novo no máximo 1x por dia, reaproveitando o valor cacheado até a próxima janela
  * de atualização — ver local-cache.ts pro núcleo (dedupe/fallback) e ttl-cache.ts pro caso
  * "expira depois de X tempo" em vez de "expira num horário fixo".

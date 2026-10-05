@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useAccount } from '@/hooks/useAccount';
 import { useMembers } from '@/hooks/useMembers';
-import { useXpSheet } from '@/hooks/useXpSheet';
+import { useXpSeries } from '@/hooks/useXpSeries';
 import { parseDateKey } from '@/services/calendar';
 import { MESES } from '@/services/common/months';
 
@@ -11,8 +11,8 @@ function formatXp(value: number): string {
 }
 
 // Janela do pódio de recorde é fixa em 365 dias; a tabela dia-a-dia é filtrável no
-// front (pedido do usuário em 2026-08-17) — o hook já traz o histórico completo da
-// planilha (ver useXpSheet), então trocar de janela não dispara requisição nova.
+// front (pedido do usuário em 2026-08-17) — o hook já traz o histórico completo
+// de XP (ver useXpSeries), então trocar de janela não dispara requisição nova.
 const RECORD_WINDOW_DAYS = 365;
 const WINDOW_OPTIONS = [30, 60, 90, 120, 365];
 const PODIUM_COLORS = ['var(--color-warning)', 'var(--color-text-muted)', '#b45309'];
@@ -75,7 +75,7 @@ function Podium({ items }: { items: PodiumItem[] }) {
 export function XpHistoricoPage() {
   const { accountId } = useAccount();
   const { members } = useMembers(accountId);
-  const { data, loading, error } = useXpSheet(accountId);
+  const { data, loading, error } = useXpSeries(accountId);
   const [windowDays, setWindowDays] = useState(30);
 
   const valueMaps = useMemo(() => {
@@ -193,7 +193,7 @@ export function XpHistoricoPage() {
         {error && <div className="empty-state">{error}</div>}
         {!loading && !error && windowDates.length === 0 && (
           <p className="estado-vazio">
-            Nenhum dado de XP encontrado na planilha.
+            Nenhum dado de XP encontrado.
           </p>
         )}
 

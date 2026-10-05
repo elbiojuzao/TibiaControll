@@ -10,7 +10,7 @@ export type { XpCharacterStats, XpDailyEntry } from '@/types';
  * planilha Google Sheets do usuário). Usado pelo Dashboard, Histórico de XP e modal do
  * Calendário (busca um dia específico, que pode estar fora dos últimos 30 dias).
  */
-export function useXpSheet(accountId: string) {
+export function useXpSeries(accountId: string) {
   const [data, setData] = useState<Record<string, XpCharacterStats>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

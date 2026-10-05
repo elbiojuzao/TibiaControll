@@ -3,7 +3,7 @@ import { useAccount } from '@/hooks/useAccount';
 import { useHunts } from '@/hooks/useHunts';
 import { useLootDrops } from '@/hooks/useLootDrops';
 import { useMembers } from '@/hooks/useMembers';
-import { useXpSheet } from '@/hooks/useXpSheet';
+import { useXpSeries } from '@/hooks/useXpSeries';
 import { useSplitLogsDaily } from '@/hooks/useSplitLogsDaily';
 import { useTibiaEvents, isDayInTibiaEvent } from '@/hooks/useTibiaEvents';
 import { usePartyEvents } from '@/hooks/usePartyEvents';
@@ -51,7 +51,7 @@ export function CalendarioPage() {
   const { hunts, loading: huntsLoading } = useHunts(accountId);
   const { drops, loading: dropsLoading } = useLootDrops(accountId);
   const { members } = useMembers(accountId);
-  const { data: xpData } = useXpSheet(accountId);
+  const { data: xpData } = useXpSeries(accountId);
   // Perfil individual de Hunt/Boss do dia (2026-08-19, pedido do usuário: puxar direto de
   // split_logs em vez da planilha externa) — ver useSplitLogsDaily.
   const { series: splitDailySeries, loading: splitDailyLoading, hideDay, addSplitOptimistic } = useSplitLogsDaily(accountId);
@@ -125,7 +125,7 @@ export function CalendarioPage() {
   const partyEventsForDay = (dateKey: string) => partyEvents.filter((ev) => isDayInPartyEvent(dateKey, ev));
 
   /** XP de cada membro numa data específica (DD/MM/YYYY) — busca no histórico completo
-   * da planilha (useXpSheet), não só nos últimos 30 dias, já que o calendário pode
+   * de XP (useXpSeries), não só nos últimos 30 dias, já que o calendário pode
    * navegar pra qualquer mês. */
   const xpForDate = (dateKey: string): { name: string; value: number }[] => {
     return members

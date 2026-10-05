@@ -2,10 +2,9 @@
  * Limite de requisições simples, em memória, por chave (normalmente IP) — sem dependência
  * nova. Best-effort: cada instância serverless do Vercel tem seu próprio estado (não é um
  * limite global exato entre instâncias, e zera a cada cold start), mas soma-se ao
- * Cache-Control já existente em api/xp-sheet.ts pra cobrir o caso real (scraper/loop
- * travado batendo direto na function, ignorando o cache do edge). Módulo compartilhado
- * entre a Vercel Function (api/xp-sheet.ts) e o plugin de dev do Vite (vite.config.ts),
- * mesmo espírito de api/_lib/xp-sheet.ts (lógica pura, sem depender do formato de
+ * limite do próprio Supabase pra cobrir o caso real (scraper/loop travado batendo direto
+ * na function). Módulo compartilhado entre a Vercel Function (api/login.ts) e o plugin de
+ * dev do Vite (vite.config.ts), lógica pura, sem depender do formato de
  * request/response de nenhum dos dois runtimes).
  */
 const WINDOW_MS = 60_000;
@@ -22,8 +21,8 @@ export interface RateLimitResult {
 /** `windowMs`/`maxRequests` opcionais (2026-09-30, pedido do usuário: limitar tentativas de
  * login) — cada chamador pode ter sua própria janela/teto sem afetar os outros, já que o
  * `Map` é compartilhado só pelo texto da `key` (por isso login usa chave prefixada
- * `login:{ip}`, nunca colidindo com a chave crua de IP do xp-sheet). Sem os parâmetros,
- * comportamento idêntico ao de sempre (20 req/min) — xp-sheet.ts não precisou mudar. */
+ * `login:{ip}`, nunca colidindo com a chave crua de IP). Sem os parâmetros, comportamento
+ * padrão de 20 req/min. */
 export function checkRateLimit(key: string, options?: { windowMs?: number; maxRequests?: number }): RateLimitResult {
   const windowMs = options?.windowMs ?? WINDOW_MS;
   const maxRequests = options?.maxRequests ?? MAX_REQUESTS_PER_WINDOW;

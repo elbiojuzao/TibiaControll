@@ -1,8 +1,8 @@
 import { loginWithPassword, LOGIN_RATE_LIMIT_WINDOW_MS, LOGIN_RATE_LIMIT_MAX_ATTEMPTS } from './_lib/login.js';
 import { checkRateLimit, clientKeyFromRequest } from './_lib/rate-limit.js';
 
-/** Vercel Node Function — POST /api/login. Tipado à mão (sem @vercel/node), mesmo padrão
- * de api/xp-sheet.ts; req.body já vem parseado pelo runtime Node do Vercel quando o
+/** Vercel Node Function — POST /api/login. Tipado à mão (sem @vercel/node);
+ * req.body já vem parseado pelo runtime Node do Vercel quando o
  * Content-Type é application/json (sem precisar de nenhum middleware extra). */
 export default async function handler(
   req: {

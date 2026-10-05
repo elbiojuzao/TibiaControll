@@ -3,8 +3,8 @@ import { collectXpSnapshots } from '../_lib/xp-collect.js';
 /** Vercel Cron — GET /api/cron/xp-collect, agendado em vercel.json (todo dia 09:30 UTC =
  * 06:30 BRT). A rota é pública por natureza (qualquer um pode digitar a URL), então exige
  * `Authorization: Bearer ${CRON_SECRET}` — header que a própria Vercel injeta nas execuções
- * do Cron quando a env var CRON_SECRET existe no projeto. Tipado à mão, mesmo estilo de
- * api/xp-sheet.ts (sem @vercel/node). */
+ * do Cron quando a env var CRON_SECRET existe no projeto. Tipado à mão (sem @vercel/node), mesmo
+ * estilo de api/login.ts. */
 export default async function handler(
   req: { method?: string; headers?: Record<string, string | string[] | undefined> },
   res: {

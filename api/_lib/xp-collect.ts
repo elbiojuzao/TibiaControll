@@ -128,7 +128,13 @@ export async function collectXpSnapshots(now: Date = new Date()): Promise<Collec
 
   if (toSave.length > 0) {
     // account_id só serve pro agrupamento acima — a função do banco deriva a conta de members.
-    const payload = toSave.map(({ account_id: _accountId, ...row }) => row);
+    const payload = toSave.map((row) => ({
+      member_id: row.member_id,
+      data: row.data,
+      xp_total: row.xp_total,
+      xp_total_anterior: row.xp_total_anterior,
+      xp_ganho: row.xp_ganho,
+    }));
     result.processed = await rpc<number>('xp_cron_save', { p_rows: payload });
   }
   return result;

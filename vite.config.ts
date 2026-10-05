@@ -7,45 +7,9 @@ import { loadEnv, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import yaml from '@rollup/plugin-yaml'
 import path from 'path'
-import { fetchXpStatsFromSheet } from './api/_lib/xp-sheet'
 import { checkRateLimit, clientKeyFromRequest } from './api/_lib/rate-limit'
 import { loginWithPassword, LOGIN_RATE_LIMIT_WINDOW_MS, LOGIN_RATE_LIMIT_MAX_ATTEMPTS } from './api/_lib/login'
 import type { IncomingMessage } from 'http'
-
-/** Serve a rota /api/xp-sheet no `npm run dev` (Vite puro) — em produção quem atende
- * essa rota é a Vercel Function em api/xp-sheet.ts, que reusa a mesma lógica. Sem isso
- * só daria pra testar essa integração depois de publicar no Vercel.
- *
- * Existia uma rota irmã /api/boss-hunt-sheet (planilha "Boss hunt") até 2026-08-20 —
- * removida junto com useBossHuntSheet quando Dashboard/Calendário migraram KKs Hunt/Boss
- * pra ler de split_logs (banco) em vez da planilha, ver useSplitLogsDaily. */
-function sheetDevApiPlugin(): Plugin {
-  return {
-    name: 'sheet-dev-api',
-    configureServer(server) {
-      server.middlewares.use('/api/xp-sheet', async (req, res) => {
-        const rateLimit = checkRateLimit(clientKeyFromRequest(req))
-        if (!rateLimit.allowed) {
-          res.statusCode = 429
-          res.setHeader('Retry-After', String(rateLimit.retryAfterSeconds ?? 60))
-          res.setHeader('Content-Type', 'application/json')
-          res.end(JSON.stringify({ error: 'Muitas requisições. Tente de novo em instantes.' }))
-          return
-        }
-
-        try {
-          const stats = await fetchXpStatsFromSheet()
-          res.setHeader('Content-Type', 'application/json')
-          res.end(JSON.stringify(stats))
-        } catch (err) {
-          res.statusCode = 502
-          res.setHeader('Content-Type', 'application/json')
-          res.end(JSON.stringify({ error: err instanceof Error ? err.message : 'Erro ao buscar planilha de XP' }))
-        }
-      })
-    },
-  }
-}
 
 /** Lê o corpo JSON de um request cru do Node — o middleware do Vite não faz parsing de
  * body sozinho (diferente da Vercel Function em produção, que já entrega `req.body`
@@ -67,8 +31,7 @@ function readJsonBody(req: IncomingMessage): Promise<Record<string, unknown>> {
 
 /** Serve a rota /api/login no `npm run dev` — em produção quem atende é a Vercel Function
  * em api/login.ts, que reusa a mesma lógica (api/_lib/login.ts). Proteção de força bruta
- * no login (2026-09-30, pedido do usuário) precisa ser testável localmente, mesmo espírito
- * de sheetDevApiPlugin acima. */
+ * no login (2026-09-30, pedido do usuário) precisa ser testável localmente. */
 function loginDevApiPlugin(): Plugin {
   return {
     name: 'login-dev-api',
@@ -111,10 +74,10 @@ function loginDevApiPlugin(): Plugin {
 }
 
 export default defineConfig(({ mode }) => {
-  // loadEnv com prefixo '' (não só VITE_) pra também carregar XP_SHEET_ID e afins do
-  // .env.local pro process.env — essas variáveis são server-only de propósito (sem
-  // prefixo VITE_, nunca vão pro bundle do client), então o Vite não as injeta sozinho
-  // como faz com import.meta.env.VITE_*; o plugin de dev abaixo lê via process.env.
+  // loadEnv com prefixo '' (não só VITE_) pra jogar o .env.local inteiro no process.env: o
+  // plugin de dev do login (api/_lib/login.ts) lê VITE_SUPABASE_URL/PUBLISHABLE_KEY via
+  // process.env, igual faz na Vercel Function — o Vite só injeta import.meta.env.VITE_*
+  // no código do client, não no process.env do servidor de dev.
   const env = loadEnv(mode, process.cwd(), '')
   process.env = { ...process.env, ...env }
 
@@ -122,7 +85,7 @@ export default defineConfig(({ mode }) => {
     // yaml(): só pro `import data from '../../data.yaml'` do módulo copiado do tibia-wheel
     // (gitlab.com/klhio/tibia-wheel) rodar sem alterar esse import — o Parcel (bundler
     // original deles) entende .yaml nativo, o Vite não.
-    plugins: [react(), yaml(), sheetDevApiPlugin(), loginDevApiPlugin()],
+    plugins: [react(), yaml(), loginDevApiPlugin()],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),

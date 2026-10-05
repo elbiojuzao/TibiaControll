@@ -144,7 +144,7 @@ export async function findSkillValue(
 /**
  * XP total acumulada (lifetime) do personagem, via categoria "experience" dos Highscores —
  * o Tibia não expõe esse número na página do personagem (só Level), mas os Highscores sim.
- * Usado pra "Previsão fim de ano" (ver services/xp-sheet/level-prediction.ts), que precisa da
+ * Usado pra "Previsão fim de ano" (ver services/xp/level-prediction.ts), que precisa da
  * XP atual exata, não só do level.
  */
 export async function findExperienceValue(world: string, characterName: string): Promise<number | null> {

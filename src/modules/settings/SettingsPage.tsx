@@ -586,7 +586,7 @@ export function SettingsPage() {
           <h2 style={{ margin: 0, fontSize: '20px', color: 'var(--color-accent)' }}>Configurações — Membros da Party</h2>
           <p className="subtitulo-pagina" style={{ maxWidth: '520px' }}>
             Cadastre os jogadores base da party — eles aparecem no Dashboard, Histórico, Histórico de XP e Log de Drops.
-            O nome do personagem precisa bater exatamente com o nome real no Tibia e com a coluna correspondente na sua planilha de XP.
+            O nome do personagem precisa bater exatamente com o nome real no Tibia. Se ele for renomeado no jogo, é só editar aqui — o nome antigo fica guardado e o histórico de XP continua ligado ao mesmo personagem.
           </p>
         </div>
         <button onClick={openCreate} className="botao-primario">

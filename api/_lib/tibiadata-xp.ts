@@ -1,8 +1,8 @@
 /**
  * Consulta de XP total (lifetime) nos Highscores do TibiaData, versão server-side usada pelo
  * cron api/cron/xp-collect. Cópia enxuta de findExperienceValue/fetchCharacterBasics de
- * src/services/tibiadata/tibiadata-client.ts — api/_lib é auto-contido de propósito (mesma
- * convenção de sheet-utils.ts): não importa nada de src/, que é código do bundle do client.
+ * src/services/tibiadata/tibiadata-client.ts — api/_lib é auto-contido de propósito:
+ * não importa nada de src/, que é código do bundle do client.
  */
 const BASE_URL = 'https://api.tibiadata.com/v4';
 

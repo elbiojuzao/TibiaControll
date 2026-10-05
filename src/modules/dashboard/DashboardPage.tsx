@@ -6,11 +6,11 @@ import { useServiceiros } from '@/hooks/useServiceiros';
 import { useMemberLiveStats } from '@/hooks/useMemberLiveStats';
 import { useMemberXpStats } from '@/hooks/useMemberXpStats';
 import { useSplitLogsDaily } from '@/hooks/useSplitLogsDaily';
-import { useXpSheet } from '@/hooks/useXpSheet';
+import { useXpSeries } from '@/hooks/useXpSeries';
 import { useXpLevels } from '@/hooks/useXpLevels';
 import { formatTibiaGold } from '@/services/split';
-import { predictEndOfYearLevel } from '@/services/xp-sheet/level-prediction';
-import { computeMetaLevelRange, computeDailyGoals } from '@/services/xp-sheet/meta-xp-diaria';
+import { predictEndOfYearLevel } from '@/services/xp/level-prediction';
+import { computeMetaLevelRange, computeDailyGoals } from '@/services/xp/meta-xp-diaria';
 import { monthRangeAsBr } from '@/services/common/months';
 import { dateAsBr, todayAsBr } from '@/services/common/br-date';
 import { parseDateKey } from '@/services/calendar';
@@ -53,31 +53,31 @@ export function DashboardPage() {
   const liveStats = useMemberLiveStats(members);
   const { statsByName } = useMemberXpStats(accountId);
   const { series: splitDailySeries } = useSplitLogsDaily(accountId);
-  const { data: xpSheetData } = useXpSheet(accountId);
+  const { data: xpSeriesByName } = useXpSeries(accountId);
   const { levels: xpLevelsTable } = useXpLevels();
 
-  // Previsão fim de ano — antes vinha de um script no Google Sheets do usuário, portado
-  // pra cá em 2026-08-10 (ver services/xp-sheet/level-prediction.ts). XP atual vem ao vivo
-  // dos Highscores (categoria "experience", via useMemberLiveStats); média diária vem de
-  // xp90Dias da planilha (janela de 90 dias, mais estável que os 30 do card "Xp 30Dias").
+  // Previsão fim de ano (ver services/xp/level-prediction.ts). XP atual vem ao vivo dos
+  // Highscores (categoria "experience", via useMemberLiveStats); média diária vem de
+  // xp90Dias do histórico em member_xp_snapshots (janela de 90 dias, mais estável que os
+  // 30 do card "Xp 30Dias").
   // '—' se faltar level/XP atual/histórico de 90 dias pra esse personagem.
   const previsaoPorMembro = useMemo(() => {
     const result: Record<string, string> = {};
     for (const m of members) {
       const live = liveStats[m.characterName];
-      const xp90Dias = xpSheetData[m.characterName]?.xp90Dias;
+      const xp90Dias = xpSeriesByName[m.characterName]?.xp90Dias;
       if (!live?.level || !live.experience || !xp90Dias) continue;
       result[m.characterName] = String(
         predictEndOfYearLevel({ currentLevel: live.level, currentXp: live.experience, avgDailyXp: xp90Dias / 90 }),
       );
     }
     return result;
-  }, [members, liveStats, xpSheetData]);
+  }, [members, liveStats, xpSeriesByName]);
 
   // Meta XP Diária — níveis exibidos são dinâmicos (pedido do usuário em 2026-08-14): do
   // menor nível atual da party − 2 estágios (100 níveis) até o maior nível + 4 estágios
   // (200 níveis), sempre múltiplos de 50. XP necessária por nível vem da tabela real
-  // xp_levels (ver useXpLevels/services/xp-sheet/meta-xp-diaria.ts), não é mais mock.
+  // xp_levels (ver useXpLevels/services/xp/meta-xp-diaria.ts), não é mais mock.
   const niveisMetas = useMemo(() => {
     const currentLevels = members
       .map((m) => liveStats[m.characterName]?.level)

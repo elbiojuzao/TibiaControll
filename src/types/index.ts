@@ -30,7 +30,7 @@ export type { Serviceiro, CreateServiceiroDto } from './serviceiro';
 export type { MemberXpStats } from './dashboard-stats';
 export type { TibiaEvent, TibiaEventCategory } from './tibia-event';
 export type { PartySettings } from './party-settings';
-export type { XpCharacterStats, XpDailyEntry } from './xp-sheet';
+export type { XpCharacterStats, XpDailyEntry } from './xp-stats';
 export type { SplitLog, SplitLogMember, SplitLogPlayerSlot, SplitLogTransfer, SplitLogType, CreateSplitLogDto } from './split-log';
 export type { PartyEvent, CreatePartyEventDto, PartyEventCategory } from './party-event';
 export type { WheelPreset, CreateWheelPresetDto } from './wheel-preset';

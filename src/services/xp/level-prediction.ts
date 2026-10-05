@@ -1,14 +1,11 @@
 /**
- * "Previsão fim de ano" — antes era uma rotina no Google Apps Script do usuário; portada
- * pra cá em 2026-08-10 pra rodar direto no app, sem depender de nenhuma planilha extra.
- * Mesma fórmula/lógica do script original, só trocando de onde vêm os dois insumos:
- * - XP atual: antes vinha de uma célula alimentada por outro script; agora vem ao vivo da
- *   categoria "experience" dos Highscores do TibiaData (o Tibia não expõe XP total na
- *   página do personagem, só Level — mas os Highscores sim). Ver findExperienceValue em
- *   services/tibiadata/tibiadata-client.ts.
- * - Média diária de XP: antes usava uma célula de "XP dos últimos 90 dias" calculada na
- *   planilha; agora vem de XpCharacterStats.xp90Dias (mesma fonte da Xp Realizada que já
- *   líamos, só que somando uma janela maior — pedido do usuário pra ficar mais preciso).
+ * "Previsão fim de ano" (portada em 2026-08-10 de uma rotina antiga do usuário no Google
+ * Apps Script; hoje roda direto no app) — dois insumos:
+ * - XP atual: ao vivo da categoria "experience" dos Highscores do TibiaData (o Tibia não
+ *   expõe XP total na página do personagem, só Level — mas os Highscores sim). Ver
+ *   findExperienceValue em services/tibiadata/tibiadata-client.ts.
+ * - Média diária de XP: XpCharacterStats.xp90Dias, soma dos últimos 90 dias do histórico
+ *   em member_xp_snapshots (janela maior que os 30 do card "Xp 30Dias" — mais estável).
  */
 
 /**
@@ -20,7 +17,7 @@ export function xpParaNivel(level: number): number {
 }
 
 /** Dias restantes no ano corrente a partir de referenceDate (inclusive), até 31/12.
- * Compartilhado entre Previsão fim de ano e Meta XP Diária (services/xp-sheet/meta-xp-diaria.ts). */
+ * Compartilhado entre Previsão fim de ano e Meta XP Diária (services/xp/meta-xp-diaria.ts). */
 export function diasRestantesNoAno(referenceDate: Date = new Date()): number {
   const fimAno = new Date(referenceDate.getFullYear(), 11, 31);
   const msPorDia = 86_400_000;

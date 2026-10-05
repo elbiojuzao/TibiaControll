@@ -26,7 +26,7 @@ function formatXp(value: number): string {
 /** Modal "Detalhes de DD/MM/YYYY" aberta ao clicar num dia do calendário. Reune tudo
  * que aconteceu naquele dia: eventos da party cadastrados pelo usuário, eventos
  * oficiais (rapid respawn/XP/poção), perfil individual de Hunt/Boss (split_logs), XP
- * diária de cada membro (planilha) e os drops registrados.
+ * diária de cada membro (member_xp_snapshots) e os drops registrados.
  *
  * Extraído de CalendarioPage.tsx em 2026-08-27 seguindo a regra "modal em arquivo
  * separado" (ver memória feedback-modal-arquivo-separado) — antes era um bloco
